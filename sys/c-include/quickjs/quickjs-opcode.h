@@ -258,10 +258,10 @@ DEF(            and, 1, 2, 1, none)
 DEF(            xor, 1, 2, 1, none)
 DEF(             or, 1, 2, 1, none)
 DEF(is_undefined_or_null, 1, 1, 1, none)
-// #ifdef CONFIG_BIGNUM // Emit the same opcodes whether CONFIG_BIGNUM is defined or not
+#ifdef CONFIG_BIGNUM
 DEF(      mul_pow10, 1, 2, 1, none)
 DEF(       math_mod, 1, 2, 1, none)
-// #endif
+#endif
 /* must be the last non short and non temporary opcode */
 DEF(            nop, 1, 0, 0, none) 
 
@@ -286,6 +286,7 @@ def(scope_put_private_field, 7, 1, 1, atom_u16) /* obj value ->, emitted in phas
 def( set_class_name, 5, 1, 1, u32) /* emitted in phase 1, removed in phase 2 */
     
 def(       line_num, 5, 0, 0, u32) /* emitted in phase 1, removed in phase 3 */
+def(       column_num, 5, 0, 0, u32) /* emitted in phase 1, removed in phase 3 */
 
 #if SHORT_OPCODES
 DEF(    push_minus1, 1, 0, 1, none_int)
@@ -361,6 +362,10 @@ DEF(        is_null, 1, 1, 1, none)
 DEF(typeof_is_undefined, 1, 1, 1, none)
 DEF( typeof_is_function, 1, 1, 1, none)
 #endif
+
+DEF(      get_field_ic, 5, 1, 1, none)
+DEF(     get_field2_ic, 5, 1, 2, none)
+DEF(      put_field_ic, 5, 2, 0, none)
 
 // =OPCODE_END
 

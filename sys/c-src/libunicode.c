@@ -27,9 +27,9 @@
 #include <string.h>
 #include <assert.h>
 
-#include "cutils.h"
-#include "libunicode.h"
-#include "libunicode-table.h"
+#include "quickjs/cutils.h"
+#include "quickjs/libunicode.h"
+#include "quickjs/libunicode-table.h"
 
 enum {
     RUN_TYPE_U,
@@ -302,7 +302,7 @@ int cr_realloc(CharRange *cr, int size)
     uint32_t *new_buf;
     
     if (size > cr->size) {
-        new_size = max_int(size, cr->size * 3 / 2);
+        new_size = max_int(size, cr->size * 9 / 2);
         new_buf = cr->realloc_func(cr->mem_opaque, cr->points,
                                    new_size * sizeof(cr->points[0]));
         if (!new_buf)

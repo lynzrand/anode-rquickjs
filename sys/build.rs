@@ -5,12 +5,15 @@ use std::{
     process::{Command, Stdio},
 };
 
+use log::info;
+
 fn main() {
     #[cfg(feature = "logging")]
     pretty_env_logger::init();
 
     println!("cargo:rerun-if-changed=build.rs");
 
+    info!("Begin quickjs compilation");
     let features = [
         "exports",
         "bindgen",
@@ -34,7 +37,8 @@ fn main() {
     }
 
     let src_dir = Path::new("c-src");
-    let header_dir = src_dir;
+    let header_dir = Path::new("c-include");
+    let quickjs_header_dir = header_dir.join("quickjs");
     let patches_dir = Path::new("patches");
 
     let out_dir = env::var("OUT_DIR").expect("No OUT_DIR env var is set by cargo");
@@ -53,14 +57,41 @@ fn main() {
         "cutils.h",
     ];
 
-    let source_files = [
+    let source_files = vec![
         "libregexp.c",
         "libunicode.c",
         "cutils.c",
-        "quickjs.c",
         "libbf.c",
         "anode-ext.c",
     ];
+    let split_source_dir_1 = src_dir.join("core");
+    let split_source_dir_2 = split_source_dir_1.join("builtins");
+    // Include every .c file in the two split source dirs
+    let split_source_files = split_source_dir_1
+        .read_dir()
+        .unwrap()
+        .filter_map(|p| {
+            let p = p.unwrap();
+            let path = p.path();
+            if path.extension().map(|e| e == "c").unwrap_or(false) {
+                Some(path)
+            } else {
+                None
+            }
+        })
+        .chain(split_source_dir_2.read_dir().unwrap().filter_map(|p| {
+            let p = p.unwrap();
+            let path = p.path();
+            if path.extension().map(|e| e == "c").unwrap_or(false) {
+                Some(path)
+            } else {
+                None
+            }
+        }));
+    let split_source_files = split_source_files
+        .map(|x| x.to_string_lossy().into_owned())
+        .collect::<Vec<_>>();
+    info!("Found split source files: {:?}", split_source_files);
 
     // rerun if anything in c-src or c-include changes
     for file in src_dir.read_dir().expect("Unable to read c-src") {
@@ -88,12 +119,6 @@ fn main() {
         defines.push(("CONFIG_BOX64".into(), None));
     }
 
-    if env::var("CARGO_CFG_TARGET_OS").unwrap() == "windows"
-        && env::var("CARGO_CFG_TARGET_ENV").unwrap() == "msvc"
-    {
-        patch_files.push("basic_msvc_compat.patch");
-    }
-
     if env::var("CARGO_FEATURE_EXPORTS").is_ok() {
         patch_files.push("read_module_exports.patch");
         defines.push(("CONFIG_MODULE_EXPORTS".into(), None));
@@ -105,25 +130,20 @@ fn main() {
         }
     }
 
-    // for file in source_files.iter().chain(header_files.iter()) {
-    //     fs::copy(src_dir.join(file), out_dir.join(file)).expect("Unable to copy source");
-    // }
+    let include_dir = [src_dir, header_dir, &quickjs_header_dir];
 
-    // // applying patches
-    // for file in &patch_files {
-    //     patch(out_dir, patches_dir.join(file));
-    // }
-
-    let include_dir = [&src_dir, &header_dir];
+    info!("Finished configuration");
 
     // generating bindings
+    info!("Generate bindings");
     bindgen(
         out_dir.join("bindings.rs"),
-        header_dir.join("quickjs-internals.h"),
+        split_source_dir_1.join("quickjs-internals.h"),
         &defines,
         include_dir,
     );
 
+    info!("Begin compiler setup");
     let mut builder = cc::Build::new();
     builder
         .extra_warnings(false)
@@ -138,11 +158,16 @@ fn main() {
     for src in &source_files {
         builder.file(src_dir.join(src));
     }
+    for src in &split_source_files {
+        builder.file(src);
+    }
 
     builder.include(header_dir);
+    builder.include(quickjs_header_dir);
     builder.include(src_dir);
 
-    builder.compile("libquickjs.a");
+    info!("Begin compiling");
+    builder.compile("quickjs");
 }
 
 fn feature_to_cargo(name: impl AsRef<str>) -> String {

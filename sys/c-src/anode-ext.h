@@ -1,6 +1,6 @@
 #ifndef ANODE_EXT_H
 #define ANODE_EXT_H
-#include "quickjs-internals.h"
+#include "core/quickjs-internals.h"
 
 // This file is used to generate LLVM IR for the API of Anode.
 
