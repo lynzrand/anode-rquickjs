@@ -126,4 +126,8 @@ int clock_gettime(int X, struct timeval *tv);
 #include <stdatomic.h>
 #endif
 
+#ifndef CONFIG_VERSION
+#define CONFIG_VERSION "anode_rquickjs_dev"
+#endif
+
 #endif
