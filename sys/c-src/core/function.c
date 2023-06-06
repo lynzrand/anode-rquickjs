@@ -42,11 +42,11 @@
 #include "string.h"
 
 JSValue js_call_c_function(JSContext* ctx,
-                                  JSValueConst func_obj,
-                                  JSValueConst this_obj,
-                                  int argc,
-                                  JSValueConst* argv,
-                                  int flags) {
+                           JSValueConst func_obj,
+                           JSValueConst this_obj,
+                           int argc,
+                           JSValueConst* argv,
+                           int flags) {
   JSRuntime* rt = ctx->rt;
   JSCFunctionType func;
   JSObject* p;
@@ -175,11 +175,11 @@ JSValue js_call_c_function(JSContext* ctx,
 }
 
 JSValue js_call_bound_function(JSContext* ctx,
-                                      JSValueConst func_obj,
-                                      JSValueConst this_obj,
-                                      int argc,
-                                      JSValueConst* argv,
-                                      int flags) {
+                               JSValueConst func_obj,
+                               JSValueConst this_obj,
+                               int argc,
+                               JSValueConst* argv,
+                               int flags) {
   JSObject* p;
   JSBoundFunction* bf;
   JSValueConst *arg_buf, new_target;
@@ -209,12 +209,12 @@ JSValue js_call_bound_function(JSContext* ctx,
 
 /* argv[] is modified if (flags & JS_CALL_FLAG_COPY_ARGV) = 0. */
 JSValue JS_CallInternal(JSContext* caller_ctx,
-                               JSValueConst func_obj,
-                               JSValueConst this_obj,
-                               JSValueConst new_target,
-                               int argc,
-                               JSValue* argv,
-                               int flags) {
+                        JSValueConst func_obj,
+                        JSValueConst this_obj,
+                        JSValueConst new_target,
+                        int argc,
+                        JSValue* argv,
+                        int flags) {
   JSRuntime* rt = caller_ctx->rt;
   JSContext* ctx;
   JSObject* p;
@@ -225,7 +225,7 @@ JSValue JS_CallInternal(JSContext* caller_ctx,
   JSValue *local_buf, *stack_buf, *var_buf, *arg_buf, *sp, ret_val, *pval;
   JSVarRef** var_refs;
   size_t alloca_size;
-  InlineCache *ic;
+  InlineCache* ic;
 
 #if !DIRECT_DISPATCH
 #define SWITCH(pc) switch (opcode = *pc++)
@@ -754,9 +754,7 @@ restart:
       CASE(OP_throw) : JS_Throw(ctx, *--sp);
       goto exception;
 
-      CASE(OP_throw_error)
-          :
-      {
+      CASE(OP_throw_error) : {
         JSAtom atom;
         int type;
         atom = get_u32(pc);
@@ -1481,7 +1479,7 @@ restart:
         JSAtom atom;
         atom = get_u32(pc);
         pc += 4;
-        
+
         val = JS_GetPropertyInternal(ctx, sp[-1], atom, sp[-1], ic, FALSE);
         if (unlikely(JS_IsException(val)))
           goto exception;
@@ -1497,14 +1495,14 @@ restart:
       }
       BREAK;
 
-      CASE(OP_get_field_ic): {
+      CASE(OP_get_field_ic) : {
         JSValue val;
         JSAtom atom;
         int32_t ic_offset;
         ic_offset = get_u32(pc);
         atom = get_ic_atom(ic, ic_offset);
         pc += 4;
-        
+
         val = JS_GetPropertyInternalWithIC(ctx, sp[-1], atom, sp[-1], ic, ic_offset, FALSE);
         ic->updated = FALSE;
         if (unlikely(JS_IsException(val)))
@@ -1534,14 +1532,14 @@ restart:
       }
       BREAK;
 
-      CASE(OP_get_field2_ic): {
+      CASE(OP_get_field2_ic) : {
         JSValue val;
         JSAtom atom;
         int32_t ic_offset;
         ic_offset = get_u32(pc);
         atom = get_ic_atom(ic, ic_offset);
         pc += 4;
-        
+
         val = JS_GetPropertyInternalWithIC(ctx, sp[-1], atom, sp[-1], ic, ic_offset, FALSE);
         ic->updated = FALSE;
         if (unlikely(JS_IsException(val)))
@@ -1571,14 +1569,14 @@ restart:
       }
       BREAK;
 
-      CASE(OP_put_field_ic): {
+      CASE(OP_put_field_ic) : {
         int ret;
         JSAtom atom;
         int32_t ic_offset;
         ic_offset = get_u32(pc);
         atom = get_ic_atom(ic, ic_offset);
         pc += 4;
-        
+
         ret = JS_SetPropertyInternalWithIC(ctx, sp[-2], atom, sp[-1], JS_PROP_THROW_STRICT, ic, ic_offset);
         ic->updated = FALSE;
         JS_FreeValue(ctx, sp[-2]);
@@ -2646,11 +2644,11 @@ JSValue JS_InvokeFree(JSContext* ctx, JSValue this_val, JSAtom atom, int argc, J
 
 /* argv[] is modified if (flags & JS_CALL_FLAG_COPY_ARGV) = 0. */
 JSValue JS_CallConstructorInternal(JSContext* ctx,
-                                          JSValueConst func_obj,
-                                          JSValueConst new_target,
-                                          int argc,
-                                          JSValue* argv,
-                                          int flags) {
+                                   JSValueConst func_obj,
+                                   JSValueConst new_target,
+                                   int argc,
+                                   JSValue* argv,
+                                   int flags) {
   JSObject* p;
   JSFunctionBytecode* b;
 
@@ -2733,12 +2731,12 @@ JSValue JS_Invoke(JSContext* ctx, JSValueConst this_val, JSAtom atom, int argc, 
 
 /* Note: at least 'length' arguments will be readable in 'argv' */
 JSValue JS_NewCFunction3(JSContext* ctx,
-                                JSCFunction* func,
-                                const char* name,
-                                int length,
-                                JSCFunctionEnum cproto,
-                                int magic,
-                                JSValueConst proto_val) {
+                         JSCFunction* func,
+                         const char* name,
+                         int length,
+                         JSCFunctionEnum cproto,
+                         int magic,
+                         JSValueConst proto_val) {
   JSValue func_obj;
   JSObject* p;
   JSAtom name_atom;
@@ -2839,11 +2837,11 @@ void js_c_function_data_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_
 }
 
 JSValue js_c_function_data_call(JSContext* ctx,
-                                       JSValueConst func_obj,
-                                       JSValueConst this_val,
-                                       int argc,
-                                       JSValueConst* argv,
-                                       int flags) {
+                                JSValueConst func_obj,
+                                JSValueConst this_val,
+                                int argc,
+                                JSValueConst* argv,
+                                int flags) {
   JSCFunctionDataRecord* s = JS_GetOpaque(func_obj, JS_CLASS_C_FUNCTION_DATA);
   JSValueConst* arg_buf;
   int i;
@@ -2863,12 +2861,12 @@ JSValue js_c_function_data_call(JSContext* ctx,
 }
 
 int js_op_define_class(JSContext* ctx,
-                              JSValue* sp,
-                              JSAtom class_name,
-                              int class_flags,
-                              JSVarRef** cur_var_refs,
-                              JSStackFrame* sf,
-                              BOOL is_computed_name) {
+                       JSValue* sp,
+                       JSAtom class_name,
+                       int class_flags,
+                       JSVarRef** cur_var_refs,
+                       JSStackFrame* sf,
+                       BOOL is_computed_name) {
   JSValue bfunc, parent_class, proto = JS_UNDEFINED;
   JSValue ctor = JS_UNDEFINED, parent_proto = JS_UNDEFINED;
   JSFunctionBytecode* b;
