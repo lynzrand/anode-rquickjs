@@ -330,6 +330,7 @@ static inline JS_BOOL JS_VALUE_IS_NAN(JSValue v) {
 #define JS_EVAL_FLAG_BACKTRACE_BARRIER (1 << 6)
 
 typedef JSValue JSCFunction(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
+typedef JSValue JSPrecompiledFunction(JSContext *ctx, JSValueConst func, JSValueConst this_val, JSValueConst new_target, int argc, JSValueConst *argv);
 typedef JSValue JSCFunctionMagic(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic);
 typedef JSValue JSCFunctionData(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic, JSValue *func_data);
 

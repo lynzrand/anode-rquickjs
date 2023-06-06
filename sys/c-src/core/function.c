@@ -296,6 +296,23 @@ JSValue JS_CallInternal(JSContext* caller_ctx,
     arg_allocated_size = 0;
   }
 
+  // Check for optimized function
+  if (b->compiled_function != NULL && !(flags & JS_CALL_FLAG_IS_DEOPT)) {
+    arg_buf = argv;
+    if (arg_allocated_size) {
+      // copy argv, but since we're not using the interpreter, we don't need to
+      // emit JS_DupValue 
+      arg_buf = alloca(sizeof(JSValue) * arg_allocated_size);
+      for (i = 0; i <argc; i++) {
+        arg_buf[i] = argv[i];
+      }
+      for(; i < arg_allocated_size; i++) {
+        arg_buf[i] = JS_UNDEFINED;
+      }
+    }
+    return b->compiled_function->function(caller_ctx, func_obj, this_obj, new_target, argc, arg_buf);
+  }
+
   alloca_size = sizeof(JSValue) * (arg_allocated_size + b->var_count + b->stack_size);
   if (js_check_stack_overflow(rt, alloca_size))
     return JS_ThrowStackOverflow(caller_ctx);
