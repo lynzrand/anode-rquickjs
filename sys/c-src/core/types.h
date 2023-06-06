@@ -384,8 +384,13 @@ struct JSContext {
   /* if NULL, RegExp compilation is not supported */
   JSValue (*compile_regexp)(JSContext* ctx, JSValueConst pattern, JSValueConst flags);
   /* if NULL, eval is not supported */
-  JSValue (*eval_internal)(JSContext* ctx, JSValueConst this_obj, const char* input, size_t input_len,
-                           const char* filename, int flags, int scope_idx);
+  JSValue (*eval_internal)(JSContext* ctx,
+                           JSValueConst this_obj,
+                           const char* input,
+                           size_t input_len,
+                           const char* filename,
+                           int flags,
+                           int scope_idx);
   void* user_opaque;
 };
 
@@ -582,7 +587,7 @@ typedef struct JSFunctionBytecode {
   int cpool_count;
   int closure_var_count;
   InlineCache* ic;
-  AnodeCompiledFunction* compiled_function; /* Pre-compiled function info, can be null */
+  AnodeCompiledFunction compiled_function; /* Pre-compiled function info, can be null */
   struct {
     /* debug info, move to separate structure to save memory? */
     JSAtom filename;
