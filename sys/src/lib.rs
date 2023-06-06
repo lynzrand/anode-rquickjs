@@ -23,3 +23,5 @@ include!("inlines/ptr_64.rs");
 include!("inlines/ptr_32_nan_boxing.rs");
 
 include!("inlines/common.rs");
+
+pub mod rt_binding;
