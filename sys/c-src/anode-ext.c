@@ -8,10 +8,16 @@
 
 JSFunctionBytecode* anode_get_function_bytecode(JSValue function) {
   int tag = JS_VALUE_GET_TAG(function);
-  assert(("The input function must be an object", tag == JS_TAG_OBJECT));
+  if (tag != JS_TAG_OBJECT) {
+    fprintf(stderr, "anode_get_function_bytecode: expected object, got tag %d\n", tag);
+    abort();
+  }
 
   JSObject* obj = JS_VALUE_GET_OBJ(function);
-  assert(("The input function must be a function", obj->class_id == JS_CLASS_BYTECODE_FUNCTION));
+  if (obj->class_id != JS_CLASS_BYTECODE_FUNCTION) {
+    fprintf(stderr, "anode_get_function_bytecode: expected bytecode function, got class id %d\n", obj->class_id);
+    abort();
+  }
 
   return obj->u.func.function_bytecode;
 }
