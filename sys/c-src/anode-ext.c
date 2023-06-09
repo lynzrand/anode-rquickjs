@@ -65,7 +65,7 @@ JSValue anode_js_sub_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(x) - JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_sub)) {
+    if (js_binary_arith_slow(ctx, args, OP_sub)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -85,7 +85,7 @@ JSValue anode_js_mul_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(x) * JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_mul)) {
+    if (js_binary_arith_slow(ctx, args, OP_mul)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -100,7 +100,7 @@ JSValue anode_js_div_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(x) / JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_div)) {
+    if (js_binary_arith_slow(ctx, args, OP_div)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -119,7 +119,7 @@ JSValue anode_js_mod_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewFloat64(ctx, fmod(JS_VALUE_GET_FLOAT64(x), JS_VALUE_GET_FLOAT64(y)));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_mod)) {
+    if (js_binary_arith_slow(ctx, args, OP_mod)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -148,7 +148,7 @@ JSValue anode_js_pow_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewFloat64(ctx, pow(JS_VALUE_GET_FLOAT64(x), JS_VALUE_GET_FLOAT64(y)));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_pow)) {
+    if (js_binary_arith_slow(ctx, args, OP_pow)) {
       return JS_EXCEPTION;
     }
     return args[0];
