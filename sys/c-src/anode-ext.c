@@ -1,6 +1,7 @@
 #include "anode-ext.h"
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 #include "core/builtins/js-big-num.h"
 #include "core/builtins/js-operator.h"
 #include "core/quickjs-internals.h"
@@ -45,7 +46,8 @@ JSValue anode_js_add_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(x) + JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_add_slow(ctx, args)) {
+    // js_xxx_slow functions expect the input sp at the end of the args array
+    if (js_add_slow(ctx, args + 2)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -65,7 +67,7 @@ JSValue anode_js_sub_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(x) - JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_arith_slow(ctx, args, OP_sub)) {
+    if (js_binary_arith_slow(ctx, args + 2, OP_sub)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -85,7 +87,7 @@ JSValue anode_js_mul_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(x) * JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_arith_slow(ctx, args, OP_mul)) {
+    if (js_binary_arith_slow(ctx, args + 2, OP_mul)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -96,11 +98,9 @@ JSValue anode_js_div_any(JSContext* ctx, JSValue x, JSValue y) {
   // division is always a float
   if (JS_VALUE_IS_BOTH_INT(x, y)) {
     return JS_NewFloat64(ctx, (double)JS_VALUE_GET_INT(x) / (double)JS_VALUE_GET_INT(y));
-  } else if (JS_VALUE_IS_BOTH_FLOAT(x, y)) {
-    return JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(x) / JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_arith_slow(ctx, args, OP_div)) {
+    if (js_binary_arith_slow(ctx, args + 2, OP_div)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -119,7 +119,7 @@ JSValue anode_js_mod_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewFloat64(ctx, fmod(JS_VALUE_GET_FLOAT64(x), JS_VALUE_GET_FLOAT64(y)));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_arith_slow(ctx, args, OP_mod)) {
+    if (js_binary_arith_slow(ctx, args + 2, OP_mod)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -127,32 +127,11 @@ JSValue anode_js_mod_any(JSContext* ctx, JSValue x, JSValue y) {
 }
 
 JSValue anode_js_pow_any(JSContext* ctx, JSValue x, JSValue y) {
-  if (JS_VALUE_IS_BOTH_INT(x, y)) {
-    int32_t x_int = JS_VALUE_GET_INT(x);
-    int32_t y_int = JS_VALUE_GET_INT(y);
-    if (y_int < 0) {
-      return JS_NewFloat64(ctx, pow((double)x_int, (double)y_int));
-    } else {
-      int64_t prod = 1;
-      for (int32_t i = 0; i < y_int; i++) {
-        prod *= x_int;
-      }
-      // check for overflow
-      if ((int32_t)prod == prod) {
-        return JS_NewInt32(ctx, (int32_t)prod);
-      } else {
-        return JS_NewFloat64(ctx, (double)prod);
-      }
-    }
-  } else if (JS_VALUE_IS_BOTH_FLOAT(x, y)) {
-    return JS_NewFloat64(ctx, pow(JS_VALUE_GET_FLOAT64(x), JS_VALUE_GET_FLOAT64(y)));
-  } else {
-    JSValue args[] = {x, y};
-    if (js_binary_arith_slow(ctx, args, OP_pow)) {
-      return JS_EXCEPTION;
-    }
-    return args[0];
+  JSValue args[] = {x, y};
+  if (js_binary_arith_slow(ctx, args + 2, OP_pow)) {
+    return JS_EXCEPTION;
   }
+  return args[0];
 }
 
 JSValue anode_js_bit_and_any(JSContext* ctx, JSValue x, JSValue y) {
@@ -160,7 +139,7 @@ JSValue anode_js_bit_and_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewInt32(ctx, JS_VALUE_GET_INT(x) & JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_and)) {
+    if (js_binary_logic_slow(ctx, args + 2, OP_and)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -172,7 +151,7 @@ JSValue anode_js_bit_or_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewInt32(ctx, JS_VALUE_GET_INT(x) | JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_or)) {
+    if (js_binary_logic_slow(ctx, args + 2, OP_or)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -184,7 +163,7 @@ JSValue anode_js_bit_xor_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewInt32(ctx, JS_VALUE_GET_INT(x) ^ JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_xor)) {
+    if (js_binary_logic_slow(ctx, args + 2, OP_xor)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -196,7 +175,7 @@ JSValue anode_js_bit_not_any(JSContext* ctx, JSValue x) {
     return JS_NewInt32(ctx, ~JS_VALUE_GET_INT(x));
   } else {
     JSValue args[] = {x};
-    if (js_unary_arith_slow(ctx, args, OP_not)) {
+    if (js_unary_arith_slow(ctx, args + 1, OP_not)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -208,7 +187,7 @@ JSValue anode_js_shift_left_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewInt32(ctx, JS_VALUE_GET_INT(x) << (JS_VALUE_GET_INT(y) & 0x1f));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_shl)) {
+    if (js_binary_logic_slow(ctx, args + 2, OP_shl)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -220,7 +199,7 @@ JSValue anode_js_shift_right_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewInt32(ctx, JS_VALUE_GET_INT(x) >> (JS_VALUE_GET_INT(y) & 0x1f));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_sar)) {
+    if (js_binary_logic_slow(ctx, args + 2, OP_sar)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -232,7 +211,7 @@ JSValue anode_js_shift_right_arith_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewInt32(ctx, (int32_t)JS_VALUE_GET_INT(x) >> (JS_VALUE_GET_INT(y) & 0x1f));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args, OP_shr)) {
+    if (js_binary_logic_slow(ctx, args + 2, OP_shr)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -246,7 +225,7 @@ JSValue anode_js_neg_any(JSContext* ctx, JSValue x) {
     return JS_NewFloat64(ctx, -JS_VALUE_GET_FLOAT64(x));
   } else {
     JSValue args[] = {x};
-    if (js_unary_arith_slow(ctx, args, OP_neg)) {
+    if (js_unary_arith_slow(ctx, args + 2, OP_neg)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -260,7 +239,7 @@ JSValue anode_js_plus_any(JSContext* ctx, JSValue x) {
     return x;
   } else {
     JSValue args[] = {x};
-    if (js_unary_arith_slow(ctx, args, OP_plus)) {
+    if (js_unary_arith_slow(ctx, args + 2, OP_plus)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -272,7 +251,7 @@ JSValue anode_js_not_any(JSContext* ctx, JSValue x) {
     return JS_NewBool(ctx, !JS_VALUE_GET_BOOL(x));
   } else {
     JSValue args[] = {x};
-    if (js_unary_arith_slow(ctx, args, OP_not)) {
+    if (js_unary_arith_slow(ctx, args + 2, OP_not)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -327,7 +306,7 @@ JSValue anode_js_eq_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewBool(ctx, JS_VALUE_GET_INT(x) == JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_eq_slow(ctx, args, 0)) {
+    if (js_eq_slow(ctx, args + 2, 0)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -339,7 +318,7 @@ JSValue anode_js_gt_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewBool(ctx, JS_VALUE_GET_INT(x) > JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_relational_slow(ctx, args, OP_gt)) {
+    if (js_relational_slow(ctx, args + 2, OP_gt)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -351,7 +330,7 @@ JSValue anode_js_ge_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewBool(ctx, JS_VALUE_GET_INT(x) >= JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_relational_slow(ctx, args, OP_gte)) {
+    if (js_relational_slow(ctx, args + 2, OP_gte)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -363,7 +342,7 @@ JSValue anode_js_lt_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewBool(ctx, JS_VALUE_GET_INT(x) < JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_relational_slow(ctx, args, OP_lt)) {
+    if (js_relational_slow(ctx, args + 2, OP_lt)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -375,7 +354,7 @@ JSValue anode_js_le_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewBool(ctx, JS_VALUE_GET_INT(x) <= JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_relational_slow(ctx, args, OP_lte)) {
+    if (js_relational_slow(ctx, args + 2, OP_lte)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -387,7 +366,7 @@ JSValue anode_js_ne_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewBool(ctx, JS_VALUE_GET_INT(x) != JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_eq_slow(ctx, args, 1)) {
+    if (js_eq_slow(ctx, args + 2, 1)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -399,7 +378,7 @@ JSValue anode_js_strict_eq_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewBool(ctx, JS_VALUE_GET_INT(x) == JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_strict_eq_slow(ctx, args, 0)) {
+    if (js_strict_eq_slow(ctx, args + 2, 0)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -411,7 +390,7 @@ JSValue anode_js_strict_ne_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewBool(ctx, JS_VALUE_GET_INT(x) != JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_strict_eq_slow(ctx, args, 1)) {
+    if (js_strict_eq_slow(ctx, args + 2, 1)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -420,7 +399,7 @@ JSValue anode_js_strict_ne_any(JSContext* ctx, JSValue x, JSValue y) {
 
 JSValue anode_js_instance_of_any(JSContext* ctx, JSValue x, JSValue y) {
   JSValue args[] = {x, y};
-  if (js_operator_instanceof(ctx, args)) {
+  if (js_operator_instanceof(ctx, args + 2)) {
     return JS_EXCEPTION;
   }
   return args[0];
@@ -428,7 +407,7 @@ JSValue anode_js_instance_of_any(JSContext* ctx, JSValue x, JSValue y) {
 
 JSValue anode_js_in_any(JSContext* ctx, JSValue x, JSValue y) {
   JSValue args[] = {x, y};
-  if (js_operator_in(ctx, args)) {
+  if (js_operator_in(ctx, args + 2)) {
     return JS_EXCEPTION;
   }
   return args[0];
