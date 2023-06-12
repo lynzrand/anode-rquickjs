@@ -310,7 +310,6 @@ JSValue JS_CallInternal(JSContext* caller_ctx,
         arg_buf[i] = JS_UNDEFINED;
       }
     }
-    printf("Calling compiled function\n");
     return b->compiled_function.function(caller_ctx, func_obj, this_obj, new_target, argc, arg_buf);
   }
 
