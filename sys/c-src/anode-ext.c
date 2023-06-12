@@ -199,7 +199,7 @@ JSValue anode_js_shift_right_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewInt32(ctx, JS_VALUE_GET_INT(x) >> (JS_VALUE_GET_INT(y) & 0x1f));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args + 2, OP_sar)) {
+    if (js_shr_slow(ctx, args + 2)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -211,7 +211,7 @@ JSValue anode_js_shift_right_arith_any(JSContext* ctx, JSValue x, JSValue y) {
     return JS_NewInt32(ctx, (int32_t)JS_VALUE_GET_INT(x) >> (JS_VALUE_GET_INT(y) & 0x1f));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_logic_slow(ctx, args + 2, OP_shr)) {
+    if (js_binary_logic_slow(ctx, args + 2, OP_sar)) {
       return JS_EXCEPTION;
     }
     return args[0];
