@@ -1,9 +1,4 @@
-use std::{
-    env, fs,
-    io::Write,
-    path::Path,
-    process::{Command, Stdio},
-};
+use std::{env, fs, path::Path};
 
 use log::info;
 
@@ -39,23 +34,9 @@ fn main() {
     let src_dir = Path::new("c-src");
     let header_dir = Path::new("c-include");
     let quickjs_header_dir = header_dir.join("quickjs");
-    let patches_dir = Path::new("patches");
 
     let out_dir = env::var("OUT_DIR").expect("No OUT_DIR env var is set by cargo");
     let out_dir = Path::new(&out_dir);
-
-    let header_files = [
-        "libbf.h",
-        "libregexp-opcode.h",
-        "libregexp.h",
-        "libunicode-table.h",
-        "libunicode.h",
-        "list.h",
-        "quickjs-atom.h",
-        "quickjs-opcode.h",
-        "quickjs.h",
-        "cutils.h",
-    ];
 
     let source_files = vec![
         "libregexp.c",
@@ -178,6 +159,8 @@ fn feature_to_define(name: impl AsRef<str>) -> String {
     name.as_ref().to_uppercase().replace('-', "_")
 }
 
+/*
+// We currently don't need this function
 fn patch<D: AsRef<Path>, P: AsRef<Path>>(out_dir: D, patch: P) {
     let mut child = Command::new("patch")
         .arg("-p1")
@@ -195,6 +178,7 @@ fn patch<D: AsRef<Path>, P: AsRef<Path>>(out_dir: D, patch: P) {
 
     child.wait_with_output().expect("Unable to apply patch");
 }
+*/
 
 #[cfg(not(feature = "bindgen"))]
 #[allow(unused)] // until the todo!() is implemented
@@ -286,6 +270,6 @@ fn bindgen<'a, D, H, X, K, V>(
         fs::create_dir_all(&dest_dir).unwrap();
 
         let dest_file = format!("{}.rs", target);
-        fs::copy(bindings_file, dest_dir.join(&dest_file)).unwrap();
+        fs::copy(bindings_file, dest_dir.join(dest_file)).unwrap();
     }
 }
