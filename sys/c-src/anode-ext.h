@@ -96,5 +96,7 @@ JSValue anode_js_strict_ne_any(JSContext *ctx, JSValue x, JSValue y);
 JSValue anode_js_instance_of_any(JSContext *ctx, JSValue x, JSValue y);
 JSValue anode_js_in_any(JSContext *ctx, JSValue x, JSValue y);
 JSValue anode_js_is_truthy_any(JSContext *ctx, JSValue x);
+JSValue anode_js_inc_any(JSContext* ctx, JSValue x);
+JSValue anode_js_dec_any(JSContext* ctx, JSValue x);
 
 #endif

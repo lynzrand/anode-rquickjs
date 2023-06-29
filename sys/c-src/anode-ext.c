@@ -422,3 +422,27 @@ JSValue anode_js_is_truthy_any(JSContext* ctx, JSValue x) {
   }
   return JS_NewBool(ctx, res);
 }
+
+JSValue anode_js_inc_any(JSContext* ctx, JSValue x) {
+  if (JS_VALUE_GET_TAG(x) == JS_TAG_INT) {
+    return JS_NewInt32(ctx, JS_VALUE_GET_INT(x) + 1);
+  } else {
+    JSValue args[] = {x};
+    if (js_unary_arith_slow(ctx, args + 1, OP_inc)) {
+      return JS_EXCEPTION;
+    }
+    return args[0];
+  }
+}
+
+JSValue anode_js_dec_any(JSContext* ctx, JSValue x) {
+  if (JS_VALUE_GET_TAG(x) == JS_TAG_INT) {
+    return JS_NewInt32(ctx, JS_VALUE_GET_INT(x) - 1);
+  } else {
+    JSValue args[] = {x};
+    if (js_unary_arith_slow(ctx, args + 1, OP_dec)) {
+      return JS_EXCEPTION;
+    }
+    return args[0];
+  }
+}
