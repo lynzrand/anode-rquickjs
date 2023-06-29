@@ -181,7 +181,7 @@ JSValue anode_js_bit_not_any(JSContext* ctx, JSValue x) {
     return JS_NewInt32(ctx, ~JS_VALUE_GET_INT(x));
   } else {
     JSValue args[] = {x};
-    if (js_unary_arith_slow(ctx, args + 1, OP_not)) {
+    if (js_not_slow(ctx, args + 1)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -257,7 +257,7 @@ JSValue anode_js_not_any(JSContext* ctx, JSValue x) {
     return JS_NewBool(ctx, !JS_VALUE_GET_BOOL(x));
   } else {
     JSValue args[] = {x};
-    if (js_unary_arith_slow(ctx, args + 2, OP_not)) {
+    if (js_not_slow(ctx, args + 1)) {
       return JS_EXCEPTION;
     }
     return args[0];
