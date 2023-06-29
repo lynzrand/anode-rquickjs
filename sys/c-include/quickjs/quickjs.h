@@ -38,6 +38,10 @@ extern "C" {
 #define CONFIG_ATOMICS
 #endif
 
+#ifdef DUMP_RC
+#define CONFIG_DUMP_RC
+#endif
+
 #if defined(__GNUC__) || defined(__clang__)
 #define js_likely(x)          __builtin_expect(!!(x), 1)
 #define js_unlikely(x)        __builtin_expect(!!(x), 0)
@@ -734,6 +738,9 @@ void __JS_FreeValue(JSContext *ctx, JSValue v);
 static inline void JS_FreeValue(JSContext *ctx, JSValue v) {
   if (JS_VALUE_HAS_REF_COUNT(v)) {
     JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(v);
+#ifdef CONFIG_DUMP_RC
+    fprintf(stderr, "free %p\n", p);
+#endif
     if (--p->ref_count <= 0) {
       __JS_FreeValue(ctx, v);
     }
@@ -743,6 +750,9 @@ void __JS_FreeValueRT(JSRuntime *rt, JSValue v);
 static inline void JS_FreeValueRT(JSRuntime *rt, JSValue v) {
   if (JS_VALUE_HAS_REF_COUNT(v)) {
     JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(v);
+#ifdef CONFIG_DUMP_RC
+    fprintf(stderr, "free %p\n", p);
+#endif
     if (--p->ref_count <= 0) {
       __JS_FreeValueRT(rt, v);
     }
@@ -753,6 +763,9 @@ static inline JSValue JS_DupValue(JSContext *ctx, JSValueConst v) {
   if (JS_VALUE_HAS_REF_COUNT(v)) {
     JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(v);
     p->ref_count++;
+#ifdef CONFIG_DUMP_RC
+    fprintf(stderr, "dup %p\n", p);
+#endif
   }
   return v;
 }
@@ -761,6 +774,9 @@ static inline JSValue JS_DupValueRT(JSRuntime *rt, JSValueConst v) {
   if (JS_VALUE_HAS_REF_COUNT(v)) {
     JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(v);
     p->ref_count++;
+#ifdef CONFIG_DUMP_RC
+    fprintf(stderr, "dup %p\n", p);
+#endif
   }
   return v;
 }

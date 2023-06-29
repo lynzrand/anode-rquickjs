@@ -41,6 +41,7 @@ box64 = []
 
 # Enable QuickJS dumps
 dump-bytecode = []
+dump-rc = []
 dump-gc = []
 dump-gc-free = []
 dump-free = []

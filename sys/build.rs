@@ -14,6 +14,7 @@ fn main() {
         "bindgen",
         "update-bindings",
         "dump-bytecode",
+        "dump-rc",
         "dump-gc",
         "dump-gc-free",
         "dump-free",

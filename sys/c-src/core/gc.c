@@ -104,7 +104,8 @@ __maybe_unused void JS_DumpObject(JSRuntime* rt, JSObject* p) {
         } else if ((prs->flags & JS_PROP_TMASK) == JS_PROP_VARREF) {
           printf("[varref %p]", (void*)pr->u.var_ref);
         } else if ((prs->flags & JS_PROP_TMASK) == JS_PROP_AUTOINIT) {
-          printf("[autoinit %p %d %p]", (void*)js_autoinit_get_realm(pr), js_autoinit_get_id(pr), (void*)pr->u.init.opaque);
+          printf("[autoinit %p %d %p]", (void*)js_autoinit_get_realm(pr), js_autoinit_get_id(pr),
+                 (void*)pr->u.init.opaque);
         } else {
           JS_DumpValueShort(rt, pr->u.value);
         }
@@ -540,7 +541,8 @@ void js_free_modules(JSContext* ctx, JSFreeModuleEnum flag) {
   struct list_head *el, *el1;
   list_for_each_safe(el, el1, &ctx->loaded_modules) {
     JSModuleDef* m = list_entry(el, JSModuleDef, link);
-    if (flag == JS_FREE_MODULE_ALL || (flag == JS_FREE_MODULE_NOT_RESOLVED && !m->resolved) || (flag == JS_FREE_MODULE_NOT_EVALUATED && !m->evaluated)) {
+    if (flag == JS_FREE_MODULE_ALL || (flag == JS_FREE_MODULE_NOT_RESOLVED && !m->resolved) ||
+        (flag == JS_FREE_MODULE_NOT_EVALUATED && !m->evaluated)) {
       js_free_module_def(ctx, m);
     }
   }
@@ -635,7 +637,7 @@ void mark_children(JSRuntime* rt, JSGCObjectHeader* gp, JS_MarkFunc* mark_func) 
       /* the template objects can be part of a cycle */
       {
         int i, j;
-        InlineCacheRingItem *buffer;
+        InlineCacheRingItem* buffer;
         JSFunctionBytecode* b = (JSFunctionBytecode*)gp;
         for (i = 0; i < b->cpool_count; i++) {
           JS_MarkValue(rt, b->cpool[i], mark_func);
@@ -681,7 +683,12 @@ void mark_children(JSRuntime* rt, JSGCObjectHeader* gp, JS_MarkFunc* mark_func) 
 }
 
 void gc_decref_child(JSRuntime* rt, JSGCObjectHeader* p) {
-  assert(p->ref_count > 0);
+  // assert(p->ref_count > 0);
+  if (p->ref_count <= 0) {
+    fprintf(stderr, "gc_decref_child got <= 0 refcount\n");
+    JS_DumpGCObject(rt, p);
+    abort();
+  }
   p->ref_count--;
   if (p->ref_count == 0 && p->mark == 1) {
     list_del(&p->link);
