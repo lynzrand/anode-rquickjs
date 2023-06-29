@@ -1,3 +1,4 @@
 target
 .cache
 .xmake
+compile_commands.json
