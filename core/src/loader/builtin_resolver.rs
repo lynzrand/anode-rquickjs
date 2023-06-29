@@ -1,11 +1,10 @@
-use crate::{Ctx, Error, Resolver, Result};
+use crate::{loader::Resolver, Ctx, Error, Result};
 use relative_path::RelativePath;
 use std::collections::HashSet;
 
 /// The builtin module resolver
 ///
 /// This resolver can also be used as the nested backing resolver in user-defined resolvers.
-#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "loader")))]
 #[derive(Debug, Default)]
 pub struct BuiltinResolver {
     modules: HashSet<String>,

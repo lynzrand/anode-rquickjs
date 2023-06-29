@@ -1,7 +1,4 @@
-use crate::{
-    handle_exception, Array, Ctx, Error, FromAtom, FromJs, Object, Result, StdString, String, Type,
-    Value,
-};
+use crate::{Array, Ctx, Error, FromAtom, FromJs, Object, Result, StdString, String, Type, Value};
 use std::{
     cell::{Cell, RefCell},
     collections::{BTreeMap, BTreeSet, HashMap, HashSet, LinkedList, VecDeque},
@@ -55,11 +52,11 @@ impl<'js, T> FromJs<'js> for Result<T>
 where
     T: FromJs<'js>,
 {
-    //TODO this function seems a bit hacky.
-    //Expections are generally handled when returned from a function
+    // TODO this function seems a bit hacky.
+    // Expections are generally by the marshalling handled when returned callback.
     fn from_js(ctx: Ctx<'js>, value: Value<'js>) -> Result<Self> {
         unsafe {
-            match handle_exception(ctx, value.into_js_value()) {
+            match ctx.handle_exception(value.into_js_value()) {
                 Ok(val) => T::from_js(ctx, Value::from_js_value(ctx, val)).map(Ok),
                 Err(error) => Ok(Err(error)),
             }
@@ -334,7 +331,7 @@ fn date_to_millis<'js>(ctx: Ctx<'js>, value: Value<'js>) -> Result<i64> {
 
     let get_time_fn: crate::Function = value.get("getTime")?;
 
-    get_time_fn.call((crate::This(value),))
+    get_time_fn.call((crate::function::This(value),))
 }
 
 impl<'js> FromJs<'js> for SystemTime {
@@ -369,7 +366,10 @@ macro_rules! chrono_from_js_impls {
 
                     let millis = date_to_millis(ctx, value)?;
 
-                    Ok(chrono::$type.timestamp_millis(millis))
+                    chrono::$type.timestamp_millis_opt(millis).single()
+                        .ok_or_else(|| {
+                            Error::new_from_js_message("Date", "chrono::DateTime", "Invalid timestamp")
+                        })
                 }
             }
         )+
@@ -381,6 +381,7 @@ chrono_from_js_impls! {
     Local;
 }
 
+#[cfg(test)]
 mod test {
     #[test]
     fn js_to_system_time() {

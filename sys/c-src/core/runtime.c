@@ -720,6 +720,10 @@ JSValue JS_GetGlobalObject(JSContext *ctx)
   return JS_DupValue(ctx, ctx->global_obj);
 }
 
+JSValueConst JS_GetFunctionProto(JSContext* ctx) {
+  return ctx->function_proto;
+}
+
 JSValue JS_NewCFunctionData(JSContext *ctx, JSCFunctionData *func,
                             int length, int magic, int data_len,
                             JSValueConst *data)

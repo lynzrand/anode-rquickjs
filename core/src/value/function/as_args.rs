@@ -1,4 +1,7 @@
-use crate::{qjs, Ctx, FromJs, Function, IntoJs, Opt, Rest, Result, This};
+use crate::{
+    function::{Opt, Rest, This},
+    qjs, Ctx, FromJs, Function, IntoJs, Result,
+};
 
 /// The input for function call
 pub struct CallInput<'js> {
@@ -9,7 +12,7 @@ pub struct CallInput<'js> {
 
 impl<'js> Drop for CallInput<'js> {
     fn drop(&mut self) {
-        let ctx = self.ctx.ctx;
+        let ctx = self.ctx.as_ptr();
         for arg in &self.args {
             unsafe { qjs::JS_FreeValue(ctx, *arg) }
         }
@@ -39,7 +42,7 @@ impl<'js> CallInput<'js> {
         T: IntoJs<'js>,
     {
         let this = this.into_js(self.ctx)?;
-        unsafe { qjs::JS_FreeValue(self.ctx.ctx, self.this) };
+        unsafe { qjs::JS_FreeValue(self.ctx.as_ptr(), self.this) };
         self.this = this.into_js_value();
         Ok(())
     }
@@ -116,11 +119,7 @@ where
     T: IntoJs<'js>,
 {
     fn num_args(&self) -> usize {
-        if self.is_some() {
-            1
-        } else {
-            0
-        }
+        usize::from(self.is_some())
     }
 
     fn into_input(self, input: &mut CallInput<'js>) -> Result<()> {

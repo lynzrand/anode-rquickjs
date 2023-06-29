@@ -1,6 +1,10 @@
-use crate::{qjs, Ctx, Error, FromJs, Opt, Rest, Result, This, Value};
+use crate::{
+    function::{Opt, Rest, This},
+    qjs, Ctx, Error, FromJs, Result, Value,
+};
 use std::{ops::Range, slice};
 
+/// The input to rust callback functions containing its arguments.
 pub struct Input<'js> {
     ctx: Ctx<'js>,
     this: qjs::JSValue,
@@ -9,17 +13,18 @@ pub struct Input<'js> {
 
 impl<'js> Input<'js> {
     #[inline]
-    pub fn new_raw(
+    pub(crate) unsafe fn new_raw(
         ctx: *mut qjs::JSContext,
         this: qjs::JSValue,
         argc: qjs::c_int,
         argv: *mut qjs::JSValue,
     ) -> Self {
         let ctx = Ctx::from_ptr(ctx);
-        let args = unsafe { slice::from_raw_parts(argv, argc as _) };
+        let args = slice::from_raw_parts(argv, argc as _);
         Self { ctx, this, args }
     }
 
+    /// Returns the input accessor for actually acquiring arguments
     #[inline]
     pub fn access(&self) -> InputAccessor<'_, 'js> {
         InputAccessor {
@@ -28,12 +33,20 @@ impl<'js> Input<'js> {
         }
     }
 
+    /// Returns the number of arguments
     #[inline]
     pub fn len(&self) -> usize {
         self.args.len()
     }
+
+    /// Returns whether there are no arguments
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.args.is_empty()
+    }
 }
 
+/// struct for accessing function arguments
 pub struct InputAccessor<'i, 'js> {
     input: &'i Input<'js>,
     arg: usize,
@@ -60,6 +73,12 @@ impl<'i, 'js> InputAccessor<'i, 'js> {
     #[inline]
     pub fn len(&self) -> usize {
         self.input.args.len() - self.arg
+    }
+
+    /// Get whether there are no more arguments
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Get next argument
@@ -151,7 +170,7 @@ where
     }
 
     fn from_input<'i>(accessor: &mut InputAccessor<'i, 'js>) -> Result<Self> {
-        if accessor.len() > 0 {
+        if !accessor.is_empty() {
             accessor.arg().map(Self)
         } else {
             Ok(Self(None))

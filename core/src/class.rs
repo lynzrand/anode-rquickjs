@@ -1,11 +1,15 @@
-mod refs;
-
-use crate::{
-    handle_exception, qjs, ClassId, Ctx, Error, FromJs, Function, IntoJs, Object, Outlive, Result,
-    Type, Value,
-};
+//! JS Class related functionality.
 use std::{ffi::CString, marker::PhantomData, mem, ops::Deref, ptr};
 
+use crate::{
+    persistent::Outlive, qjs, value::Object, ClassId, Ctx, Error, FromJs, Function, IntoJs, Result,
+    Type, Value,
+};
+
+mod borrow;
+pub use borrow::Ref;
+
+mod refs;
 pub use refs::{HasRefs, RefsMarker};
 
 /// The ES6 class definition trait
@@ -18,16 +22,16 @@ pub use refs::{HasRefs, RefsMarker};
 /// NOTE: Usually no need implements this trait manually. Instead you can use [`class_def`](crate::class_def) macro or [`bind`](attr.bind.html) attribute to export classes to JS in easy way.
 ///
 /// ```
-/// # use rquickjs::{ClassId, ClassDef, FromJs, IntoJs, Ctx, Object, Result, Value, RefsMarker};
+/// # use rquickjs::{ClassId, class::{ClassDef, RefsMarker}, FromJs, IntoJs, Ctx, Object, Result, Value};
 /// #[derive(Clone)]
 /// struct MyClass;
 ///
 /// impl ClassDef for MyClass {
 ///     const CLASS_NAME: &'static str = "MyClass";
 ///
-///     unsafe fn class_id() -> &'static mut ClassId {
-///         static mut CLASS_ID: ClassId = ClassId::new();
-///         &mut CLASS_ID
+///     fn class_id() -> &'static ClassId {
+///         static CLASS_ID: ClassId = ClassId::new();
+///         &CLASS_ID
 ///     }
 ///
 ///     // With prototype
@@ -55,21 +59,10 @@ pub use refs::{HasRefs, RefsMarker};
 ///     }
 /// }
 ///
-/// impl<'js> FromJs<'js> for &'js MyClass {
-///     fn from_js(ctx: Ctx<'js>, value: Value<'js>) -> Result<Self> {
-///         MyClass::from_js_ref(ctx, value)
-///     }
-/// }
-///
-/// impl<'js> FromJs<'js> for &'js mut MyClass {
-///     fn from_js(ctx: Ctx<'js>, value: Value<'js>) -> Result<Self> {
-///         MyClass::from_js_mut(ctx, value)
-///     }
-/// }
-///
+/// // Can be implemented cause MyClass implementes Clone
 /// impl<'js> FromJs<'js> for MyClass {
 ///     fn from_js(ctx: Ctx<'js>, value: Value<'js>) -> Result<Self> {
-///         MyClass::from_js_obj(ctx, value)
+///         MyClass::from_js_obj(value)
 ///     }
 /// }
 /// ```
@@ -81,8 +74,8 @@ pub trait ClassDef {
     /// The reference to class identifier
     ///
     /// # Safety
-    /// This method should return reference to mutable static class id which should be initialized to zero.
-    unsafe fn class_id() -> &'static mut ClassId;
+    /// This method should return reference to static class id which should be initialized to zero.
+    fn class_id() -> &'static ClassId;
 
     /// The class has prototype
     const HAS_PROTO: bool = false;
@@ -120,36 +113,13 @@ pub trait ClassDef {
         Class::<Self>::instance(ctx, self).map(|Class(Object(val), _)| val)
     }
 
-    /// Get reference from JS object
-    ///
-    /// This method helps implement [`FromJs`] trait for classes
-    fn from_js_ref<'js>(ctx: Ctx<'js>, value: Value<'js>) -> Result<&'js Self>
-    where
-        Self: Sized,
-    {
-        let value = Object::from_js(ctx, value)?;
-        Class::<Self>::try_ref(ctx, &value)
-    }
-
-    /// Get mutable reference from JS object
-    ///
-    /// This method helps implement [`FromJs`] trait for classes
-    fn from_js_mut<'js>(ctx: Ctx<'js>, value: Value<'js>) -> Result<&'js mut Self>
-    where
-        Self: Sized,
-    {
-        let value = Object::from_js(ctx, value)?;
-        Class::<Self>::try_mut(ctx, &value)
-    }
-
     /// Get an instance of class from JS object
-    fn from_js_obj<'js>(ctx: Ctx<'js>, value: Value<'js>) -> Result<Self>
+    fn from_js_obj<'js>(value: Value<'js>) -> Result<Self>
     where
         Self: Clone + Sized,
     {
-        let value = Object::from_js(ctx, value)?;
-        let instance = Class::<Self>::try_ref(ctx, &value)?;
-        Ok(instance.clone())
+        let value = Ref::<Self>::from_js(value.ctx(), value)?;
+        Ok((*value).clone())
     }
 }
 
@@ -158,6 +128,12 @@ pub trait ClassDef {
 // FIXME: Maybe it should be private.
 #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "classes")))]
 pub struct Class<'js, C>(pub(crate) Object<'js>, PhantomData<C>);
+
+impl<'js, C> Clone for Class<'js, C> {
+    fn clone(&self) -> Self {
+        Class(self.0.clone(), PhantomData)
+    }
+}
 
 impl<'js, 't, C> Outlive<'t> for Class<'js, C> {
     type Target = Class<'t, C>;
@@ -183,46 +159,26 @@ impl<'js, C> AsRef<Value<'js>> for Class<'js, C> {
     }
 }
 
-impl<'js, C> AsRef<C> for Class<'js, C>
-where
-    C: ClassDef,
-{
-    fn as_ref(&self) -> &C {
-        let obj = &self.0;
-        Class::<C>::try_ref(obj.0.ctx, obj).unwrap()
-    }
-}
-
-impl<'js, C> AsMut<C> for Class<'js, C>
-where
-    C: ClassDef,
-{
-    fn as_mut(&mut self) -> &mut C {
-        let obj = &self.0;
-        Class::<C>::try_mut(obj.0.ctx, obj).unwrap()
-    }
-}
-
 impl<'js, C> Class<'js, C>
 where
     C: ClassDef,
 {
     /// Get an integer class identifier
-    #[inline(always)]
+    #[inline]
     pub(crate) fn id() -> qjs::JSClassID {
-        unsafe { C::class_id() }.get()
+        C::class_id().get()
     }
 
     /// Wrap constructor of class
-    #[inline(always)]
+    #[inline]
     pub fn constructor<F>(func: F) -> Constructor<C, F> {
         Constructor(func, PhantomData)
     }
 
     /// Initialize static data
-    pub fn static_init(ctx: Ctx<'js>, func: &Function<'js>) -> Result<()> {
+    pub fn static_init(func: &Function<'js>) -> Result<()> {
         if C::HAS_STATIC {
-            C::init_static(ctx, func.as_object())?;
+            C::init_static(func.ctx(), func.as_object())?;
         }
         Ok(())
     }
@@ -230,7 +186,7 @@ where
     /// Instantiate the object of class
     pub fn instance(ctx: Ctx<'js>, value: C) -> Result<Class<'js, C>> {
         let val =
-            unsafe { handle_exception(ctx, qjs::JS_NewObjectClass(ctx.ctx, Self::id() as _)) }?;
+            unsafe { ctx.handle_exception(qjs::JS_NewObjectClass(ctx.as_ptr(), Self::id() as _)) }?;
         let ptr = Box::into_raw(Box::new(value));
         unsafe { qjs::JS_SetOpaque(val, ptr as _) };
         Ok(Self(
@@ -240,51 +196,35 @@ where
     }
 
     /// Instantiate the object of class with given prototype
-    pub fn instance_proto(ctx: Ctx<'js>, value: C, proto: Object<'js>) -> Result<Class<'js, C>> {
+    pub fn instance_proto(value: C, proto: Object<'js>) -> Result<Class<'js, C>> {
         let val = unsafe {
-            handle_exception(
-                ctx,
-                qjs::JS_NewObjectProtoClass(ctx.ctx, proto.0.as_js_value(), Self::id()),
-            )
+            proto.ctx().handle_exception(qjs::JS_NewObjectProtoClass(
+                proto.ctx().as_ptr(),
+                proto.0.as_js_value(),
+                Self::id(),
+            ))
         }?;
         let ptr = Box::into_raw(Box::new(value));
         unsafe { qjs::JS_SetOpaque(val, ptr as _) };
         Ok(Self(
-            unsafe { Object::from_js_value(ctx, val) },
+            unsafe { Object::from_js_value(proto.ctx(), val) },
             PhantomData,
         ))
     }
 
-    /// Get reference from object
-    pub fn try_ref<'r>(ctx: Ctx<'js>, value: &Object<'js>) -> Result<&'r C> {
-        Ok(unsafe { &*Self::try_ptr(ctx.ctx, value.0.as_js_value())? })
-    }
-
-    /// Get mutable reference from object
-    pub fn try_mut<'r>(ctx: Ctx<'js>, value: &Object<'js>) -> Result<&'r mut C> {
-        Ok(unsafe { &mut *Self::try_ptr(ctx.ctx, value.0.as_js_value())? })
-    }
-
-    /// Get instance pointer from object
-    unsafe fn try_ptr(ctx: *mut qjs::JSContext, value: qjs::JSValue) -> Result<*mut C> {
-        let ptr = qjs::JS_GetOpaque2(ctx, value, Self::id()) as *mut C;
+    pub(crate) unsafe fn class_ptr(&self) -> *mut C {
+        let ptr = qjs::JS_GetOpaque2(self.ctx.as_ptr(), self.value, Self::id()).cast::<C>();
         if ptr.is_null() {
-            return Err(Error::FromJs {
-                from: "object",
-                to: C::CLASS_NAME,
-                message: None,
-            });
+            panic!("invalid class object, class objects with ClassDef C should always point to objects of class C");
         }
-        Ok(ptr)
+        ptr
     }
 
     /// Register the class
     pub fn register(ctx: Ctx<'js>) -> Result<()> {
-        let rt = unsafe { qjs::JS_GetRuntime(ctx.ctx) };
-        let class_id = unsafe { C::class_id() };
-        class_id.init();
+        let rt = unsafe { qjs::JS_GetRuntime(ctx.as_ptr()) };
         let class_id = Self::id();
-        let class_name = CString::new(C::CLASS_NAME)?;
+        let class_name = CString::new(C::CLASS_NAME).expect("class name has an internal null byte");
         if 0 == unsafe { qjs::JS_IsRegisteredClass(rt, class_id) } {
             let class_def = qjs::JSClassDef {
                 class_name: class_name.as_ptr(),
@@ -300,12 +240,13 @@ where
             if 0 != unsafe { qjs::JS_NewClass(rt, class_id, &class_def) } {
                 return Err(Error::Unknown);
             }
-
-            if C::HAS_PROTO {
-                let proto = Object::new(ctx)?;
-                C::init_proto(ctx, &proto)?;
-                unsafe { qjs::JS_SetClassProto(ctx.ctx, class_id, proto.0.into_js_value()) }
-            }
+        }
+        // Even if the class is registered we still need to set the prototype as this can be a new
+        // context.
+        if C::HAS_PROTO {
+            let proto = Object::new(ctx)?;
+            C::init_proto(ctx, &proto)?;
+            unsafe { qjs::JS_SetClassProto(ctx.as_ptr(), class_id, proto.0.into_js_value()) }
         }
         Ok(())
     }
@@ -323,7 +264,7 @@ where
     pub fn prototype(ctx: Ctx<'js>) -> Result<Object<'js>> {
         Ok(Object(unsafe {
             let class_id = Self::id();
-            let proto = qjs::JS_GetClassProto(ctx.ctx, class_id);
+            let proto = qjs::JS_GetClassProto(ctx.as_ptr(), class_id);
             let proto = Value::from_js_value(ctx, proto);
             let type_ = proto.type_of();
             if type_ == Type::Object {
@@ -345,6 +286,10 @@ where
         } else {
             Err(Error::new_from_js("object", C::CLASS_NAME))
         }
+    }
+
+    pub fn borrow(&self) -> Ref<'js, C> {
+        Ref::new(self.clone())
     }
 
     /// Get reference to object
@@ -390,7 +335,8 @@ impl<'js> Object<'js> {
     /// Check the object for instance of
     #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "classes")))]
     pub fn instance_of<C: ClassDef>(&self) -> bool {
-        let ptr = unsafe { qjs::JS_GetOpaque2(self.0.ctx.ctx, self.0.value, Class::<C>::id()) };
+        let ptr =
+            unsafe { qjs::JS_GetOpaque2(self.0.ctx.as_ptr(), self.0.value, Class::<C>::id()) };
         !ptr.is_null()
     }
 
@@ -454,15 +400,15 @@ impl<'js, C> IntoJs<'js> for WithProto<'js, C>
 where
     C: ClassDef + IntoJs<'js>,
 {
-    fn into_js(self, ctx: Ctx<'js>) -> Result<Value<'js>> {
-        Class::<C>::instance_proto(ctx, self.0, self.1).map(|Class(Object(val), _)| val)
+    fn into_js(self, _ctx: Ctx<'js>) -> Result<Value<'js>> {
+        Class::<C>::instance_proto(self.0, self.1).map(|Class(Object(val), _)| val)
     }
 }
 
 /// The macro to simplify class definition.
 ///
 /// ```
-/// # use rquickjs::{class_def, Method, Func};
+/// # use rquickjs::{class_def, function::{Method, Func, SelfMethod}};
 /// #
 /// struct TestClass;
 ///
@@ -475,7 +421,7 @@ where
 ///     TestClass
 ///     // optional prototype initializer
 ///     (proto) {
-///         proto.set("method", Func::from(Method(TestClass::method)))?;
+///         proto.set("method", Func::from(SelfMethod::<TestClass,_>::from(TestClass::method)))?;
 ///     }
 ///     // optional static initializer
 ///     @(ctor) {
@@ -521,7 +467,7 @@ macro_rules! class_def {
     };
 
     (@parse ~ $($rest:tt)*) => {
-        $crate::class_def!{@mark this marker $crate::HasRefs::mark_refs(this, marker);}
+        $crate::class_def!{@mark this marker $crate::class::HasRefs::mark_refs(this, marker);}
         $crate::class_def!{@parse $($rest)*}
     };
 
@@ -545,19 +491,19 @@ macro_rules! class_def {
 
     (@mark $self:ident $marker:ident $($body:tt)*) => {
         const HAS_REFS: bool = true;
-        fn mark_refs(&self, $marker: &$crate::RefsMarker) {
+        fn mark_refs(&self, $marker: &$crate::class::RefsMarker) {
             let $self = self;
             $($body)*
         }
     };
 
     (@decl $name:ident $($body:tt)*) => {
-        impl $crate::ClassDef for $name {
+        impl $crate::class::ClassDef for $name {
             const CLASS_NAME: &'static str = stringify!($name);
 
-            unsafe fn class_id() -> &'static mut $crate::ClassId {
-                static mut CLASS_ID: $crate::ClassId = $crate::ClassId::new();
-                &mut CLASS_ID
+            fn class_id() -> &'static $crate::ClassId {
+                static CLASS_ID: $crate::ClassId = $crate::ClassId::new();
+                &CLASS_ID
             }
 
             $($body)*
@@ -565,19 +511,7 @@ macro_rules! class_def {
 
         impl<'js> $crate::IntoJs<'js> for $name {
             fn into_js(self, ctx: $crate::Ctx<'js>) -> $crate::Result<$crate::Value<'js>> {
-                <$name as $crate::ClassDef>::into_js_obj(self, ctx)
-            }
-        }
-
-        impl<'js> $crate::FromJs<'js> for &'js $name {
-            fn from_js(ctx: $crate::Ctx<'js>, value: $crate::Value<'js>) -> $crate::Result<Self> {
-                <$name as $crate::ClassDef>::from_js_ref(ctx, value)
-            }
-        }
-
-        impl<'js> $crate::FromJs<'js> for &'js mut $name {
-            fn from_js(ctx: $crate::Ctx<'js>, value: $crate::Value<'js>) -> $crate::Result<Self> {
-                <$name as $crate::ClassDef>::from_js_mut(ctx, value)
+                <$name as $crate::class::ClassDef>::into_js_obj(self, ctx)
             }
         }
     };
@@ -585,9 +519,9 @@ macro_rules! class_def {
 
 #[cfg(test)]
 mod test {
-    use crate::*;
+    use crate::{function::SelfMethod, *};
     use approx::assert_abs_diff_eq as assert_approx_eq;
-    use futures_rs::future::UnwrapOrElse;
+    use function::{Func, Method};
 
     #[test]
     fn class_basics() {
@@ -606,20 +540,20 @@ mod test {
             global.set("foo", Foo("I'm foo".into())).unwrap();
             global.set("bar", Bar(14)).unwrap();
 
-            let foo: &Foo = global.get("foo").unwrap();
+            let foo: class::Ref<Foo> = global.get("foo").unwrap();
             assert_eq!(foo.0, "I'm foo");
 
-            let bar: &Bar = global.get("bar").unwrap();
+            let bar: class::Ref<Bar> = global.get("bar").unwrap();
             assert_eq!(bar.0, 14);
 
-            if let Err(Error::FromJs { from, to, .. }) = global.get::<_, &Bar>("foo") {
+            if let Err(Error::FromJs { from, to, .. }) = global.get::<_, class::Ref<Bar>>("foo") {
                 assert_eq!(from, "object");
                 assert_eq!(to, "Bar");
             } else {
                 panic!("An error was expected");
             }
 
-            if let Err(Error::FromJs { from, to, .. }) = global.get::<_, &Foo>("bar") {
+            if let Err(Error::FromJs { from, to, .. }) = global.get::<_, class::Ref<Foo>>("bar") {
                 assert_eq!(from, "object");
                 assert_eq!(to, "Foo");
             } else {
@@ -661,8 +595,8 @@ mod test {
 
         class_def! {
             Point (proto) {
-                proto.set("get_x", Func::from(Method(Point::get_x)))?;
-                proto.set("get_y", Func::from(Method(|Point { y, .. }: &Point| *y)))?;
+                proto.set("get_x", Func::from(SelfMethod::<Point,_>::from(Point::get_x)))?;
+                proto.set("get_y", Func::from(SelfMethod::<Point,_>::from(|Point { y, .. }: &Point| *y)))?;
             } @(ctor) {
                 ctor.set("zero", Func::from(Point::zero))?;
             }
@@ -766,18 +700,20 @@ mod test {
     }
 
     mod internal_refs {
+        use crate::class::{HasRefs, RefsMarker};
+
         use super::*;
-        use std::collections::HashSet;
+        use std::{cell::RefCell, collections::HashSet};
 
         struct A {
             name: StdString,
-            refs: HashSet<Persistent<Class<'static, A>>>,
+            refs: RefCell<HashSet<Persistent<Class<'static, A>>>>,
         }
 
         impl HasRefs for A {
             fn mark_refs(&self, marker: &RefsMarker) {
                 println!("A::mark {}", self.name);
-                self.refs.mark_refs(marker);
+                self.refs.borrow_mut().mark_refs(marker);
             }
         }
 
@@ -789,21 +725,21 @@ mod test {
 
         impl A {
             fn new(name: StdString) -> Self {
-                println!("A::new {}", name);
+                println!("A::new {name}");
                 Self {
                     name,
-                    refs: HashSet::new(),
+                    refs: RefCell::new(HashSet::new()),
                 }
             }
         }
 
         impl<'js> Class<'js, A> {
-            pub fn add(mut self, val: Persistent<Class<'static, A>>) {
-                self.as_mut().refs.insert(val);
+            pub fn add(self, val: Persistent<Class<'static, A>>) {
+                self.borrow().refs.borrow_mut().insert(val);
             }
 
-            pub fn rm(mut self, val: Persistent<Class<'static, A>>) {
-                self.as_mut().refs.remove(&val);
+            pub fn rm(self, val: Persistent<Class<'static, A>>) {
+                self.borrow().refs.borrow_mut().remove(&val);
             }
         }
 

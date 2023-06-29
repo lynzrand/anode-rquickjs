@@ -1,5 +1,8 @@
-use super::check_extensions;
-use crate::{Ctx, Error, Loaded, Loader, Module, ModuleLoadFn, Native, Result};
+use crate::{
+    loader::util::check_extensions, module::ModuleData, module::ModuleLoadFn, Ctx, Error, Result,
+};
+
+use super::Loader;
 
 /// The native module loader
 ///
@@ -35,7 +38,7 @@ impl Default for NativeLoader {
         #[cfg(target_family = "windows")]
         loader.add_extension("dll");
 
-        #[cfg(all(target_family = "unix"))]
+        #[cfg(target_family = "unix")]
         loader.add_extension("so");
 
         #[cfg(target_vendor = "apple")]
@@ -45,22 +48,21 @@ impl Default for NativeLoader {
     }
 }
 
-impl Loader<Native> for NativeLoader {
-    fn load<'js>(&mut self, ctx: Ctx<'js>, path: &str) -> Result<Module<'js, Loaded<Native>>> {
+impl Loader for NativeLoader {
+    fn load<'js>(&mut self, _ctx: Ctx<'js>, path: &str) -> Result<ModuleData> {
         use dlopen::raw::Library;
 
         if !check_extensions(path, &self.extensions) {
             return Err(Error::new_loading(path));
         }
 
-        let lib = Library::open(&path)
+        let lib = Library::open(path)
             .map_err(|_| Error::new_loading_message(path, "Unable to open library"))?;
         let load: ModuleLoadFn = unsafe { lib.symbol("js_init_module") }.map_err(|_| {
             Error::new_loading_message(path, "Unable to find symbol `js_init_module`")
         })?;
 
-        let module = unsafe { Module::new_raw(ctx, path, load) }
-            .map_err(|_| Error::new_loading_message(path, "Unable to create module"))?;
+        let module = unsafe { ModuleData::raw(path, load) };
 
         self.libs.push(lib);
 

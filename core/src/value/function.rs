@@ -1,7 +1,6 @@
-use crate::{
-    get_exception, handle_exception, qjs, Ctx, Error, FromJs, IntoAtom, IntoJs, Object,
-    ParallelSend, Result, Value,
-};
+//! JS functions and rust callbacks.
+
+use crate::{qjs, Ctx, Error, FromJs, IntoAtom, IntoJs, Object, Result, Value};
 
 mod args;
 mod as_args;
@@ -9,13 +8,14 @@ mod as_func;
 mod ffi;
 mod types;
 
-use args::{FromInput, Input};
+pub use args::{FromInput, Input, InputAccessor};
 pub use as_args::{AsArguments, CallInput, IntoInput};
 pub use as_func::AsFunction;
 use ffi::JsFunction;
-pub use types::{Func, Method, MutFn, OnceFn, Opt, Rest, This};
+pub use types::{Func, Method, MutFn, OnceFn, Opt, Rest, SelfMethod, This};
 
 #[cfg(feature = "futures")]
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "futures")))]
 pub use types::Async;
 
 /// Rust representation of a javascript function.
@@ -25,7 +25,7 @@ pub struct Function<'js>(pub(crate) Value<'js>);
 impl<'js> Function<'js> {
     pub fn new<F, A, R>(ctx: Ctx<'js>, func: F) -> Result<Self>
     where
-        F: AsFunction<'js, A, R> + ParallelSend + 'static,
+        F: AsFunction<'js, A, R> + 'js,
     {
         let func = JsFunction::new(move |input: &Input<'js>| func.call(input));
         let func = unsafe {
@@ -41,18 +41,19 @@ impl<'js> Function<'js> {
     pub fn set_length(&self, len: usize) -> Result<()> {
         let ctx = self.0.ctx;
         let func = self.0.as_js_value();
+        let atom = "length".into_atom(ctx)?;
         let len = len.into_js(ctx)?;
 
         unsafe {
             let res = qjs::JS_DefinePropertyValue(
-                ctx.ctx,
+                ctx.as_ptr(),
                 func,
-                "length".into_atom(ctx).atom,
+                atom.atom,
                 len.into_js_value(),
                 (qjs::JS_PROP_CONFIGURABLE | qjs::JS_PROP_THROW) as _,
             );
             if res < 0 {
-                return Err(get_exception(ctx));
+                return Err(self.ctx.raise_exception());
             }
         };
 
@@ -63,18 +64,19 @@ impl<'js> Function<'js> {
     pub fn set_name<S: AsRef<str>>(&self, name: S) -> Result<()> {
         let ctx = self.0.ctx;
         let func = self.0.as_js_value();
+        let name_atom = "name".into_atom(ctx)?;
         let name = name.as_ref().into_js(ctx)?;
 
         unsafe {
             let res = qjs::JS_DefinePropertyValue(
-                ctx.ctx,
+                ctx.as_ptr(),
                 func,
-                "name".into_atom(ctx).atom,
+                name_atom.atom,
                 name.into_js_value(),
                 (qjs::JS_PROP_CONFIGURABLE | qjs::JS_PROP_THROW) as _,
             );
             if res < 0 {
-                return Err(get_exception(ctx));
+                return Err(ctx.raise_exception());
             }
         };
 
@@ -100,13 +102,13 @@ impl<'js> Function<'js> {
         let ctx = self.0.ctx;
         Ok(unsafe {
             let val = qjs::JS_Call(
-                ctx.ctx,
+                ctx.as_ptr(),
                 self.0.as_js_value(),
                 input.this,
                 input.args.len() as _,
                 input.args.as_ptr() as _,
             );
-            let val = handle_exception(ctx, val)?;
+            let val = ctx.handle_exception(val)?;
             Value::from_js_value(ctx, val)
         })
     }
@@ -130,7 +132,7 @@ impl<'js> Function<'js> {
         Ok(unsafe {
             let val = if input.has_this() {
                 qjs::JS_CallConstructor2(
-                    ctx.ctx,
+                    ctx.as_ptr(),
                     self.0.as_js_value(),
                     input.this,
                     input.args.len() as _,
@@ -138,13 +140,13 @@ impl<'js> Function<'js> {
                 )
             } else {
                 qjs::JS_CallConstructor(
-                    ctx.ctx,
+                    ctx.as_ptr(),
                     self.0.as_js_value(),
                     input.args.len() as _,
                     input.args.as_ptr() as _,
                 )
             };
-            let val = handle_exception(ctx, val)?;
+            let val = ctx.handle_exception(val)?;
             Value::from_js_value(ctx, val)
         })
     }
@@ -169,13 +171,13 @@ impl<'js> Function<'js> {
         input.arg(self.clone())?;
         unsafe {
             if qjs::JS_EnqueueJob(
-                ctx.ctx,
+                ctx.as_ptr(),
                 Some(Self::defer_call_job),
                 input.args.len() as _,
                 input.args.as_ptr() as _,
             ) < 0
             {
-                return Err(get_exception(ctx));
+                return Err(ctx.raise_exception());
             }
         }
         Ok(())
@@ -194,17 +196,13 @@ impl<'js> Function<'js> {
 
     /// Check that function is a constructor
     pub fn is_constructor(&self) -> bool {
-        0 != unsafe { qjs::JS_IsConstructor(self.0.ctx.ctx, self.0.as_js_value()) }
+        0 != unsafe { qjs::JS_IsConstructor(self.0.ctx.as_ptr(), self.0.as_js_value()) }
     }
 
     /// Mark the function as a constructor
     pub fn set_constructor(&self, flag: bool) {
         unsafe {
-            qjs::JS_SetConstructorBit(
-                self.0.ctx.ctx,
-                self.0.as_js_value(),
-                if flag { 1 } else { 0 },
-            )
+            qjs::JS_SetConstructorBit(self.0.ctx.as_ptr(), self.0.as_js_value(), i32::from(flag))
         };
     }
 
@@ -217,7 +215,11 @@ impl<'js> Function<'js> {
     /// ```
     pub fn set_prototype(&self, proto: &Object<'js>) {
         unsafe {
-            qjs::JS_SetConstructor(self.0.ctx.ctx, self.0.as_js_value(), proto.0.as_js_value())
+            qjs::JS_SetConstructor(
+                self.0.ctx.as_ptr(),
+                self.0.as_js_value(),
+                proto.0.as_js_value(),
+            )
         };
     }
 
@@ -229,10 +231,11 @@ impl<'js> Function<'js> {
         let value = self.0.as_js_value();
         Ok(unsafe {
             //TODO: can a function not have a prototype?.
-            let proto = handle_exception(
-                ctx,
-                qjs::JS_GetPropertyStr(ctx.ctx, value, "prototype\0".as_ptr() as _),
-            )?;
+            let proto = ctx.handle_exception(qjs::JS_GetPropertyStr(
+                ctx.as_ptr(),
+                value,
+                "prototype\0".as_ptr() as _,
+            ))?;
             if qjs::JS_IsObject(proto) {
                 Object::from_js_value(ctx, proto)
             } else {
@@ -294,7 +297,7 @@ impl<'js> Function<'js> {
 
 #[cfg(test)]
 mod test {
-    use crate::*;
+    use crate::{prelude::*, *};
     use approx::assert_abs_diff_eq as assert_approx_eq;
 
     #[test]
@@ -392,8 +395,9 @@ mod test {
                 .eval("() => { throw new Error('unimplemented'); }")
                 .unwrap();
 
-            if let Err(Error::Exception { message, .. }) = f.call::<_, ()>(()) {
-                assert_eq!(message, "unimplemented");
+            if let Err(Error::Exception) = f.call::<_, ()>(()) {
+                let exception = Exception::from_js(ctx, ctx.catch()).unwrap();
+                assert_eq!(exception.message().as_deref(), Some("unimplemented"));
             } else {
                 panic!("Should throws");
             }
@@ -691,6 +695,70 @@ mod test {
     }
 
     #[test]
+    fn call_rust_fn_with_this_and_args() {
+        let res: f64 = test_with(|ctx| {
+            let func = Function::new(ctx, |this: This<Object>, a: f64, b: f64| {
+                let x: f64 = this.get("x").unwrap();
+                let y: f64 = this.get("y").unwrap();
+                this.set("r", a * x + b * y).unwrap();
+            })
+            .unwrap();
+            ctx.globals().set("test_fn", func).unwrap();
+            ctx.eval(
+                r#"
+                  let test_obj = { x: 1, y: 2 };
+                  test_fn.call(test_obj, 3, 4);
+                  test_obj.r
+                "#,
+            )
+            .unwrap()
+        });
+        assert_eq!(res, 11.0);
+    }
+
+    #[test]
+    fn apply_rust_fn_with_this_and_args() {
+        let res: f32 = test_with(|ctx| {
+            let func = Function::new(ctx, |this: This<Object>, x: f32, y: f32| {
+                let a: f32 = this.get("a").unwrap();
+                let b: f32 = this.get("b").unwrap();
+                a * x + b * y
+            })
+            .unwrap();
+            ctx.globals().set("test_fn", func).unwrap();
+            ctx.eval(
+                r#"
+                  let test_obj = { a: 1, b: 2 };
+                  test_fn.apply(test_obj, [3, 4])
+                "#,
+            )
+            .unwrap()
+        });
+        assert_eq!(res, 11.0);
+    }
+
+    #[test]
+    fn bind_rust_fn_with_this_and_call_with_args() {
+        let res: f32 = test_with(|ctx| {
+            let func = Function::new(ctx, |this: This<Object>, x: f32, y: f32| {
+                let a: f32 = this.get("a").unwrap();
+                let b: f32 = this.get("b").unwrap();
+                a * x + b * y
+            })
+            .unwrap();
+            ctx.globals().set("test_fn", func).unwrap();
+            ctx.eval(
+                r#"
+                  let test_obj = { a: 1, b: 2 };
+                  test_fn.bind(test_obj)(3, 4)
+                "#,
+            )
+            .unwrap()
+        });
+        assert_eq!(res, 11.0);
+    }
+
+    #[test]
     fn call_rust_fn_with_var_args() {
         let res: Vec<i8> = test_with(|ctx| {
             let func = Function::new(ctx, |args: Rest<i8>| {
@@ -750,7 +818,7 @@ mod test {
             global
                 .set(
                     "cat",
-                    Func::from(|a: StdString, b: StdString| format!("{}{}", a, b)),
+                    Func::from(|a: StdString, b: StdString| format!("{a}{b}")),
                 )
                 .unwrap();
             let res: StdString = ctx.eval("cat(\"foo\", \"bar\")").unwrap();

@@ -1,6 +1,6 @@
 [package]
 name = "anode-rquickjs-core"
-version = "0.1.7"
+version = "0.3.1"
 authors = ["Mees Delzenne <mees.delzenne@gmail.com>", "K. <kayo@illumium.org>"]
 edition = "2018"
 license = "MIT"
@@ -9,10 +9,6 @@ description = "High level bindings to the QuickJS javascript engine"
 keywords = ["quickjs", "ecmascript", "javascript", "es6", "es2020"]
 categories = ["api-bindings"]
 repository = "https://github.com/DelSkayn/rquickjs.git"
-
-[dependencies.fxhash]
-version = "0.2"
-optional = true
 
 [dependencies.phf]
 version = "0.10"
@@ -26,20 +22,8 @@ optional = true
 version = "1"
 optional = true
 
-[dependencies.async-task]
-version = "4"
-optional = true
-
-[dependencies.flume]
-version = "0.10"
-optional = true
-
-[dependencies.pin-project-lite]
-version = "0.2"
-optional = true
-
-[dependencies.futures-lite]
-version = "1"
+[dependencies.async-lock]
+version = "2"
 optional = true
 
 [dependencies.chrono]
@@ -48,27 +32,8 @@ optional = true
 
 [dependencies.rquickjs-sys]
 package = "anode-rquickjs-sys"
-version = "0.1.7"
+version = "0.3.1"
 path = "../sys"
-
-[dependencies.tokio-rs]
-package = "tokio"
-version = "1"
-optional = true
-default-features = false
-features = ["rt"]
-
-[dependencies.async-std-rs]
-package = "async-std"
-version = "1"
-optional = true
-default-features = false
-features = ["default", "unstable"]
-
-[dependencies.smol-rs]
-package = "smol"
-version = "1"
-optional = true
 
 [dependencies.dlopen]
 version = "0.1"
@@ -81,7 +46,10 @@ optional = true
 [features]
 default = []
 
+
 # Almost all features excluding "parallel" and support for async runtimes
+
+
 full = [
     "chrono",
     "exports",
@@ -90,14 +58,12 @@ full = [
     "dyn-load",
     "either",
     "indexmap",
-    "registery",
     "classes",
     "properties",
     "array-buffer",
 ]
-
 # Almost all features excluding "parallel"
-full-async = ["full", "async-std", "tokio", "smol"]
+full-async = ["full", "futures"]
 
 # Use bindgen to generate bindings at compile-type
 # otherwise bundled bindings will be used
@@ -105,9 +71,6 @@ bindgen = ["rquickjs-sys/bindgen"]
 
 # Enable support of parallel execution
 parallel = []
-
-# Enable runtime registery
-registery = ["fxhash"]
 
 # Enable support of reading module exports
 exports = ["rquickjs-sys/exports"]
@@ -135,16 +98,7 @@ properties = []
 array-buffer = []
 
 # Enable interop between Rust futures and JS Promises
-futures = ["pin-project-lite", "futures-lite", "async-task", "flume"]
-
-# Enable Tokio async runtime support
-tokio = ["futures", "tokio-rs"]
-
-# Enable Async-std runtime support
-async-std = ["futures", "async-std-rs"]
-
-# Enable Smol async runtime support
-smol = ["futures", "smol-rs"]
+futures = ["async-lock"]
 
 # Max number of function args
 max-args-7 = []
@@ -186,17 +140,10 @@ box64 = ["rquickjs-sys/box64"]
 package = "futures"
 version = "0.3"
 
-[dev-dependencies.tokio-rs]
-package = "tokio"
+[dev-dependencies.tokio]
 version = "1.0"
 default-features = false
-features = ["rt", "time", "macros"]
-
-[dev-dependencies.async-std-rs]
-package = "async-std"
-version = "1.8"
-default-features = false
-features = ["attributes"]
+features = ["rt", "rt-multi-thread", "time", "macros"]
 
 [dev-dependencies.rquickjs]
 package = "anode-rquickjs"

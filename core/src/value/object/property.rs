@@ -1,13 +1,12 @@
 use crate::{
-    get_exception, qjs, AsFunction, Ctx, Function, IntoAtom, IntoJs, Object, ParallelSend, Result,
-    Undefined, Value,
+    function::AsFunction, qjs, Ctx, Function, IntoAtom, IntoJs, Object, Result, Undefined, Value,
 };
 
 impl<'js> Object<'js> {
     /// Define a property of an object
     ///
     /// ```
-    /// # use rquickjs::{Runtime, Context, Object, Property, Accessor};
+    /// # use rquickjs::{Runtime, Context, Object, object::{Property, Accessor}};
     /// # let rt = Runtime::new().unwrap();
     /// # let ctx = Context::full(&rt).unwrap();
     /// # ctx.with(|ctx| {
@@ -34,12 +33,12 @@ impl<'js> Object<'js> {
         V: AsProperty<'js, P>,
     {
         let ctx = self.0.ctx;
-        let key = key.into_atom(ctx);
+        let key = key.into_atom(ctx)?;
         let (flags, value, getter, setter) = prop.config(ctx)?;
         let flags = flags | (qjs::JS_PROP_THROW as PropertyFlags);
         unsafe {
             let res = qjs::JS_DefineProperty(
-                ctx.ctx,
+                ctx.as_ptr(),
                 self.0.as_js_value(),
                 key.atom,
                 value.as_js_value(),
@@ -48,7 +47,7 @@ impl<'js> Object<'js> {
                 flags,
             );
             if res < 0 {
-                return Err(get_exception(ctx));
+                return Err(self.0.ctx.raise_exception());
             }
         }
         Ok(())
@@ -214,7 +213,7 @@ impl<G, S> Accessor<G, S> {
 /// A property with getter only
 impl<'js, G, GA, GR> AsProperty<'js, (GA, GR, (), ())> for Accessor<G, ()>
 where
-    G: AsFunction<'js, GA, GR> + ParallelSend + 'static,
+    G: AsFunction<'js, GA, GR> + 'js,
 {
     fn config(self, ctx: Ctx<'js>) -> Result<(PropertyFlags, Value<'js>, Value<'js>, Value<'js>)> {
         Ok((
@@ -229,7 +228,7 @@ where
 /// A property with setter only
 impl<'js, S, SA, SR> AsProperty<'js, ((), (), SA, SR)> for Accessor<(), S>
 where
-    S: AsFunction<'js, SA, SR> + ParallelSend + 'static,
+    S: AsFunction<'js, SA, SR> + 'js,
 {
     fn config(self, ctx: Ctx<'js>) -> Result<(PropertyFlags, Value<'js>, Value<'js>, Value<'js>)> {
         Ok((
@@ -244,8 +243,8 @@ where
 /// A property with getter and setter
 impl<'js, G, GA, GR, S, SA, SR> AsProperty<'js, (GA, GR, SA, SR)> for Accessor<G, S>
 where
-    G: AsFunction<'js, GA, GR> + ParallelSend + 'static,
-    S: AsFunction<'js, SA, SR> + ParallelSend + 'static,
+    G: AsFunction<'js, GA, GR> + 'js,
+    S: AsFunction<'js, SA, SR> + 'js,
 {
     fn config(self, ctx: Ctx<'js>) -> Result<(PropertyFlags, Value<'js>, Value<'js>, Value<'js>)> {
         Ok((
@@ -259,7 +258,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::*;
+    use crate::{object::*, *};
 
     #[test]
     fn property_with_undefined() {
@@ -269,8 +268,9 @@ mod test {
 
             let _: () = obj.get("key").unwrap();
 
-            if let Err(Error::Exception { message, .. }) = obj.set("key", "") {
-                assert_eq!(message, "'key' is read-only");
+            if let Err(Error::Exception) = obj.set("key", "") {
+                let exception = Exception::from_js(ctx, ctx.catch()).unwrap();
+                assert_eq!(exception.message().as_deref(), Some("'key' is read-only"));
             } else {
                 panic!("Should fail");
             }
@@ -286,8 +286,9 @@ mod test {
             let s: StdString = obj.get("key").unwrap();
             assert_eq!(s, "str");
 
-            if let Err(Error::Exception { message, .. }) = obj.set("key", "") {
-                assert_eq!(message, "'key' is read-only");
+            if let Err(Error::Exception) = obj.set("key", "") {
+                let exception = Exception::from_js(ctx, ctx.catch()).unwrap();
+                assert_eq!(exception.message().as_deref(), Some("'key' is read-only"));
             } else {
                 panic!("Should fail");
             }
@@ -312,6 +313,7 @@ mod test {
             let obj = Object::new(ctx).unwrap();
             obj.prop("key", Property::from("str")).unwrap();
             obj.set("key", "text")
+                .catch(ctx)
                 .map_err(|error| panic!("{}", error))
                 .unwrap();
         });
@@ -333,6 +335,7 @@ mod test {
             let obj = Object::new(ctx).unwrap();
             obj.prop("key", Property::from("str")).unwrap();
             obj.prop("key", Property::from(39))
+                .catch(ctx)
                 .map_err(|error| panic!("{}", error))
                 .unwrap();
         });
@@ -354,7 +357,7 @@ mod test {
             let obj = Object::new(ctx).unwrap();
             obj.prop("key", Property::from("str")).unwrap();
             let keys: Vec<StdString> = obj
-                .own_keys(Filter::new().string())
+                .own_keys(object::Filter::new().string())
                 .collect::<Result<_>>()
                 .unwrap();
             assert_eq!(keys.len(), 1);
@@ -384,8 +387,12 @@ mod test {
             let s: StdString = obj.get("key").unwrap();
             assert_eq!(s, "str");
 
-            if let Err(Error::Exception { message, .. }) = obj.set("key", "") {
-                assert_eq!(message, "no setter for property");
+            if let Err(Error::Exception) = obj.set("key", "") {
+                let exception = Exception::from_js(ctx, ctx.catch()).unwrap();
+                assert_eq!(
+                    exception.message().as_deref(),
+                    Some("no setter for property")
+                );
             } else {
                 panic!("Should fail");
             }

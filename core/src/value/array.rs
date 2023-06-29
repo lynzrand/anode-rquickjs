@@ -1,11 +1,10 @@
-use crate::{
-    get_exception, handle_exception, qjs, Ctx, Error, FromIteratorJs, FromJs, IntoJs, Object,
-    Result, Value,
-};
+use crate::{qjs, Ctx, Error, FromJs, IntoJs, Object, Result, Value};
 use std::{
     iter::{DoubleEndedIterator, ExactSizeIterator, FusedIterator, IntoIterator, Iterator},
     marker::PhantomData,
 };
+
+use super::convert::FromIteratorJs;
 
 /// Rust representation of a javascript object optimized as an array.
 ///
@@ -19,8 +18,8 @@ pub struct Array<'js>(pub(crate) Value<'js>);
 impl<'js> Array<'js> {
     pub fn new(ctx: Ctx<'js>) -> Result<Self> {
         Ok(Array(unsafe {
-            let val = qjs::JS_NewArray(ctx.ctx);
-            handle_exception(ctx, val)?;
+            let val = qjs::JS_NewArray(ctx.as_ptr());
+            ctx.handle_exception(val)?;
             Value::from_js_value(ctx, val)
         }))
     }
@@ -30,7 +29,7 @@ impl<'js> Array<'js> {
         let ctx = self.0.ctx;
         let value = self.0.as_js_value();
         unsafe {
-            let val = qjs::JS_GetPropertyStr(ctx.ctx, value, b"length\0".as_ptr() as *const _);
+            let val = qjs::JS_GetPropertyStr(ctx.as_ptr(), value, b"length\0".as_ptr() as *const _);
             assert!(qjs::JS_IsInt(val));
             qjs::JS_VALUE_GET_INT(val) as _
         }
@@ -46,8 +45,8 @@ impl<'js> Array<'js> {
         let ctx = self.0.ctx;
         let obj = self.0.as_js_value();
         let val = unsafe {
-            let val = qjs::JS_GetPropertyUint32(ctx.ctx, obj, idx as _);
-            let val = handle_exception(ctx, val)?;
+            let val = qjs::JS_GetPropertyUint32(ctx.as_ptr(), obj, idx as _);
+            let val = ctx.handle_exception(val)?;
             Value::from_js_value(ctx, val)
         };
         V::from_js(ctx, val)
@@ -59,8 +58,8 @@ impl<'js> Array<'js> {
         let obj = self.0.as_js_value();
         let val = val.into_js(ctx)?.into_js_value();
         unsafe {
-            if 0 > qjs::JS_SetPropertyUint32(ctx.ctx, obj, idx as _, val) {
-                return Err(get_exception(ctx));
+            if 0 > qjs::JS_SetPropertyUint32(ctx.as_ptr(), obj, idx as _, val) {
+                return Err(self.ctx.raise_exception());
             }
         }
         Ok(())
@@ -191,6 +190,8 @@ where
 
 #[cfg(test)]
 mod test {
+    use convert::IteratorJs;
+
     use crate::*;
     #[test]
     fn from_javascript() {

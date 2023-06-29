@@ -1,11 +1,14 @@
+use std::{marker::PhantomData, ptr::NonNull};
+
+#[cfg(feature = "futures")]
+use crate::{context::AsyncContext, runtime::AsyncRuntime};
 use crate::{qjs, Context, Result, Runtime};
-use std::marker::PhantomData;
 
 /// The internal trait to add JS builting
 pub trait Intrinsic {
     /// # Safety
     /// Do not need implement it yourself instead you may use predefined intrinsics from [`intrinsic`] module.
-    unsafe fn add_intrinsic(ctx: *mut qjs::JSContext);
+    unsafe fn add_intrinsic(ctx: NonNull<qjs::JSContext>);
 }
 
 /// Used for building a [`Context`](struct.Context.html) with a specific set of intrinsics
@@ -18,8 +21,8 @@ macro_rules! intrinsic_impls {
             pub struct $name;
 
             impl Intrinsic for $name {
-                unsafe fn add_intrinsic(ctx: *mut qjs::JSContext) {
-                    qjs::$func(ctx $(, $($args),*)*);
+                unsafe fn add_intrinsic(ctx: NonNull<qjs::JSContext>) {
+                    qjs::$func(ctx.as_ptr() $(, $($args),*)*);
                 }
             }
         )*
@@ -31,7 +34,7 @@ macro_rules! intrinsic_impls {
             where
                 $($name: Intrinsic,)*
             {
-                unsafe fn add_intrinsic(_ctx: *mut qjs::JSContext) {
+                unsafe fn add_intrinsic(_ctx: NonNull<qjs::JSContext>) {
                     $($name::add_intrinsic(_ctx);)*
                 }
             }
@@ -43,7 +46,7 @@ macro_rules! intrinsic_impls {
 ///
 /// You can select just you need only. If `lto = true` any unused code will be drop by link-time optimizer.
 pub mod intrinsic {
-    use super::{qjs, Intrinsic};
+    use super::{qjs, Intrinsic, NonNull};
 
     intrinsic_impls! {
         @builtin:
@@ -143,5 +146,10 @@ impl<I: Intrinsic> ContextBuilder<I> {
 
     pub fn build(self, runtime: &Runtime) -> Result<Context> {
         Context::custom::<I>(runtime)
+    }
+
+    #[cfg(feature = "futures")]
+    pub async fn build_async(self, runtime: &AsyncRuntime) -> Result<AsyncContext> {
+        AsyncContext::custom::<I>(runtime).await
     }
 }

@@ -1,4 +1,4 @@
-use crate::{AsFunction, Ctx, Function, IntoJs, ParallelSend, Result, Value};
+use crate::{function::AsFunction, Ctx, Function, IntoJs, Result, Value};
 use std::{
     cell::RefCell,
     marker::PhantomData,
@@ -10,7 +10,7 @@ use std::{
 /// The method-like functions is functions which get `this` as the first argument. This wrapper allows receive `this` directly as first argument and do not requires using [`This`] for that purpose.
 ///
 /// ```
-/// # use rquickjs::{Runtime, Context, Result, Method, Function, This};
+/// # use rquickjs::{Runtime, Context, Result, Function, function::{Method, This}};
 /// # let rt = Runtime::new().unwrap();
 /// # let ctx = Context::full(&rt).unwrap();
 /// # ctx.with(|ctx| -> Result<()> {
@@ -26,12 +26,22 @@ use std::{
 #[repr(transparent)]
 pub struct Method<F>(pub F);
 
+/// A method which takes a class type as a self argument.
+#[repr(transparent)]
+pub struct SelfMethod<S, F>(pub F, PhantomData<S>);
+
+impl<S, F> From<F> for SelfMethod<S, F> {
+    fn from(func: F) -> Self {
+        Self(func, PhantomData)
+    }
+}
+
 /// The wrapper for function to convert is into JS
 ///
 /// The Rust functions should be wrapped to convert it to JS using [`IntoJs`] trait.
 ///
 /// ```
-/// # use rquickjs::{Runtime, Context, Result, Func};
+/// # use rquickjs::{Runtime, Context, Result, function::Func};
 /// # let rt = Runtime::new().unwrap();
 /// # let ctx = Context::full(&rt).unwrap();
 /// # ctx.with(|ctx| -> Result<()> {
@@ -40,13 +50,19 @@ pub struct Method<F>(pub F);
 /// ctx.globals().set("sum", Func::from(|a: i32, b: i32| a + b))?;
 /// assert_eq!(ctx.eval::<i32, _>("sum(3, 2)")?, 5);
 /// assert_eq!(ctx.eval::<usize, _>("sum.length")?, 2);
-/// assert!(ctx.eval::<Option<String>, _>("sum.name")?.is_none());
+/// assert_eq!(ctx.eval::<String, _>("sum.name")?, "");
+/// // Call/apply works as expected
+/// assert_eq!(ctx.eval::<i32, _>("sum.call(sum, 3, 2)")?, 5);
+/// assert_eq!(ctx.eval::<i32, _>("sum.apply(sum, [3, 2])")?, 5);
 ///
 /// // Named function
 /// ctx.globals().set("prod", Func::new("multiply", |a: i32, b: i32| a * b))?;
 /// assert_eq!(ctx.eval::<i32, _>("prod(3, 2)")?, 6);
 /// assert_eq!(ctx.eval::<usize, _>("prod.length")?, 2);
 /// assert_eq!(ctx.eval::<String, _>("prod.name")?, "multiply");
+/// // Call/apply works as expected
+/// assert_eq!(ctx.eval::<i32, _>("prod.call(prod, 3, 2)")?, 6);
+/// assert_eq!(ctx.eval::<i32, _>("prod.apply(prod, [3, 2])")?, 6);
 /// #
 /// # Ok(())
 /// # }).unwrap();
@@ -56,15 +72,15 @@ pub struct Func<F>(pub F);
 
 /// The wrapper for async functons
 ///
-/// This type wraps returned future into [`Promised`](crate::Promised)
-///
+/// This type wraps returned future into [`Promised`](crate::promise::Promised)
 /// ```
-/// # use rquickjs::{Runtime, Context, Result, Function, Async};
+/// # use rquickjs::{Runtime, Context, Result, Function, function::Async};
 /// # let rt = Runtime::new().unwrap();
 /// # let ctx = Context::full(&rt).unwrap();
 /// # ctx.with(|ctx| -> Result<()> {
 /// #
-/// async fn my_func() {}
+/// // Inorder to conver to a javascript promise the future must return a `Result`.
+/// async fn my_func() -> Result<()> { Ok(()) }
 /// let func = Function::new(ctx, Async(my_func));
 /// #
 /// # Ok(())
@@ -102,7 +118,7 @@ impl<F> From<F> for OnceFn<F> {
 /// The wrapper to get `this` from input
 ///
 /// ```
-/// # use rquickjs::{Runtime, Context, Result, This, Function};
+/// # use rquickjs::{Runtime, Context, Result, function::This, Function};
 /// # let rt = Runtime::new().unwrap();
 /// # let ctx = Context::full(&rt).unwrap();
 /// # ctx.with(|ctx| -> Result<()> {
@@ -126,7 +142,7 @@ pub struct This<T>(pub T);
 /// The [`Option`] type cannot be used for that purpose because it implements [`FromJs`](crate::FromJs) trait and requires the argument which may be `undefined`.
 ///
 /// ```
-/// # use rquickjs::{Runtime, Context, Result, Opt, Function};
+/// # use rquickjs::{Runtime, Context, Result, function::Opt, Function};
 /// # let rt = Runtime::new().unwrap();
 /// # let ctx = Context::full(&rt).unwrap();
 /// # ctx.with(|ctx| -> Result<()> {
@@ -150,7 +166,7 @@ pub struct Opt<T>(pub Option<T>);
 /// The [`Vec`] type cannot be used for that purpose because it implements [`FromJs`](crate::FromJs) and already used to convert JS arrays.
 ///
 /// ```
-/// # use rquickjs::{Runtime, Context, Result, Rest, Function};
+/// # use rquickjs::{Runtime, Context, Result, function::Rest, Function};
 /// # let rt = Runtime::new().unwrap();
 /// # let ctx = Context::full(&rt).unwrap();
 /// # ctx.with(|ctx| -> Result<()> {
@@ -250,7 +266,7 @@ impl<F, A, R> From<F> for Func<(F, PhantomData<(A, R)>)> {
 
 impl<'js, F, A, R> IntoJs<'js> for Func<(F, PhantomData<(A, R)>)>
 where
-    F: AsFunction<'js, A, R> + ParallelSend + 'static,
+    F: AsFunction<'js, A, R> + 'js,
 {
     fn into_js(self, ctx: Ctx<'js>) -> Result<Value<'js>> {
         let data = self.0;
@@ -267,7 +283,7 @@ impl<N, F, A, R> Func<(N, F, PhantomData<(A, R)>)> {
 impl<'js, N, F, A, R> IntoJs<'js> for Func<(N, F, PhantomData<(A, R)>)>
 where
     N: AsRef<str>,
-    F: AsFunction<'js, A, R> + ParallelSend + 'static,
+    F: AsFunction<'js, A, R> + 'js,
 {
     fn into_js(self, ctx: Ctx<'js>) -> Result<Value<'js>> {
         let data = self.0;
@@ -282,6 +298,7 @@ type_impls! {
     MutFn<F>(RefCell<F>): AsRef Deref;
     OnceFn<F>(RefCell<Option<F>>): AsRef Deref;
     Method<F>(F): AsRef Deref;
+    SelfMethod<T,F>(F, PhantomData): AsRef Deref;
     This<T>(T): into_inner From AsRef AsMut Deref DerefMut;
     Opt<T>(Option<T>): into_inner Into From AsRef AsMut Deref DerefMut;
     Rest<T>(Vec<T>): into_inner Into From AsRef AsMut Deref DerefMut;

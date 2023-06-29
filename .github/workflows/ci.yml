@@ -2,109 +2,97 @@ name: Rust
 on:
   push:
     branches:
-      - master
+      - "*"
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
+      - "[0-9]+.[0-9]+.[0-9]+"
   pull_request:
 jobs:
   format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
-          profile: minimal
           components: rustfmt
-          default: true
-          override: true
       - name: Cargo cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-rust_stable-${{ hashFiles('**/Cargo.lock') }}
       - name: Format
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
 
   doc:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: nightly
-          profile: minimal
           components: rust-docs
-          default: true
-          override: true
       - name: Cargo cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-rust_nightly-${{ hashFiles('**/Cargo.lock') }}
       - name: Build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: target
           key: ${{ runner.os }}-build-rust_nightly-doc-${{ hashFiles('**/Cargo.lock') }}
       - name: Documentation
-        uses: actions-rs/cargo@v1
         env:
           DOCS_RS: 1
-        with:
-          command: doc
-          args: --features full-async,parallel,doc-cfg
+        run: cargo doc --features full-async,parallel,doc-cfg
       - name: Upload docs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: docs
           path: |
             target/doc/rquickjs
             target/doc/rquickjs-sys
             target/doc/rquickjs-macro
-
   check:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
         with:
           submodules: true
-      - uses: actions-rs/toolchain@v1
+      - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: nightly
-          profile: minimal
           components: clippy
-          default: true
-          override: true
       - name: Cargo cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ runner.os }}-cargo-rust_nightly-${{ hashFiles('**/Cargo.lock') }}
       - name: Build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: target
           key: ${{ runner.os }}-build-rust_nightly-check-${{ hashFiles('**/Cargo.lock') }}
-      - uses: actions-rs/clippy-check@v1
+      - uses: sksat/action-clippy@main
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all --all-features
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-check
+          fail_on_error: true
+          clippy_flags: --all --all-targets --features full-async
 
   test:
     needs:
@@ -164,6 +152,18 @@ jobs:
             target: x86_64-pc-windows-msvc
             features: full-async
             optimization: true
+          - task: bindings
+            os: ubuntu-latest
+            rust: stable
+            target: x86_64-unknown-linux-musl
+            features: full-async
+            optimization: false
+          - task: bindings
+            os: ubuntu-latest
+            rust: stable
+            target: aarch64-unknown-linux-musl
+            features: full-async
+            optimization: false
           # Test features
           - task: features
             os: ubuntu-latest
@@ -205,18 +205,6 @@ jobs:
             os: ubuntu-latest
             rust: stable
             target: x86_64-unknown-linux-gnu
-            features: async-std
-            optimization: false
-          - task: features
-            os: ubuntu-latest
-            rust: stable
-            target: x86_64-unknown-linux-gnu
-            features: tokio
-            optimization: false
-          - task: features
-            os: ubuntu-latest
-            rust: stable
-            target: x86_64-unknown-linux-gnu
             features: parallel
             optimization: false
           # Test channels
@@ -225,7 +213,7 @@ jobs:
             rust: stable
             target: x86_64-unknown-linux-gnu
             features: full-async
-            optimization: false 
+            optimization: false
           - task: channels
             os: ubuntu-latest
             rust: beta
@@ -237,14 +225,14 @@ jobs:
             rust: nightly
             target: x86_64-unknown-linux-gnu
             features: full-async
-            optimization: false 
+            optimization: false
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup cross linux toolchain
-        if: contains(matrix.target, '-linux-') && !startsWith(matrix.target, 'x86_64-')
+        if: contains(matrix.target, '-linux-') && !startsWith(matrix.target, 'x86_64-') && !endsWith(matrix.target, '-musl')
         run: |
           case "${{ matrix.target }}" in
             i686-*) SYSTEM_ARCH=i386 ;;
@@ -253,8 +241,40 @@ jobs:
           ENV_TARGET=$(printf "${{ matrix.target }}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
           sudo dpkg --add-architecture ${SYSTEM_ARCH}
           sudo apt-get update -y
-          sudo apt-get install -y libc6-dev:${SYSTEM_ARCH} gcc-${GCC_TARGET}
+          sudo apt-get install -y libc6-dev:${SYSTEM_ARCH} gcc-${GCC_TARGET} libgcc-s1:${SYSTEM_ARCH}
           echo "CARGO_TARGET_${ENV_TARGET}_LINKER=${GCC_TARGET}-gcc" >> $GITHUB_ENV
+      - name: Setup musl-tools
+        if: startsWith(matrix.target, 'x86_64-') && endsWith(matrix.target, '-musl')
+        run: sudo apt-get update -y && sudo apt-get install -y musl-tools
+      - name: Setup musl aarch64
+        if: startsWith(matrix.target, 'aarch64') && endsWith(matrix.target, '-musl')
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            curl \
+            libc6-arm64-cross \
+            libc6-dev-arm64-cross \
+            crossbuild-essential-arm64 \
+            clang \
+            qemu-system-arm \
+            qemu-efi-aarch64 \
+            qemu-utils \
+            qemu-user
+
+          curl --retry 5 https://musl.cc/aarch64-linux-musl-cross.tgz | tar xzf -
+          sudo mv aarch64-linux-musl-cross /musl
+
+          echo "CC_aarch64_unknown_linux_musl=aarch64-linux-musl-gcc" >> $GITHUB_ENV
+          echo "CXX_aarch64_unknown_linux_musl=aarch64-linux-musl-g++" >> $GITHUB_ENV
+          echo "AR_aarch64_unknown_linux_musl=aarch64-linux-musl-ar" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc" >> $GITHUB_ENV
+
+          mkdir -p ~/.cargo/
+          echo "[target.aarch64-unknown-linux-musl]" >> ~/.cargo/config.toml
+          echo 'rustflags = ["-C", "link-self-contained=yes","-C", "linker=rust-lld"]' >> ~/.cargo/config.toml
+
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUNNER=qemu-aarch64" >> $GITHUB_ENV
+          echo "/musl/bin" >> $GITHUB_PATH
       - name: Setup msys2 toolchains
         if: startsWith(matrix.os, 'windows') && endsWith(matrix.target, '-gnu')
         uses: msys2/setup-msys2@v2
@@ -275,16 +295,13 @@ jobs:
           echo "CC_i686_pc_windows_gnu=i686-w64-mingw32-gcc" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
           # echo "HOST_CC=x86_64-w64-mingw32-gcc" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
-          target: ${{ matrix.target }}
-          profile: minimal
+          targets: ${{ matrix.target }}
           components: rustfmt
-          default: true
-          override: true
       - name: Cargo cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/registry
@@ -293,40 +310,31 @@ jobs:
       - name: Build cache
         if: |
           runner.os != 'macOS'
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: target
           key: ${{ runner.os }}-build-rust_${{ matrix.rust }}-target_${{ matrix.target }}-opt_${{ matrix.optimization }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Update deps
-        uses: actions-rs/cargo@v1
-        with:
-          command: update
+        run: cargo update
       - name: Build sys
-        uses: actions-rs/cargo@v1
         env:
           RUST_LOG: bindgen=warn,bindgen::ir=error,bindgen::codegen=error
-        with:
-          command: build
-          args: ${{ matrix.optimization && '--release' || '' }} --manifest-path sys/Cargo.toml --target ${{ matrix.target }} --features exports,bindgen,update-bindings,logging
+        run: |
+          cargo clean
+          cargo build ${{ matrix.optimization && '--release' || '' }} --manifest-path sys/Cargo.toml --target ${{ matrix.target }} --features exports,bindgen,update-bindings,logging
       - name: Upload bindings
         if: matrix.task == 'bindings'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: bindings
           path: sys/src/bindings/${{ matrix.target }}.rs
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: ${{ matrix.optimization && '--release' || '' }} --target ${{ matrix.target }} --no-default-features --features ${{ matrix.features }}
+        run: cargo build ${{ matrix.optimization && '--release' || '' }} --target ${{ matrix.target }} --no-default-features --features ${{ matrix.features }}
       - name: Test
-        uses: actions-rs/cargo@v1
         timeout-minutes: 12
         env:
           RUST_BACKTRACE: full
-        with:
-          command: test
-          args: ${{ matrix.optimization && '--release' || '' }} --all --target ${{ matrix.target }} --no-default-features --features ${{ matrix.features }}
+        run: cargo test ${{ matrix.optimization && '--release' || '' }} --all --target ${{ matrix.target }} --no-default-features --features ${{ matrix.features }}
 
   update-bindings:
     if: ${{ github.event_name != 'pull_request' && !startsWith(github.ref, 'refs/tags/') }}
@@ -334,14 +342,14 @@ jobs:
       - test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Download bindings
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: bindings
           path: sys/src/bindings
       - name: Create pull request
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           base: ${{ github.head_ref }}
           commit-message: Updated bindings
@@ -350,7 +358,6 @@ jobs:
           title: Update bindings
           body: |
             Bindings should be updated to be consistent with latest changes
-
   publish:
     if: (github.repository == 'DelSkayn/rquickjs' || github.repository == 'katyo/rquickjs') && startsWith(github.ref, 'refs/tags/')
     needs:
@@ -360,14 +367,13 @@ jobs:
       - test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
-          override: true
       - name: Publish crates
         uses: katyo/publish-crates@v1
         with:

@@ -1,10 +1,11 @@
-mod array;
+pub mod array;
 mod atom;
 mod bigint;
-mod convert;
-mod function;
-mod module;
-mod object;
+pub mod convert;
+mod exception;
+pub mod function;
+pub mod module;
+pub mod object;
 mod string;
 mod symbol;
 
@@ -15,17 +16,15 @@ mod typed_array;
 
 use crate::{qjs, Ctx, Error, Result};
 
-pub use module::{Created, Evaluated, Loaded, Module, ModuleDef, ModuleLoadFn, Native, Script};
-#[cfg(feature = "exports")]
-pub use module::{ExportEntriesIter, ExportNamesIter};
-
 pub use array::Array;
-pub use atom::*;
+pub use atom::Atom;
 pub use bigint::BigInt;
-pub use convert::*;
+pub use convert::{Coerced, FromAtom, FromIteratorJs, FromJs, IntoAtom, IntoJs, IteratorJs};
+pub use exception::Exception;
 pub use function::{
     AsArguments, AsFunction, Func, Function, Method, MutFn, OnceFn, Opt, Rest, This,
 };
+pub use module::Module;
 pub use object::{Filter, Object, ObjectDef};
 use rquickjs_sys::JS_TAG_FUNCTION_BYTECODE;
 pub use string::String;
@@ -39,7 +38,7 @@ pub use typed_array::TypedArray;
 #[cfg(feature = "futures")]
 pub use function::Async;
 
-use std::{fmt, marker::PhantomData, mem, ops::Deref, result::Result as StdResult, str};
+use std::{fmt, mem, ops::Deref, result::Result as StdResult, str};
 
 /// Any javascript value
 pub struct Value<'js> {
@@ -58,7 +57,7 @@ impl<'js> Clone for Value<'js> {
 impl<'js> Drop for Value<'js> {
     fn drop(&mut self) {
         unsafe {
-            qjs::JS_FreeValue(self.ctx.ctx, self.value);
+            qjs::JS_FreeValue(self.ctx.as_ptr(), self.value);
         }
     }
 }
@@ -197,6 +196,12 @@ impl<'js> Value<'js> {
         Self { ctx, value }
     }
 
+    /// Returns the Ctx object associated with this value.
+    #[inline]
+    pub fn ctx(&self) -> Ctx<'js> {
+        self.ctx
+    }
+
     // unsafe because no type checking
     #[inline]
     pub(crate) unsafe fn get_bool(&self) -> bool {
@@ -313,11 +318,21 @@ impl<'js> Value<'js> {
     }
 
     #[inline]
-    #[doc(hidden)]
     pub unsafe fn into_ptr(self) -> *mut qjs::c_void {
         let ptr = self.get_ptr();
         mem::forget(self);
         ptr
+    }
+
+    pub fn is_null(&self) -> bool {
+        let tag = unsafe { qjs::JS_VALUE_GET_NORM_TAG(self.value) };
+        qjs::JS_TAG_NULL == tag
+    }
+
+    #[inline]
+    pub fn is_undefined(&self) -> bool {
+        let tag = unsafe { qjs::JS_VALUE_GET_NORM_TAG(self.value) };
+        qjs::JS_TAG_UNDEFINED == tag
     }
 
     /// Check if the value is a bool
@@ -378,19 +393,19 @@ impl<'js> Value<'js> {
     /// Check if the value is an array
     #[inline]
     pub fn is_array(&self) -> bool {
-        0 != unsafe { qjs::JS_IsArray(self.ctx.ctx, self.value) }
+        0 != unsafe { qjs::JS_IsArray(self.ctx.as_ptr(), self.value) }
     }
 
     /// Check if the value is a function
     #[inline]
     pub fn is_function(&self) -> bool {
-        0 != unsafe { qjs::JS_IsFunction(self.ctx.ctx, self.value) }
+        0 != unsafe { qjs::JS_IsFunction(self.ctx.as_ptr(), self.value) }
     }
 
     /// Check if the value is an error
     #[inline]
     pub fn is_error(&self) -> bool {
-        0 != unsafe { qjs::JS_IsError(self.ctx.ctx, self.value) }
+        0 != unsafe { qjs::JS_IsError(self.ctx.as_ptr(), self.value) }
     }
 
     /// Reference as value
@@ -414,7 +429,7 @@ impl<'js> AsRef<Value<'js>> for Value<'js> {
 macro_rules! type_impls {
     // type: name => tag
     ($($type:ident: $name:ident => $tag:ident,)*) => {
-        /// The type of value
+        /// The type of Javascript value
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
         #[repr(i32)]
         pub enum Type {
@@ -616,7 +631,7 @@ macro_rules! sub_types {
             }
 
             impl<'js> IntoAtom<'js> for sub_types!(@type $type) {
-                fn into_atom(self, ctx: Ctx<'js>) -> Atom<'js> {
+                fn into_atom(self, ctx: Ctx<'js>) -> Result<Atom<'js>> {
                     Atom::from_value(ctx, &self.0)
                 }
             }
@@ -630,15 +645,12 @@ macro_rules! sub_types {
     (@wrap $type:ident $val:expr) => { $type($val) };
 }
 
-type EvaluatedModule<'js> = Module<'js, Evaluated>;
-
 sub_types! {
     String as_string ref_string into_string from_string,
     Symbol as_symbol ref_symbol into_symbol from_symbol,
     Object as_object ref_object into_object from_object,
     Array as_array ref_array into_array from_array,
     Function as_function ref_function into_function from_function,
-    Module as_module ref_module into_module from_module,
     BigInt as_big_int ref_big_int into_big_int from_big_int,
 }
 

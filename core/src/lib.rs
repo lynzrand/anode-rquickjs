@@ -6,15 +6,6 @@
 #![allow(clippy::needless_lifetimes)]
 #![cfg_attr(feature = "doc-cfg", feature(doc_cfg))]
 
-#[cfg(feature = "async-std")]
-extern crate async_std_rs as async_std;
-
-#[cfg(feature = "tokio")]
-extern crate tokio_rs as tokio;
-
-#[cfg(feature = "smol")]
-extern crate smol_rs as smol;
-
 //#[doc(hidden)]
 pub mod qjs {
     //! Native low-level bindings
@@ -27,76 +18,102 @@ pub mod phf {
     pub use phf::*;
 }
 
-mod markers;
-pub use markers::ParallelSend;
+/// Short macro to define a cstring literal.
+///
+/// Make sure the string does not contain any internal null characters or it panic.
+#[macro_export]
+macro_rules! cstr {
+    ($str:tt) => {{
+        const fn no_null(s: &[u8]) {
+            let mut i = 0;
+            while i < s.len() {
+                if s[i] == 0 {
+                    panic!("cstr string contained null character")
+                }
+                i += 1;
+            }
+        }
+        no_null($str.as_bytes());
+        unsafe { std::ffi::CStr::from_bytes_with_nul_unchecked(concat!($str, "\0").as_bytes()) }
+    }};
+}
+
+pub mod markers;
 mod result;
-use result::{get_exception, handle_exception, handle_panic};
-pub use result::{Error, Result};
+pub use result::{CatchResultExt, CaughtError, CaughtResult, Error, Result, ThrowResultExt};
 mod safe_ref;
 pub(crate) use safe_ref::*;
-mod runtime;
-#[cfg(feature = "async-std")]
-pub use runtime::AsyncStd;
-#[cfg(all(feature = "smol", feature = "parallel"))]
-pub use runtime::Smol;
-#[cfg(feature = "tokio")]
-pub use runtime::Tokio;
+pub mod runtime;
 #[cfg(feature = "futures")]
-pub use runtime::{Executor, ExecutorSpawner, Idle};
-pub use runtime::{MemoryUsage, Runtime};
-mod context;
-pub use context::{intrinsic, Context, ContextBuilder, Ctx, EvalOptions, Intrinsic, MultiWith};
-mod value;
-pub use value::*;
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "futures")))]
+pub use runtime::AsyncRuntime;
+pub use runtime::Runtime;
+pub mod context;
+#[cfg(feature = "futures")]
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "futures")))]
+pub use context::AsyncContext;
+pub use context::{Context, Ctx};
 mod persistent;
+mod value;
 pub use persistent::{Outlive, Persistent};
+pub use value::{
+    array, convert, function, module, object, Array, Atom, BigInt, Exception, FromAtom, FromJs,
+    Function, IntoAtom, IntoJs, Module, Null, Object, String, Symbol, Type, Undefined, Value,
+};
 
+#[cfg(feature = "array-buffer")]
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "array-buffer")))]
+pub use value::{ArrayBuffer, TypedArray};
 mod class_id;
 #[cfg(not(feature = "classes"))]
 pub(crate) use class_id::ClassId;
 #[cfg(feature = "classes")]
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "classes")))]
 pub use class_id::ClassId;
 
-#[cfg(feature = "registery")]
-mod registery_key;
-#[cfg(feature = "registery")]
-pub use registery_key::RegisteryKey;
-
 #[cfg(feature = "classes")]
-mod class;
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "classes")))]
+pub mod class;
 #[cfg(feature = "classes")]
-pub use class::{Class, ClassDef, Constructor, HasRefs, RefsMarker, WithProto};
-
-#[cfg(feature = "properties")]
-mod property;
-#[cfg(feature = "properties")]
-pub use property::{Accessor, AsProperty, Property};
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "classes")))]
+pub use class::Class;
 
 pub(crate) use std::{result::Result as StdResult, string::String as StdString};
 
 #[cfg(feature = "futures")]
-mod promise;
-
-#[cfg(feature = "futures")]
-pub use promise::{Promise, Promised};
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "futures")))]
+pub mod promise;
 
 #[cfg(feature = "allocator")]
-mod allocator;
-
-#[cfg(feature = "allocator")]
-pub use allocator::{Allocator, RawMemPtr, RustAllocator};
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "allocator")))]
+pub mod allocator;
 
 #[cfg(feature = "loader")]
-mod loader;
+#[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "loader")))]
+pub mod loader;
 
-#[cfg(feature = "loader")]
+pub mod prelude {
+    //! A group of often used types.
+    pub use crate::{
+        context::MultiWith,
+        convert::{Coerced, FromAtom, FromJs, IntoAtom, IntoJs, IteratorJs},
+        function::{AsArguments, Func, MutFn, OnceFn, Rest, This},
+        result::{CatchResultExt, ThrowResultExt},
+    };
+    #[cfg(feature = "futures")]
+    #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "futures")))]
+    pub use crate::{
+        function::Async,
+        promise::{Promise, Promised},
+    };
+}
+
+/*#[cfg(feature = "loader")]
 pub use loader::{
     BuiltinLoader, BuiltinResolver, Bundle, Compile, FileResolver, HasByteCode, Loader,
     ModuleLoader, Resolver, ScriptLoader,
 };
-
-#[cfg(feature = "dyn-load")]
-pub use loader::NativeLoader;
+*/
 
 #[cfg(test)]
 pub(crate) fn test_with<F, R>(func: F) -> R

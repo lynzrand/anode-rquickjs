@@ -1,10 +1,10 @@
 use crate::{
-    handle_exception, qjs, ArrayBuffer, Ctx, Error, FromJs, Function, IntoJs, Object, Result, Value,
+    qjs, ArrayBuffer, Ctx, Error, FromJs, Function, IntoJs, Object, Outlive, Result, Value,
 };
 use std::{
-    convert::TryFrom,
+    convert::{TryFrom, TryInto},
     marker::PhantomData,
-    mem::{size_of, MaybeUninit},
+    mem::{self, MaybeUninit},
     ops::Deref,
     ptr::null_mut,
     slice,
@@ -13,7 +13,7 @@ use std::{
 /// The trait which implements types which capable to be TypedArray items
 ///
 #[cfg_attr(feature = "doc-cfg", doc(cfg(feature = "array-buffer")))]
-pub trait TypedArrayItem {
+pub trait TypedArrayItem: Copy {
     const CLASS_NAME: &'static str;
 }
 
@@ -58,6 +58,10 @@ typedarray_items! {
 #[repr(transparent)]
 pub struct TypedArray<'js, T>(pub(crate) Object<'js>, PhantomData<T>);
 
+impl<'js, 't, T> Outlive<'t> for TypedArray<'js, T> {
+    type Target = TypedArray<'t, T>;
+}
+
 impl<'js, T> TypedArray<'js, T> {
     /// Create typed array from vector data
     pub fn new(ctx: Ctx<'js>, src: impl Into<Vec<T>>) -> Result<Self>
@@ -83,7 +87,7 @@ impl<'js, T> TypedArray<'js, T> {
         let ctx = self.0.ctx;
         let value = self.0.as_js_value();
         unsafe {
-            let val = qjs::JS_GetPropertyStr(ctx.ctx, value, b"length\0".as_ptr() as *const _);
+            let val = qjs::JS_GetPropertyStr(ctx.as_ptr(), value, b"length\0".as_ptr() as *const _);
             assert!(qjs::JS_IsInt(val));
             qjs::JS_VALUE_GET_INT(val) as _
         }
@@ -139,13 +143,22 @@ impl<'js, T> TypedArray<'js, T> {
         }
     }
 
+    /// Returns the underlying bytes of the buffer,
+    ///
+    /// Returns None if the array is detached.
+    pub fn as_bytes(&self) -> Option<&[u8]> {
+        let (_, len, ptr) = Self::get_raw_bytes(self.as_value())?;
+        Some(unsafe { slice::from_raw_parts(ptr, len) })
+    }
+
     /// Get underlaying ArrayBuffer
     pub fn arraybuffer(&self) -> Result<ArrayBuffer<'js>> {
         let ctx = self.0.ctx;
         let val = self.0.as_js_value();
         let buf = unsafe {
-            let val = qjs::JS_GetTypedArrayBuffer(ctx.ctx, val, null_mut(), null_mut(), null_mut());
-            handle_exception(ctx, val)?;
+            let val =
+                qjs::JS_GetTypedArrayBuffer(ctx.as_ptr(), val, null_mut(), null_mut(), null_mut());
+            ctx.handle_exception(val)?;
             Value::from_js_value(ctx, val)
         };
         ArrayBuffer::from_value(buf)
@@ -161,7 +174,7 @@ impl<'js, T> TypedArray<'js, T> {
         ctor.construct((arraybuffer,))
     }
 
-    pub(crate) fn get_raw(val: &Value<'js>) -> Option<(usize, *mut T)> {
+    pub(crate) fn get_raw_bytes(val: &Value<'js>) -> Option<(usize, usize, *mut u8)> {
         let ctx = val.ctx;
         let val = val.as_js_value();
         let mut off = MaybeUninit::<qjs::size_t>::uninit();
@@ -169,28 +182,40 @@ impl<'js, T> TypedArray<'js, T> {
         let mut stp = MaybeUninit::<qjs::size_t>::uninit();
         let buf = unsafe {
             let val = qjs::JS_GetTypedArrayBuffer(
-                ctx.ctx,
+                ctx.as_ptr(),
                 val,
                 off.as_mut_ptr(),
                 len.as_mut_ptr(),
                 stp.as_mut_ptr(),
             );
-            handle_exception(ctx, val).ok()?;
+            ctx.handle_exception(val).ok()?;
             Value::from_js_value(ctx, val)
         };
-        let off = unsafe { off.assume_init() } as usize;
-        let len = unsafe { len.assume_init() } as usize;
-        let stp = unsafe { stp.assume_init() } as usize;
-        if stp != size_of::<T>() {
-            return None;
-        }
+        let off: usize = unsafe { off.assume_init() }
+            .try_into()
+            .expect(qjs::SIZE_T_ERROR);
+        let len: usize = unsafe { len.assume_init() }
+            .try_into()
+            .expect(qjs::SIZE_T_ERROR);
+        let stp: usize = unsafe { stp.assume_init() }
+            .try_into()
+            .expect(qjs::SIZE_T_ERROR);
         let (full_len, ptr) = ArrayBuffer::get_raw(&buf)?;
         if (off + len) > full_len {
             return None;
         }
-        let len = len / size_of::<T>();
-        let ptr = unsafe { ptr.add(off) } as *mut T;
-        Some((len, ptr))
+        let ptr = unsafe { ptr.add(off.try_into().expect(qjs::SIZE_T_ERROR)) };
+        Some((stp, len, ptr))
+    }
+
+    pub(crate) fn get_raw(val: &Value<'js>) -> Option<(usize, *mut T)> {
+        let (stp, len, ptr) = Self::get_raw_bytes(val)?;
+        if stp != mem::size_of::<T>() {
+            return None;
+        }
+        debug_assert_eq!(ptr.align_offset(mem::align_of::<T>()), 0);
+        let ptr = ptr.cast::<T>();
+        Some((len / mem::size_of::<T>(), ptr))
     }
 }
 
@@ -198,13 +223,6 @@ impl<'js, T: TypedArrayItem> AsRef<[T]> for TypedArray<'js, T> {
     fn as_ref(&self) -> &[T] {
         let (len, ptr) = Self::get_raw(&self.0).expect(T::CLASS_NAME);
         unsafe { slice::from_raw_parts(ptr as _, len) }
-    }
-}
-
-impl<'js, T: TypedArrayItem> AsMut<[T]> for TypedArray<'js, T> {
-    fn as_mut(&mut self) -> &mut [T] {
-        let (len, ptr) = Self::get_raw(&self.0).expect(T::CLASS_NAME);
-        unsafe { slice::from_raw_parts_mut(ptr, len) }
     }
 }
 
@@ -335,5 +353,25 @@ mod test {
                 .unwrap();
             assert_eq!(res, 0);
         })
+    }
+
+    #[test]
+    fn as_bytes() {
+        test_with(|ctx| {
+            let val: TypedArray<u32> = ctx
+                .eval(
+                    r#"
+                        new Uint32Array([0xCAFEDEAD,0xFEEDBEAD])
+                    "#,
+                )
+                .unwrap();
+            let mut res = [0; 8];
+            let bytes_0 = 0xCAFEDEADu32.to_ne_bytes();
+            res[..4].copy_from_slice(&bytes_0);
+            let bytes_1 = 0xFEEDBEADu32.to_ne_bytes();
+            res[4..].copy_from_slice(&bytes_1);
+
+            assert_eq!(val.as_bytes().unwrap(), &res)
+        });
     }
 }

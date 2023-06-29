@@ -1,7 +1,11 @@
 [package]
 name = "anode-rquickjs"
-version = "0.1.7"
-authors = ["Mees Delzenne <mees.delzenne@gmail.com>", "K. <kayo@illumium.org>"]
+version = "0.3.1"
+authors = [
+    "Mees Delzenne <mees.delzenne@gmail.com>",
+    "K. <kayo@illumium.org>",
+    "Rynco Maekawa <i@rynco.me>",
+]
 edition = "2018"
 license = "MIT"
 readme = "README.md"
@@ -12,32 +16,13 @@ repository = "https://github.com/DelSkayn/rquickjs.git"
 
 [dependencies.rquickjs-core]
 package = "anode-rquickjs-core"
-version = "0.1.7"
+version = "0.3.1"
 path = "core"
 
 [dependencies.rquickjs-macro]
 package = "anode-rquickjs-macro"
-version = "0.1.7"
+version = "0.3.1"
 path = "macro"
-optional = true
-
-[dependencies.async-std-rs]
-package = "async-std"
-version = "1"
-optional = true
-default-features = false
-features = ["default", "unstable"]
-
-[dependencies.tokio-rs]
-package = "tokio"
-version = "1"
-optional = true
-default-features = false
-features = ["rt"]
-
-[dependencies.smol-rs]
-package = "smol"
-version = "1"
 optional = true
 
 [dependencies.indexmap-rs]
@@ -62,7 +47,10 @@ optional = true
 [features]
 default = ["exports", "classes", "properties"]
 
+
 # Almost all features excluding "parallel" and support for async runtimes
+
+
 full = [
     "chrono",
     "exports",
@@ -71,16 +59,14 @@ full = [
     "dyn-load",
     "either",
     "indexmap",
-    "registery",
     "classes",
     "properties",
     "array-buffer",
     "macro",
     "phf",
 ]
-
 # Almost all features excluding "parallel"
-full-async = ["full", "async-std", "tokio", "smol"]
+full-async = ["full", "futures"]
 
 # Chrono support.
 chrono = ["rquickjs-core/chrono"]
@@ -100,9 +86,6 @@ bindgen = ["rquickjs-core/bindgen"]
 
 # Enable support of parallel execution
 parallel = ["rquickjs-core/parallel"]
-
-# Enable runtime registery
-registery = ["rquickjs-core/registery"]
 
 # Enable support of reading module exports
 exports = ["rquickjs-core/exports"]
@@ -134,15 +117,6 @@ macro = ["rquickjs-macro"]
 
 # Enable interop between Rust futures and JS Promises
 futures = ["rquickjs-core/futures"]
-
-# Enable Tokio async runtime support
-tokio = ["rquickjs-core/tokio", "tokio-rs"]
-
-# Enable Async-std runtime support
-async-std = ["rquickjs-core/async-std", "async-std-rs"]
-
-# Enable Smol async runtime support
-smol = ["rquickjs-core/smol", "smol-rs"]
 
 # Max number of function args
 max-args-7 = ["rquickjs-core/max-args-7"]

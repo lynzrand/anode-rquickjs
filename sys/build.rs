@@ -86,6 +86,7 @@ fn main() {
     }
 
     let mut patch_files = vec![
+    //     "get_function_proto.patch",
     //     "check_stack_overflow.patch",
     //     "infinity_handling.patch",
     //     "atomic_new_class_id.patch",
@@ -198,12 +199,11 @@ where
     let bindings_file = out_dir.as_ref().join("bindings.rs");
 
     fs::write(
-        &bindings_file,
+        bindings_file,
         format!(
             r#"macro_rules! bindings_env {{
-                ("TARGET") => {{ "{}" }};
-            }}"#,
-            target
+                ("TARGET") => {{ "{target}" }};
+            }}"#
         ),
     )
     .unwrap();
@@ -245,6 +245,7 @@ fn bindgen<'a, D, H, X, K, V>(
         .clang_arg("-xc")
         .clang_arg("-v")
         .clang_args(cflags)
+        .size_t_is_usize(false)
         .header(header_file.display().to_string())
         .allowlist_type("JS.*")
         .allowlist_function("js.*")

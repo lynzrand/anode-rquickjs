@@ -1,5 +1,5 @@
-use super::{AttrVar, BindProp, Binder};
-use crate::{Config, Ident, Source, TokenStream};
+use super::{attrs::AttrVar, BindProp, Binder};
+use crate::{config::Config, context::Source, Ident, TokenStream};
 use quote::quote;
 use syn::{Attribute, ImplItemConst, ItemConst, Visibility};
 
@@ -23,11 +23,15 @@ impl BindConst {
         }
     }
 
-    pub fn expand(&self, name: &str, cfg: &Config) -> TokenStream {
+    pub fn expand(&self, name: &str, cfg: &Config, is_module: bool) -> TokenStream {
         let exports_var = &cfg.exports_var;
         let pure = self.expand_pure(cfg);
 
-        quote! { #exports_var.set(#name, #pure)?; }
+        if is_module {
+            quote! { #exports_var.export(#name, #pure)?; }
+        } else {
+            quote! { #exports_var.set(#name, #pure)?; }
+        }
     }
 
     pub fn expand_pure(&self, _cfg: &Config) -> TokenStream {
@@ -89,7 +93,7 @@ impl Binder {
 
         if prop {
             if let Some(prop) = self.top_item::<BindProp, _>(ident, &name, proto) {
-                prop.set_const(&ident, &name, BindConst { src });
+                prop.set_const(ident, &name, BindConst { src });
                 prop.set_writable(&name, writable);
                 prop.set_configurable(configurable);
                 prop.set_enumerable(enumerable);
@@ -117,7 +121,7 @@ mod test {
 
             struct Math;
 
-            impl #rquickjs::ObjectDef for Math {
+            impl #rquickjs::object::ObjectDef for Math {
                 fn init<'js>(_ctx: #rquickjs::Ctx<'js>, exports: &#rquickjs::Object<'js>) -> #rquickjs::Result<()>{
                     exports.set("PI" , PI)?;
                     Ok(())
@@ -133,14 +137,14 @@ mod test {
 
             struct Constants;
 
-            impl #rquickjs::ModuleDef for Constants {
-                fn load<'js>(_ctx: #rquickjs::Ctx<'js>, exports: &#rquickjs::Module<'js, #rquickjs::Created>) -> #rquickjs::Result<()>{
-                    exports.add("pi")?;
+            impl #rquickjs::module::ModuleDef for Constants {
+                fn declare(declares: &mut #rquickjs::module::Declarations) -> #rquickjs::Result<()>{
+                    declares.declare("pi")?;
                     Ok(())
                 }
 
-                fn eval<'js>(_ctx: #rquickjs::Ctx<'js>, exports: &#rquickjs::Module<'js, #rquickjs::Loaded<#rquickjs::Native>>) -> #rquickjs::Result<()>{
-                    exports.set("pi", PI)?;
+                fn evaluate<'js>(_ctx: #rquickjs::Ctx<'js>, exports: &mut #rquickjs::module::Exports<'js>) -> #rquickjs::Result<()>{
+                    exports.export("pi", PI)?;
                     Ok(())
                 }
             }

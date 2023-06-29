@@ -1,5 +1,5 @@
 use crate::{
-    Array, Ctx, Error, Function, IntoAtom, IntoJs, IteratorJs, Object, Result, StdResult,
+    convert::IteratorJs, Array, Ctx, Error, Function, IntoAtom, IntoJs, Object, Result, StdResult,
     StdString, String, Value,
 };
 use std::{
@@ -186,7 +186,8 @@ where
     T: IntoJs<'js>,
 {
     fn into_js(self, ctx: Ctx<'js>) -> Result<Value<'js>> {
-        self.into_inner().unwrap().into_js(ctx)
+        // TODO: determine we should panic her or just unpack the value.
+        self.into_inner().expect("mutex was poisoned").into_js(ctx)
     }
 }
 
@@ -195,7 +196,8 @@ where
     for<'r> &'r T: IntoJs<'js>,
 {
     fn into_js(self, ctx: Ctx<'js>) -> Result<Value<'js>> {
-        self.lock().unwrap().into_js(ctx)
+        // TODO: determine we should panic her or just unpack the value.
+        self.lock().expect("mutex was poisoned").into_js(ctx)
     }
 }
 
@@ -204,7 +206,8 @@ where
     T: IntoJs<'js>,
 {
     fn into_js(self, ctx: Ctx<'js>) -> Result<Value<'js>> {
-        self.into_inner().unwrap().into_js(ctx)
+        // TODO: determine we should panic her or just unpack the value.
+        self.into_inner().expect("lock was poisoned").into_js(ctx)
     }
 }
 
@@ -213,7 +216,8 @@ where
     for<'r> &'r T: IntoJs<'js>,
 {
     fn into_js(self, ctx: Ctx<'js>) -> Result<Value<'js>> {
-        self.read().unwrap().into_js(ctx)
+        // TODO: determine we should panic her or just unpack the value.
+        self.read().expect("lock was poisoned").into_js(ctx)
     }
 }
 
@@ -490,6 +494,7 @@ impl<'js, Tz: chrono::TimeZone> IntoJs<'js> for chrono::DateTime<Tz> {
     }
 }
 
+#[cfg(test)]
 mod test {
     #[test]
     fn system_time_to_js() {

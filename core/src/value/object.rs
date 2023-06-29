@@ -1,12 +1,19 @@
+//! Module for types dealing with JS objects.
+
 use crate::{
-    get_exception, handle_exception, qjs, Array, Atom, Ctx, Error, FromAtom, FromIteratorJs,
-    FromJs, Function, IntoAtom, IntoJs, Result, Value,
+    convert::FromIteratorJs, qjs, Array, Atom, Ctx, Error, FromAtom, FromJs, Function, IntoAtom,
+    IntoJs, Result, Value,
 };
 use std::{
     iter::{DoubleEndedIterator, ExactSizeIterator, FusedIterator, IntoIterator, Iterator},
     marker::PhantomData,
     mem,
 };
+
+#[cfg(feature = "properties")]
+mod property;
+#[cfg(feature = "properties")]
+pub use property::{Accessor, AsProperty, Property};
 
 /// The helper trait to define objects
 pub trait ObjectDef {
@@ -61,8 +68,8 @@ impl<'js> Object<'js> {
     /// Create a new javascript object
     pub fn new(ctx: Ctx<'js>) -> Result<Self> {
         Ok(unsafe {
-            let val = qjs::JS_NewObject(ctx.ctx);
-            let val = handle_exception(ctx, val)?;
+            let val = qjs::JS_NewObject(ctx.as_ptr());
+            let val = ctx.handle_exception(val)?;
             Object::from_js_value(ctx, val)
         })
     }
@@ -87,10 +94,10 @@ impl<'js> Object<'js> {
 
     /// Get a new value
     pub fn get<K: IntoAtom<'js>, V: FromJs<'js>>(&self, k: K) -> Result<V> {
-        let atom = k.into_atom(self.0.ctx);
+        let atom = k.into_atom(self.0.ctx)?;
         V::from_js(self.0.ctx, unsafe {
-            let val = qjs::JS_GetProperty(self.0.ctx.ctx, self.0.as_js_value(), atom.atom);
-            let val = handle_exception(self.0.ctx, val)?;
+            let val = qjs::JS_GetProperty(self.0.ctx.as_ptr(), self.0.as_js_value(), atom.atom);
+            let val = self.0.ctx.handle_exception(val)?;
             Value::from_js_value(self.0.ctx, val)
         })
     }
@@ -100,11 +107,11 @@ impl<'js> Object<'js> {
     where
         K: IntoAtom<'js>,
     {
-        let atom = k.into_atom(self.0.ctx);
+        let atom = k.into_atom(self.0.ctx)?;
         unsafe {
-            let res = qjs::JS_HasProperty(self.0.ctx.ctx, self.0.as_js_value(), atom.atom);
+            let res = qjs::JS_HasProperty(self.0.ctx.as_ptr(), self.0.as_js_value(), atom.atom);
             if res < 0 {
-                return Err(get_exception(self.0.ctx));
+                return Err(self.0.ctx.raise_exception());
             }
             Ok(res == 1)
         }
@@ -112,17 +119,17 @@ impl<'js> Object<'js> {
 
     /// Set a member of an object to a certain value
     pub fn set<K: IntoAtom<'js>, V: IntoJs<'js>>(&self, key: K, value: V) -> Result<()> {
-        let atom = key.into_atom(self.0.ctx);
+        let atom = key.into_atom(self.0.ctx)?;
         let val = value.into_js(self.0.ctx)?;
         unsafe {
             if qjs::JS_SetProperty(
-                self.0.ctx.ctx,
+                self.0.ctx.as_ptr(),
                 self.0.as_js_value(),
                 atom.atom,
                 val.into_js_value(),
             ) < 0
             {
-                return Err(get_exception(self.0.ctx));
+                return Err(self.0.ctx.raise_exception());
             }
         }
         Ok(())
@@ -130,16 +137,16 @@ impl<'js> Object<'js> {
 
     /// Remove a member of an object
     pub fn remove<K: IntoAtom<'js>>(&self, key: K) -> Result<()> {
-        let atom = key.into_atom(self.0.ctx);
+        let atom = key.into_atom(self.0.ctx)?;
         unsafe {
             if qjs::JS_DeleteProperty(
-                self.0.ctx.ctx,
+                self.0.ctx.as_ptr(),
                 self.0.as_js_value(),
                 atom.atom,
                 qjs::JS_PROP_THROW as _,
             ) < 0
             {
-                return Err(get_exception(self.0.ctx));
+                return Err(self.0.ctx.raise_exception());
             }
         }
         Ok(())
@@ -202,7 +209,7 @@ impl<'js> Object<'js> {
     /// Get an object prototype
     pub fn get_prototype(&self) -> Result<Object<'js>> {
         Ok(unsafe {
-            let proto = qjs::JS_GetPrototype(self.0.ctx.ctx, self.0.as_js_value());
+            let proto = qjs::JS_GetPrototype(self.0.ctx.as_ptr(), self.0.as_js_value());
             if qjs::JS_IsNull(proto) {
                 return Err(Error::Unknown);
             } else {
@@ -215,11 +222,11 @@ impl<'js> Object<'js> {
     pub fn set_prototype(&self, proto: &Object<'js>) -> Result<()> {
         unsafe {
             if 1 != qjs::JS_SetPrototype(
-                self.0.ctx.ctx,
+                self.0.ctx.as_ptr(),
                 self.0.as_js_value(),
                 proto.0.as_js_value(),
             ) {
-                Err(get_exception(self.0.ctx))
+                Err(self.0.ctx.raise_exception())
             } else {
                 Ok(())
             }
@@ -230,7 +237,11 @@ impl<'js> Object<'js> {
     pub fn is_instance_of(&self, class: impl AsRef<Value<'js>>) -> bool {
         let class = class.as_ref();
         0 != unsafe {
-            qjs::JS_IsInstanceOf(self.0.ctx.ctx, self.0.as_js_value(), class.as_js_value())
+            qjs::JS_IsInstanceOf(
+                self.0.ctx.as_ptr(),
+                self.0.as_js_value(),
+                class.as_js_value(),
+            )
         }
     }
 
@@ -318,14 +329,14 @@ impl<'js> IterState<'js> {
 
         let (enums, count) = unsafe {
             if qjs::JS_GetOwnPropertyNames(
-                ctx.ctx,
+                ctx.as_ptr(),
                 enums.as_mut_ptr(),
                 count.as_mut_ptr(),
                 obj.value,
                 flags,
             ) < 0
             {
-                return Err(get_exception(ctx));
+                return Err(ctx.raise_exception());
             }
             let enums = enums.assume_init();
             let count = count.assume_init();
@@ -346,11 +357,11 @@ impl<'js> Drop for IterState<'js> {
         // Free atoms which doesn't consumed by the iterator
         for index in self.index..self.count {
             let elem = unsafe { &*self.enums.offset(index as isize) };
-            unsafe { qjs::JS_FreeAtom(self.ctx.ctx, elem.atom) };
+            unsafe { qjs::JS_FreeAtom(self.ctx.as_ptr(), elem.atom) };
         }
 
         // This is safe because iterator cannot outlive ctx
-        unsafe { qjs::js_free(self.ctx.ctx, self.enums as _) };
+        unsafe { qjs::js_free(self.ctx.as_ptr(), self.enums as _) };
     }
 }
 
@@ -660,7 +671,7 @@ where
     {
         let object = Object::new(ctx)?;
         for (key, value) in iter {
-            let key = key.into_atom(ctx);
+            let key = key.into_atom(ctx)?;
             let value = value.into_js(ctx)?;
             object.set(key, value)?;
         }
@@ -670,7 +681,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::*;
+    use crate::{prelude::*, *};
 
     #[test]
     fn from_javascript() {

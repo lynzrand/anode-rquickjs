@@ -7,7 +7,7 @@ macro_rules! test_cases {
         $(
             #[test]
             fn $c() {
-                let config = crate::Config::default();
+                let config = crate::config::Config::default();
                 let $lib_crate_ident = &config.lib_crate;
                 let input: syn::DeriveInput = syn::parse_quote! { $($s)* };
                 let attrs: crate::DataType = darling::FromDeriveInput::from_derive_input(&input).unwrap();

@@ -1,5 +1,5 @@
-use super::{AttrFn, BindProp, Binder};
-use crate::{Config, Ident, Source, TokenStream};
+use super::{attrs::AttrFn, BindProp, Binder};
+use crate::{config::Config, context::Source, Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{Attribute, FnArg, ImplItemMethod, ItemFn, Pat, Signature, Visibility};
 
@@ -38,7 +38,7 @@ impl BindFn {
         name.into()
     }
 
-    pub fn expand(&self, name: &str, cfg: &Config) -> TokenStream {
+    pub fn expand(&self, name: &str, cfg: &Config, is_module: bool) -> TokenStream {
         let lib_crate = &cfg.lib_crate;
         let exports_var = &cfg.exports_var;
         let bindings = self
@@ -57,8 +57,18 @@ impl BindFn {
         } else {
             bindings
         };
-        quote! { #exports_var.set(#name, #lib_crate::Func::new(#func_name, #bindings))?; }
+        if is_module {
+            quote! { #exports_var.export(#name, #lib_crate::function::Func::new(#func_name, #bindings))?; }
+        } else {
+            quote! { #exports_var.set(#name, #lib_crate::function::Func::new(#func_name, #bindings))?; }
+        }
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SelfArg {
+    pub class: Source,
+    pub self_: Ident,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -68,6 +78,7 @@ pub struct BindFn1 {
     pub define: Option<ItemFn>,
     pub async_: bool,
     pub method: bool,
+    pub self_arg: Option<SelfArg>,
 }
 
 impl BindFn1 {
@@ -89,12 +100,17 @@ impl BindFn1 {
 
         let path = &self.src;
         let bind = if self.method {
-            quote! { #lib_crate::Method(#path) }
+            if let Some(self_arg) = self.self_arg.as_ref() {
+                let cls = self_arg.class.clone();
+                quote! { #lib_crate::function::SelfMethod::<#cls,_>::from(#path) }
+            } else {
+                quote! { #lib_crate::function::Method(#path) }
+            }
         } else {
             quote! { #path }
         };
         let bind = if self.async_ {
-            quote! { #lib_crate::Async(#bind) }
+            quote! { #lib_crate::function::Async(#bind) }
         } else {
             bind
         };
@@ -184,12 +200,20 @@ impl Binder {
         self.identify(ident);
 
         let async_ = asyncness.is_some();
+        let mut self_arg = None;
+
         let args = inputs
             .iter()
-            .map(|arg| match arg {
-                FnArg::Receiver(_) => format_ident!("self_"),
+            .filter_map(|arg| match arg {
+                FnArg::Receiver(_) => {
+                    self_arg = Some(SelfArg {
+                        self_: format_ident!("self_"),
+                        class: self.top_class().unwrap().src.clone(),
+                    });
+                    None
+                }
                 FnArg::Typed(arg) => match &*arg.pat {
-                    Pat::Ident(pat) => pat.ident.clone(),
+                    Pat::Ident(pat) => Some(pat.ident.clone()),
                     _ => abort!(arg.colon_token, "Only named arguments is supported."),
                 },
             })
@@ -198,6 +222,7 @@ impl Binder {
         let decl = BindFn1 {
             src: self.sub_src(ident),
             args,
+            self_arg,
             async_,
             method,
             ..Default::default()
@@ -206,10 +231,10 @@ impl Binder {
         if get || set {
             if let Some(prop) = self.top_item::<BindProp, _>(ident, &name, method) {
                 if get {
-                    prop.set_getter(&ident, &name, decl.clone());
+                    prop.set_getter(ident, &name, decl.clone());
                 }
                 if set {
-                    prop.set_setter(&ident, &name, decl);
+                    prop.set_setter(ident, &name, decl);
                 }
                 prop.set_configurable(configurable);
                 prop.set_enumerable(enumerable);
@@ -234,7 +259,7 @@ mod test {
         no_args_no_return { test } {
             fn doit() {}
         } {
-            exports.set("doit", #rquickjs::Func::new("doit", doit))?;
+            exports.set("doit", #rquickjs::function::Func::new("doit", doit))?;
         };
 
         overloaded_function { test } {
@@ -248,7 +273,7 @@ mod test {
                 pub fn sum(a: i32, b: i32) -> i32 { a + b }
             }
         } {
-            exports.set("calc", #rquickjs::Func::new("calc", (calc::one, calc::inc, calc::sum)))?;
+            exports.set("calc", #rquickjs::function::Func::new("calc", (calc::one, calc::inc, calc::sum)))?;
         };
 
         sync_function_object_export { object } {
@@ -262,9 +287,9 @@ mod test {
 
             struct Add2;
 
-            impl #rquickjs::ObjectDef for Add2 {
+            impl #rquickjs::object::ObjectDef for Add2 {
                 fn init<'js>(_ctx: #rquickjs::Ctx<'js>, exports: &#rquickjs::Object<'js>) -> #rquickjs::Result<()> {
-                    exports.set("add2", #rquickjs::Func::new("add2", add2))?;
+                    exports.set("add2", #rquickjs::function::Func::new("add2", add2))?;
                     Ok(())
                 }
             }
@@ -277,9 +302,9 @@ mod test {
 
             struct Fetch;
 
-            impl #rquickjs::ObjectDef for Fetch {
+            impl #rquickjs::object::ObjectDef for Fetch {
                 fn init<'js>(_ctx: #rquickjs::Ctx<'js>, exports: &#rquickjs::Object<'js>) -> #rquickjs::Result<()> {
-                    exports.set("fetch", #rquickjs::Func::new("fetch", #rquickjs::Async(fetch)))?;
+                    exports.set("fetch", #rquickjs::function::Func::new("fetch", #rquickjs::function::Async(fetch)))?;
                     Ok(())
                 }
             }

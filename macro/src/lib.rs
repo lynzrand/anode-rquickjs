@@ -51,20 +51,15 @@ mod embed;
 mod shim;
 mod utils;
 
+use bind::{AttrItem, Binder};
 use darling::{FromDeriveInput, FromMeta};
+use derive::{DataType, FromJs, HasRefs, IntoJs};
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro_error::proc_macro_error;
+use shim::AttributeArgs;
 use syn::parse_macro_input;
 
 use proc_macro2::{Ident, TokenStream};
-
-use bind::*;
-use config::*;
-use context::*;
-use derive::*;
-use embed::*;
-use shim::*;
-use utils::*;
 
 /**
 An attribute to generate bindings easy
@@ -83,8 +78,8 @@ Attribute                         | Description
 --------------------------------- | ---------------------------
 __`ident = "MyModule"`__          | The name of target unit struct to export
 __`public`__, __`public = "self/super/crate"`__ | Makes the target unit struct visible
-__`module`__                      | Adds the [`ModuleDef`](rquickjs_core::ModuleDef) impl to use bindings as ES6 module
-__`object`__                      | Adds the [`ObjectDef`](rquickjs_core::ObjectDef) impl for attaching bindings to an object
+__`module`__                      | Adds the [`ModuleDef`](rquickjs_core::module::ModuleDef) impl to use bindings as ES6 module
+__`object`__                      | Adds the [`ObjectDef`](rquickjs_core::object::ObjectDef) impl for attaching bindings to an object
 __`init`__, __`init = "js_module_init"`__     | Adds the `js_module_init` function (in particular for creating dynamically loadable modules or static libraries to use from `C`)
 __`crate = "rquickjs"`__          | Allows rename `rquickjs` crate
 
@@ -134,13 +129,13 @@ This attributes applies to structs and enums to use it as ES6 classes.
 Attribute                 | Description
 ------------------------- | ---------------------------
 __`rename = "new_name"`__ | Renames data type to export
-__`has_refs`__            | Marks data which has internal refs to other JS values (requires [`HasRefs`](rquickjs_core::HasRefs) to be implemented)
+__`has_refs`__            | Marks data which has internal refs to other JS values (requires [`HasRefs`](rquickjs_core::class::HasRefs) to be implemented)
 __`cloneable`__           | Marks data type which implements `Clone` trait
 __`skip`__                | Skips exporting this data type
 __`hide`__                | Do not output this data type (bindings only)
 
 The following traits will be implemented for data type:
-- [`ClassDef`](rquickjs_core::ClassDef)
+- [`ClassDef`](rquickjs_core::class::ClassDef)
 - [`IntoJs`](rquickjs_core::IntoJs)
 - [`FromJs`](rquickjs_core::FromJs) if `cloneable` attribute is present
 
@@ -165,7 +160,7 @@ This attributes applies to `impl` blocks to bind class methods and properties an
 Attribute                 | Description
 ------------------------- | ---------------------------
 __`rename = "new_name"`__ | Renames data type to export
-__`has_refs`__            | Marks data which has internal refs to other JS values (requires [`HasRefs`](rquickjs_core::HasRefs) to be implemented)
+__`has_refs`__            | Marks data which has internal refs to other JS values (requires [`HasRefs`](rquickjs_core::class::HasRefs) to be implemented)
 __`skip`__                | Skips exporting this impl block
 __`hide`__                | Do not output this impl block (bindings only)
 
@@ -305,59 +300,61 @@ ctx.with(|ctx| {
 ```
 # #[async_std::main]
 # async fn main() {
-use anode_rquickjs::{Runtime, Context, Promise, bind, AsyncStd};
+use anode_rquickjs::{AsyncRuntime, AsyncContext, promise::Promise, bind, async_with, Result};
 
 #[bind(object)]
-pub async fn sleep(msecs: u64) {
+pub async fn sleep(msecs: u64) -> Result<()> {
     async_std::task::sleep(
         std::time::Duration::from_millis(msecs)
     ).await;
+    Ok(())
 }
 
-let rt = Runtime::new().unwrap();
-let ctx = Context::full(&rt).unwrap();
+let rt = AsyncRuntime::new().unwrap();
+let ctx = AsyncContext::full(&rt).await.unwrap();
 
-rt.spawn_executor(AsyncStd);
 
-ctx.with(|ctx| {
+async_with!(ctx => |ctx| {
     ctx.globals().init_def::<Sleep>().unwrap();
-});
-
-let promise: Promise<String> = ctx.with(|ctx| {
-    ctx.eval(r#"
+    let promise: Promise<String> = ctx.eval(r#"
         async function mysleep() {
             await sleep(50);
             return "ok";
         }
         mysleep()
-    "#).unwrap()
-});
-
-let res = promise.await.unwrap();
-assert_eq!(res, "ok");
-
-rt.idle().await;
+    "#).unwrap();
+    let res = promise.await.unwrap();
+    assert_eq!(res, "ok");
+}).await;
 # }
 ```
 
 ### Class binding
 
 ```
-use anode_rquickjs::{bind, Runtime, Context, Error};
+use anode_rquickjs::{bind, Context, Runtime};
 
 #[bind(object)]
 #[quickjs(bare)]
 mod geom {
+    use anode_rquickjs::class::Ref;
+    use std::cell::Cell;
+
     pub struct Point {
         // field properties
-        pub x: f64,
-        pub y: f64,
+        #[quickjs(skip)]
+        pub x: Cell<f64>,
+        #[quickjs(skip)]
+        pub y: Cell<f64>,
     }
 
     impl Point {
         // constructor
         pub fn new(x: f64, y: f64) -> Self {
-            Self { x, y }
+            Self {
+                x: Cell::new(x),
+                y: Cell::new(y),
+            }
         }
 
         // instance method
@@ -366,27 +363,60 @@ mod geom {
         }
 
         // instance property getter
+        #[quickjs(get, enumerable, rename = "x")]
+        pub fn x_get(&self) -> f64 {
+            self.x.get()
+        }
+
+        // instance property getter
+        #[quickjs(set, enumerable, rename = "x")]
+        pub fn x_set(&self, v: f64) {
+            self.x.set(v);
+        }
+
+        // instance property getter
+        #[quickjs(get, enumerable, rename = "y")]
+        pub fn y_get(&self) -> f64 {
+            self.y.get()
+        }
+
+        // instance property getter
+        #[quickjs(set, enumerable, rename = "y")]
+        pub fn y_set(&self, v: f64) {
+            self.y.set(v);
+        }
+
+        // instance property getter
         #[quickjs(get, enumerable)]
         pub fn xy(&self) -> (f64, f64) {
-            (self.x, self.y)
+            (self.x.get(), self.y.get())
         }
 
         // instance property setter
         #[quickjs(rename = "xy", set)]
-        pub fn set_xy(&mut self, xy: (f64, f64)) {
-            self.x = xy.0;
-            self.y = xy.1;
+        pub fn set_xy(&self, xy: (f64, f64)) {
+            self.x.set(xy.0);
+            self.y.set(xy.1);
         }
 
         // static method
-        pub fn dot(a: &Point, b: &Point) -> f64 {
-            a.x * b.x + a.y * b.y
+        #[quickjs(rename = "dot")]
+        pub fn dot_js(a: Ref<Point>, b: Ref<Point>) -> f64 {
+            Self::dot(&*a,&*b)
+        }
+
+        #[quickjs(skip)]
+        pub fn dot(a: &Self, b: &Self) -> f64{
+            a.x.get() * b.x.get() + a.y.get() * b.y.get()
         }
 
         // static property with getter
         #[quickjs(get)]
         pub fn zero() -> Self {
-            Point { x: 0.0, y: 0.0 }
+            Point {
+                x: Cell::new(0.0),
+                y: Cell::new(0.0),
+            }
         }
     }
 }
@@ -399,45 +429,48 @@ ctx.with(|ctx| {
 });
 
 ctx.with(|ctx| {
-    ctx.eval::<(), _>(r#"
-        function assert(res) {
-            if (!res) throw new Error("Assertion failed");
-        }
+    ctx.eval::<(), _>(
+        r#"
+function assert(res) {
+    if (!res) throw new Error("Assertion failed");
+}
 
-        class ColorPoint extends Point {
-            constructor(x, y, color) {
-            super(x, y);
-                this.color = color;
-            }
-            get_color() {
-                return this.color;
-            }
-        }
+class ColorPoint extends Point {
+    constructor(x, y, color) {
+    super(x, y);
+        this.color = color;
+    }
+    get_color() {
+        return this.color;
+    }
+}
 
-        let pt = new Point(2, 3);
-        assert(pt.x === 2);
-        assert(pt.y === 3);
-        pt.x = 4;
-        assert(pt.x === 4);
-        assert(pt.norm() == 5);
-        let xy = pt.xy;
-        assert(xy.length === 2);
-        assert(xy[0] === 4);
-        assert(xy[1] === 3);
-        pt.xy = [3, 4];
-        assert(pt.x === 3);
-        assert(pt.y === 4);
-        assert(Point.dot(pt, Point(2, 1)) == 10);
+let pt = new Point(2, 3);
+assert(pt.x === 2);
+assert(pt.y === 3);
+pt.x = 4;
+assert(pt.x === 4);
+assert(pt.norm() == 5);
+let xy = pt.xy;
+assert(xy.length === 2);
+assert(xy[0] === 4);
+assert(xy[1] === 3);
+pt.xy = [3, 4];
+assert(pt.x === 3);
+assert(pt.y === 4);
+assert(Point.dot(pt, Point(2, 1)) == 10);
 
-        let ptz = Point.zero;
-        assert(ptz.x === 0);
-        assert(ptz.y === 0);
+let ptz = Point.zero;
+assert(ptz.x === 0);
+assert(ptz.y === 0);
 
-        let ptc = new ColorPoint(2, 3, 0xffffff);
-        assert(ptc.x === 2);
-        assert(ptc.color === 0xffffff);
-        assert(ptc.get_color() === 0xffffff);
-    "#).unwrap();
+let ptc = new ColorPoint(2, 3, 0xffffff);
+assert(ptc.x === 2);
+assert(ptc.color === 0xffffff);
+assert(ptc.get_color() === 0xffffff);
+"#,
+    )
+    .unwrap();
 });
 ```
 
@@ -448,7 +481,7 @@ pub fn bind(attr: TokenStream1, item: TokenStream1) -> TokenStream1 {
     let attr: AttributeArgs = parse_macro_input!(attr);
     let item = parse_macro_input!(item);
 
-    let attr = AttrItem::from_list(&*attr).unwrap_or_else(|error| {
+    let attr = AttrItem::from_list(&attr).unwrap_or_else(|error| {
         abort!("{}", error);
     });
     let mut binder = Binder::new(attr.config());
@@ -457,31 +490,24 @@ pub fn bind(attr: TokenStream1, item: TokenStream1) -> TokenStream1 {
 }
 
 /**
-An attribute to convert scripts modules into builtins
+ An macro to bundle modules loaded from source.
 
-# Supported attributes
-
-Attribute                  | Description
--------------------------- | --------------------------
-__`ident = "MyModule"`__   | The name of target unit struct to export
-__`public`__, __`public = "self/super/crate"`__ | Makes the target unit struct visible
-__`path = "search-path"`__ | Add a paths where modules can be found
-__`name = "module-name"`__ | The name of module to embed
-__`perfect`__              | Use perfect hash map for embedded modules (`feature = "phf"`)
-__`crate = "rquickjs"`__   | Allows rename `rquickjs` crate
-
-# Examples
-
+ # Examples
 ```
-# use anode_rquickjs::{embed, Runtime, Context, Module};
+# use anode_rquickjs::{embed, Runtime, Context, Module, loader::Bundle};
 
-#[embed(path = "../examples/module-loader")]
-mod script_module {}
+static BUNDLE: Bundle = embed!{
+    // Load file `../examples/module-loader/script_module.js" and name it `script_module`
+    "script_module": "../examples/module-loader/script_module.js",
+    // Load file `../examples/module-loader/script_module.js" and name it
+    // `../examples/module-loader/script_module.js`
+    "../examples/module-loader/script_module.js"
+};
 
 let rt = Runtime::new().unwrap();
 let ctx = Context::full(&rt).unwrap();
 
-rt.set_loader(SCRIPT_MODULE, SCRIPT_MODULE);
+rt.set_loader(BUNDLE, BUNDLE);
 
 ctx.with(|ctx| {
     ctx.compile("script", r#"
@@ -489,24 +515,16 @@ ctx.with(|ctx| {
     "#).unwrap();
 });
 ```
-
- */
+*/
 #[proc_macro_error]
-#[proc_macro_attribute]
-pub fn embed(attr: TokenStream1, item: TokenStream1) -> TokenStream1 {
-    let attr: AttributeArgs = parse_macro_input!(attr);
-    let item = parse_macro_input!(item);
-
-    let attr = AttrEmbed::from_list(&*attr).unwrap_or_else(|error| {
-        abort!("{}", error);
-    });
-    let embedder = Embedder::new(attr.config());
-    let output = embedder.expand(attr, item);
-    output.into()
+#[proc_macro]
+pub fn embed(item: TokenStream1) -> TokenStream1 {
+    let embed_modules: embed::EmbedModules = parse_macro_input!(item);
+    embed::embed(embed_modules).into()
 }
 
 /**
-A macro to derive [`HasRefs`](rquickjs_core::HasRefs)
+A macro to derive [`HasRefs`](rquickjs_core::class::HasRefs)
 
 # Supported attributes
 

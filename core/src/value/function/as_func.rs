@@ -1,14 +1,18 @@
 use super::{FromInput, Input};
 use crate::{
-    Ctx, Error, FromJs, Function, IntoJs, Method, MutFn, OnceFn, ParallelSend, Result, This, Value,
+    function::{Method, MutFn, OnceFn, This},
+    Ctx, Error, FromJs, Function, IntoJs, Result, Value,
 };
 use std::ops::Range;
 
 #[cfg(feature = "classes")]
-use crate::{Class, ClassDef, Constructor};
+use crate::{
+    class::{self, Class, ClassDef, Constructor},
+    function::SelfMethod,
+};
 
 #[cfg(feature = "futures")]
-use crate::{Async, Promised};
+use crate::{function::Async, promise::Promised};
 #[cfg(feature = "futures")]
 use std::future::Future;
 
@@ -41,6 +45,15 @@ impl<'js> Input<'js> {
     }
 }
 
+/// A utility trait required to make async borrows work.
+#[cfg(feature = "futures")]
+pub trait AsyncBorrowFn<Arg> {
+    type Fut: Future<Output = <Self as AsyncBorrowFn<Arg>>::Output>;
+    type Output;
+
+    fn call(&self, arg: Arg) -> Self::Fut;
+}
+
 macro_rules! as_function_impls {
     ($($(#[$meta:meta])* $($arg:ident)*,)*) => {
         $(
@@ -48,7 +61,7 @@ macro_rules! as_function_impls {
             $(#[$meta])*
             impl<'js, F, R $(, $arg)*> AsFunction<'js, ($($arg,)*), R> for F
             where
-                F: Fn($($arg),*) -> R + ParallelSend + 'static,
+                F: Fn($($arg),*) -> R + 'js,
                 R: IntoJs<'js>,
                 $($arg: FromInput<'js>,)*
             {
@@ -71,11 +84,11 @@ macro_rules! as_function_impls {
             // for async Fn() via Async wrapper
             #[cfg(feature = "futures")]
             $(#[$meta])*
-            impl<'js, F, R $(, $arg)*> AsFunction<'js, ($($arg,)*), Promised<R>> for Async<F>
+            impl<'js, F,Fut, R $(, $arg)*> AsFunction<'js, ($($arg,)*), Promised<R>> for Async<F>
             where
-                F: Fn($($arg),*) -> R + ParallelSend + 'static,
-                R: Future + ParallelSend + 'static,
-                R::Output: for<'js_> IntoJs<'js_>,
+                F: Fn($($arg),*) -> Fut + 'js,
+                Fut: Future<Output = Result<R>> + 'js,
+                R: IntoJs<'js> + 'js,
                 $($arg: FromInput<'js>,)*
             {
                 #[allow(non_snake_case)]
@@ -98,7 +111,7 @@ macro_rules! as_function_impls {
             $(#[$meta])*
             impl<'js, F, R $(, $arg)*> AsFunction<'js, ($($arg,)*), R> for MutFn<F>
             where
-                F: FnMut($($arg),*) -> R + ParallelSend + 'static,
+                F: FnMut($($arg),*) -> R + 'js,
                 R: IntoJs<'js>,
                 $($arg: FromInput<'js>,)*
             {
@@ -123,11 +136,11 @@ macro_rules! as_function_impls {
             // for async FnMut() via MutFn wrapper
             #[cfg(feature = "futures")]
             $(#[$meta])*
-            impl<'js, F, R $(, $arg)*> AsFunction<'js, ($($arg,)*), Promised<R>> for Async<MutFn<F>>
+            impl<'js, F, Fut, R $(, $arg)*> AsFunction<'js, ($($arg,)*), Promised<R>> for Async<MutFn<F>>
             where
-                F: FnMut($($arg),*) -> R + ParallelSend + 'static,
-                R: Future + ParallelSend + 'static,
-                R::Output: for<'js_> IntoJs<'js_>,
+                F: FnMut($($arg),*) -> Fut  + 'js,
+                Fut: Future<Output = Result<R>> + 'js,
+                R: IntoJs<'js> + 'js,
                 $($arg: FromInput<'js>,)*
             {
                 #[allow(non_snake_case)]
@@ -152,7 +165,7 @@ macro_rules! as_function_impls {
             $(#[$meta])*
             impl<'js, F, R $(, $arg)*> AsFunction<'js, ($($arg,)*), R> for OnceFn<F>
             where
-                F: FnOnce($($arg),*) -> R + ParallelSend + 'static,
+                F: FnOnce($($arg),*) -> R + 'js,
                 R: IntoJs<'js>,
                 $($arg: FromInput<'js>,)*
             {
@@ -179,11 +192,11 @@ macro_rules! as_function_impls {
             // for async FnOnce() via OnceFn wrapper
             #[cfg(feature = "futures")]
             $(#[$meta])*
-            impl<'js, F, R $(, $arg)*> AsFunction<'js, ($($arg,)*), Promised<R>> for Async<OnceFn<F>>
+            impl<'js, F,Fut, R $(, $arg)*> AsFunction<'js, ($($arg,)*), Promised<R>> for Async<OnceFn<F>>
             where
-                F: FnOnce($($arg),*) -> R + ParallelSend + 'static,
-                R: Future + ParallelSend + 'static,
-                R::Output: for<'js_> IntoJs<'js_>,
+                F: FnOnce($($arg),*) -> Fut + 'js,
+                Fut: Future<Output = Result<R>> + 'js,
+                R: IntoJs<'js> + 'js,
                 $($arg: FromInput<'js>,)*
             {
                 #[allow(non_snake_case)]
@@ -210,7 +223,7 @@ macro_rules! as_function_impls {
             $(#[$meta])*
             impl<'js, F, R, T $(, $arg)*> AsFunction<'js, (T, $($arg),*), R> for Method<F>
             where
-                F: Fn(T, $($arg),*) -> R + ParallelSend + 'static,
+                F: Fn(T, $($arg),*) -> R + 'js,
                 R: IntoJs<'js>,
                 T: FromJs<'js>,
                 $($arg: FromInput<'js>,)*
@@ -225,22 +238,22 @@ macro_rules! as_function_impls {
                 fn call(&self, input: &Input<'js>) -> Result<Value<'js>> {
                     input.check_num_args::<Self, _, _>()?;
                     let mut accessor = input.access();
+                    let this = This::<T>::from_input(&mut accessor)?.0;
                     self(
-                        This::<T>::from_input(&mut accessor)?.0,
+                        this,
                         $($arg::from_input(&mut accessor)?,)*
                     ).into_js(accessor.ctx())
                 }
             }
 
-            // for async methods via Method wrapper
-            #[cfg(feature = "futures")]
+            // for methods via Method wrapper
+            #[cfg(feature="classes")]
             $(#[$meta])*
-            impl<'js, F, R, T $(, $arg)*> AsFunction<'js, (T, $($arg),*), Promised<R>> for Async<Method<F>>
+            impl<'js, F, R, T $(, $arg)*> AsFunction<'js, (T, $($arg),*), R> for SelfMethod<T,F>
             where
-                F: Fn(T, $($arg),*) -> R + ParallelSend + 'static,
-                R: Future + ParallelSend + 'static,
-                R::Output: for<'js_> IntoJs<'js_>,
-                T: FromJs<'js>,
+                F: Fn(&T, $($arg),*) -> R + 'js,
+                R: IntoJs<'js> + 'js,
+                T: ClassDef + 'js,
                 $($arg: FromInput<'js>,)*
             {
                 #[allow(non_snake_case)]
@@ -253,12 +266,127 @@ macro_rules! as_function_impls {
                 fn call(&self, input: &Input<'js>) -> Result<Value<'js>> {
                     input.check_num_args::<Self, _, _>()?;
                     let mut accessor = input.access();
-                    Promised(self(
-                        This::<T>::from_input(&mut accessor)?.0,
+                    let this = This::<class::Ref<T>>::from_input(&mut accessor)?.0;
+                    self(
+                        &*this,
                         $($arg::from_input(&mut accessor)?,)*
-                    )).into_js(accessor.ctx())
+                    ).into_js(accessor.ctx())
                 }
             }
+
+            // for async methods via Method wrapper
+            #[cfg(feature = "futures")]
+            #[allow(non_snake_case)]
+            $(#[$meta])*
+            impl<'js,F,Fut,R, T $(, $arg)*> AsFunction<'js, (T, $($arg),*), Promised<R>> for Async<Method<F>>
+            where
+                F: Fn(T,$($arg),*) -> Fut + 'js,
+                Fut: Future<Output = Result<R>> + 'js,
+                R: IntoJs<'js> + 'js,
+                T: FromJs<'js> + 'js,
+                $($arg: FromInput<'js> + 'js,)*
+            {
+                fn num_args() -> Range<usize> {
+                    $(let $arg = $arg::num_args();)*
+                    0usize $(+ $arg.start)* .. 0usize $(.saturating_add($arg.end))*
+                }
+
+                #[allow(unused_mut)]
+                fn call(&self, input: &Input<'js>) -> Result<Value<'js>> {
+                    input.check_num_args::<Self, _, _>()?;
+                    let mut accessor = input.access();
+                    let this = This::<T>::from_input(&mut accessor)?;
+                    $(let $arg = $arg::from_input(&mut accessor)?;)*
+                    let future = self(
+                        this.0,
+                        $($arg,)*
+                    );
+                    Promised(future).into_js(accessor.ctx())
+                }
+            }
+
+            #[allow(non_snake_case)]
+            #[cfg(feature = "futures")]
+            $(#[$meta])*
+            impl<T, F, Fut, R $(,$arg)*>  AsyncBorrowFn<(T,$($arg,)*)> for F
+            where
+                F: Fn(T$(,$arg)*) -> Fut,
+                Fut: Future<Output = R>,
+            {
+                type Fut = Fut;
+                type Output = R;
+
+                fn call(&self, args: (T,$($arg,)*)) -> Fut{
+                    let (first, $($arg,)*) = args;
+                    self(first,$($arg,)*)
+                }
+            }
+
+            // for async methods via Method wrapper
+            #[cfg(all(feature = "futures", feature="classes"))]
+            #[allow(non_snake_case)]
+            $(#[$meta])*
+            impl<'js,F, R, T $(, $arg)*> AsFunction<'js, (T, $($arg,)*), Promised<R>> for Async<SelfMethod<T,F>>
+            where
+                for<'a> F: AsyncBorrowFn<(&'a T, $($arg,)*), Output = Result<R>> + Clone + 'js,
+                R: IntoJs<'js> + 'js,
+                T: ClassDef + 'js,
+                $($arg: FromInput<'js> + 'js,)*
+            {
+                fn num_args() -> Range<usize> {
+                    $(let $arg = $arg::num_args();)*
+                    0usize $(+ $arg.start)* .. 0usize $(.saturating_add($arg.end))*
+                }
+
+                #[allow(unused_mut)]
+                fn call(&self, input: &Input<'js>) -> Result<Value<'js>> {
+                    input.check_num_args::<Self, _, _>()?;
+                    let mut accessor = input.access();
+                    let this = This::<class::Ref<T>>::from_input(&mut accessor)?;
+                    $(let $arg = $arg::from_input(&mut accessor)?;)*
+                    let f = self.0.0.clone();
+                    let future = async move {
+                        AsyncBorrowFn::call(&f,
+                            (&**this, $($arg,)*)
+                        ).await
+                    };
+                    Promised(future).into_js(accessor.ctx())
+                }
+            }
+
+            // for async methods via Method wrapper
+            #[cfg(all(feature = "futures", feature="classes"))]
+            #[allow(non_snake_case)]
+            $(#[$meta])*
+            impl<'js,Fut,R, T $(, $arg)*> AsFunction<'js, (&T, $($arg),*), Promised<R>> for Async<SelfMethod<T,fn(T$(,$arg)*) -> Fut>>
+            where
+                Fut: Future<Output = Result<R>> + 'js,
+                R: IntoJs<'js> + 'js,
+                T: ClassDef + Clone + 'js,
+                $($arg: FromInput<'js> + 'js,)*
+            {
+                fn num_args() -> Range<usize> {
+                    $(let $arg = $arg::num_args();)*
+                    0usize $(+ $arg.start)* .. 0usize $(.saturating_add($arg.end))*
+                }
+
+                #[allow(unused_mut)]
+                fn call(&self, input: &Input<'js>) -> Result<Value<'js>> {
+                    input.check_num_args::<Self, _, _>()?;
+                    let mut accessor = input.access();
+                    let this = This::<class::Ref<T>>::from_input(&mut accessor)?;
+                    $(let $arg = $arg::from_input(&mut accessor)?;)*
+                    let f = self.0.0;
+                    let future = async move {
+                        f(
+                            (**this).clone(),
+                            $($arg,)*
+                        ).await
+                    };
+                    Promised(future).into_js(accessor.ctx())
+                }
+            }
+
         )*
     };
 }
@@ -297,8 +425,8 @@ as_function_impls! {
 #[cfg(feature = "classes")]
 impl<'js, C, F, A, R> AsFunction<'js, A, R> for Constructor<C, F>
 where
-    C: ClassDef + ParallelSend + 'static,
-    F: AsFunction<'js, A, R> + ParallelSend + 'static,
+    C: ClassDef + 'js,
+    F: AsFunction<'js, A, R> + 'js,
 {
     fn num_args() -> Range<usize> {
         F::num_args()
@@ -346,7 +474,7 @@ where
             crate::Object::new(ctx)?
         };
         func.set_prototype(&proto);
-        Class::<C>::static_init(ctx, func)?;
+        Class::<C>::static_init(func)?;
         Ok(())
     }
 }
@@ -357,8 +485,8 @@ macro_rules! overloaded_impls {
             $(#[$meta])*
             impl<'js, $func, $func_args, $func_res $(, $funcs, $funcs_args, $funcs_res)*> AsFunction<'js, ($func_args $(, $funcs_args)*), ($func_res $(, $funcs_res)*)> for ($func $(, $funcs)*)
             where
-                $func: AsFunction<'js, $func_args, $func_res> + ParallelSend + 'static,
-            $($funcs: AsFunction<'js, $funcs_args, $funcs_res> + ParallelSend + 'static,)*
+                $func: AsFunction<'js, $func_args, $func_res> + 'js,
+            $($funcs: AsFunction<'js, $funcs_args, $funcs_res> + 'js,)*
             {
                 #[allow(non_snake_case)]
                 fn num_args() -> Range<usize> {
