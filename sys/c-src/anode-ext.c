@@ -23,6 +23,12 @@ JSFunctionBytecode* anode_get_function_bytecode(JSValue function) {
   return obj->u.func.function_bytecode;
 }
 
+JSValue anode_get_function_var_ref(JSContext* ctx, JSValue function, int32_t var_idx) {
+  JSObject* func_obj = JS_VALUE_GET_OBJ(function);
+  assert(func_obj->class_id == JS_CLASS_BYTECODE_FUNCTION);
+  return JS_DupValue(ctx, *(func_obj->u.func.var_refs[var_idx]->pvalue));
+}
+
 int32_t anode_js_to_bool(JSContext* ctx, JSValue op1) {
   int32_t res;
   if ((uint32_t)JS_VALUE_GET_TAG(op1) <= JS_TAG_UNDEFINED) {

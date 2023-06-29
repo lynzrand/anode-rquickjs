@@ -63,6 +63,10 @@ anode_function_get_cpool_unchecked(JSFunctionBytecode *bc, int32_t ix) {
   return bc->cpool[ix];
 }
 
+JSValue anode_get_function_var_ref(JSContext* ctx,
+                                   JSValueConst function,
+                                   int32_t var_idx);
+
 #pragma endregion
 
 int32_t anode_js_to_bool(JSContext *ctx, JSValueConst val);
