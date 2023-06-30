@@ -24,6 +24,7 @@
  */
 
 #include "js-map.h"
+
 #include "../exception.h"
 #include "../object.h"
 #include "../runtime.h"
@@ -36,8 +37,8 @@
 typedef struct JSMapRecord {
   int ref_count; /* used during enumeration to avoid freeing the record */
   BOOL empty; /* TRUE if the record is deleted */
-  struct JSMapState *map;
-  struct JSMapRecord *next_weak_ref;
+  struct JSMapState* map;
+  struct JSMapRecord* next_weak_ref;
   struct list_head link;
   struct list_head hash_link;
   JSValue key;
@@ -48,7 +49,7 @@ typedef struct JSMapState {
   BOOL is_weak; /* TRUE if WeakSet/WeakMap */
   struct list_head records; /* list of JSMapRecord.link */
   uint32_t record_count;
-  struct list_head *hash_table;
+  struct list_head* hash_table;
   uint32_t hash_size; /* must be a power of two */
   uint32_t record_count_threshold; /* count at which a hash table
                                       resize is needed */
@@ -57,11 +58,15 @@ typedef struct JSMapState {
 #define MAGIC_SET (1 << 0)
 #define MAGIC_WEAK (1 << 1)
 
-JSValue js_map_constructor(JSContext *ctx, JSValueConst new_target,
-                                  int argc, JSValueConst *argv, int magic)
-{
-  JSMapState *s;
-  JSValue obj, adder = JS_UNDEFINED, iter = JS_UNDEFINED, next_method = JS_UNDEFINED;
+JSValue js_map_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
+  JSMapState* s;
+  JSValue obj, adder = JS_UNDEFINED, iter = JS_UNDEFINED,
+               next_method = JS_UNDEFINED;
   JSValueConst arr;
   BOOL is_set, is_weak;
 
@@ -105,7 +110,7 @@ JSValue js_map_constructor(JSContext *ctx, JSValueConst new_target,
     if (JS_IsException(next_method))
       goto fail;
 
-    for(;;) {
+    for (;;) {
       item = JS_IteratorNext(ctx, iter, next_method, 0, NULL, &done);
       if (JS_IsException(item))
         goto fail;
@@ -114,7 +119,7 @@ JSValue js_map_constructor(JSContext *ctx, JSValueConst new_target,
         break;
       }
       if (is_set) {
-        ret = JS_Call(ctx, adder, obj, 1, (JSValueConst *)&item);
+        ret = JS_Call(ctx, adder, obj, 1, (JSValueConst*)&item);
         if (JS_IsException(ret)) {
           JS_FreeValue(ctx, item);
           goto fail;
@@ -168,8 +173,7 @@ fail:
 }
 
 /* XXX: could normalize strings to speed up comparison */
-JSValueConst map_normalize_key(JSContext *ctx, JSValueConst key)
-{
+JSValueConst map_normalize_key(JSContext* ctx, JSValueConst key) {
   uint32_t tag = JS_VALUE_GET_TAG(key);
   /* convert -0.0 to +0.0 */
   if (JS_TAG_IS_FLOAT64(tag) && JS_VALUE_GET_FLOAT64(key) == 0.0) {
@@ -179,14 +183,13 @@ JSValueConst map_normalize_key(JSContext *ctx, JSValueConst key)
 }
 
 /* XXX: better hash ? */
-uint32_t map_hash_key(JSContext *ctx, JSValueConst key)
-{
+uint32_t map_hash_key(JSContext* ctx, JSValueConst key) {
   uint32_t tag = JS_VALUE_GET_NORM_TAG(key);
   uint32_t h;
   double d;
   JSFloat64Union u;
 
-  switch(tag) {
+  switch (tag) {
     case JS_TAG_BOOL:
       h = JS_VALUE_GET_INT(key);
       break;
@@ -217,11 +220,9 @@ uint32_t map_hash_key(JSContext *ctx, JSValueConst key)
   return h;
 }
 
-JSMapRecord *map_find_record(JSContext *ctx, JSMapState *s,
-                                    JSValueConst key)
-{
-  struct list_head *el;
-  JSMapRecord *mr;
+JSMapRecord* map_find_record(JSContext* ctx, JSMapState* s, JSValueConst key) {
+  struct list_head* el;
+  JSMapRecord* mr;
   uint32_t h;
   h = map_hash_key(ctx, key) & (s->hash_size - 1);
   list_for_each(el, &s->hash_table[h]) {
@@ -232,25 +233,27 @@ JSMapRecord *map_find_record(JSContext *ctx, JSMapState *s,
   return NULL;
 }
 
-void map_hash_resize(JSContext *ctx, JSMapState *s)
-{
+void map_hash_resize(JSContext* ctx, JSMapState* s) {
   uint32_t new_hash_size, i, h;
   size_t slack;
   struct list_head *new_hash_table, *el;
-  JSMapRecord *mr;
+  JSMapRecord* mr;
 
   /* XXX: no reporting of memory allocation failure */
   if (s->hash_size == 1)
     new_hash_size = 4;
   else
     new_hash_size = s->hash_size * 2;
-  new_hash_table = js_realloc2(ctx, s->hash_table,
-                               sizeof(new_hash_table[0]) * new_hash_size, &slack);
+  new_hash_table = js_realloc2(
+    ctx,
+    s->hash_table,
+    sizeof(new_hash_table[0]) * new_hash_size,
+    &slack);
   if (!new_hash_table)
     return;
   new_hash_size += slack / sizeof(*new_hash_table);
 
-  for(i = 0; i < new_hash_size; i++)
+  for (i = 0; i < new_hash_size; i++)
     init_list_head(&new_hash_table[i]);
 
   list_for_each(el, &s->records) {
@@ -265,11 +268,9 @@ void map_hash_resize(JSContext *ctx, JSMapState *s)
   s->record_count_threshold = new_hash_size * 2;
 }
 
-JSMapRecord *map_add_record(JSContext *ctx, JSMapState *s,
-                                   JSValueConst key)
-{
+JSMapRecord* map_add_record(JSContext* ctx, JSMapState* s, JSValueConst key) {
   uint32_t h;
-  JSMapRecord *mr;
+  JSMapRecord* mr;
 
   mr = js_malloc(ctx, sizeof(*mr));
   if (!mr)
@@ -278,7 +279,7 @@ JSMapRecord *map_add_record(JSContext *ctx, JSMapState *s,
   mr->map = s;
   mr->empty = FALSE;
   if (s->is_weak) {
-    JSObject *p = JS_VALUE_GET_OBJ(key);
+    JSObject* p = JS_VALUE_GET_OBJ(key);
     /* Add the weak reference */
     mr->next_weak_ref = p->first_weak_ref;
     p->first_weak_ref = mr;
@@ -300,14 +301,13 @@ JSMapRecord *map_add_record(JSContext *ctx, JSMapState *s,
    reference list. we don't use a doubly linked list to
    save space, assuming a given object has few weak
        references to it */
-void delete_weak_ref(JSRuntime *rt, JSMapRecord *mr)
-{
+void delete_weak_ref(JSRuntime* rt, JSMapRecord* mr) {
   JSMapRecord **pmr, *mr1;
-  JSObject *p;
+  JSObject* p;
 
   p = JS_VALUE_GET_OBJ(mr->key);
   pmr = &p->first_weak_ref;
-  for(;;) {
+  for (;;) {
     mr1 = *pmr;
     assert(mr1 != NULL);
     if (mr1 == mr)
@@ -317,8 +317,7 @@ void delete_weak_ref(JSRuntime *rt, JSMapRecord *mr)
   *pmr = mr1->next_weak_ref;
 }
 
-void map_delete_record(JSRuntime *rt, JSMapState *s, JSMapRecord *mr)
-{
+void map_delete_record(JSRuntime* rt, JSMapState* s, JSMapRecord* mr) {
   if (mr->empty)
     return;
   list_del(&mr->hash_link);
@@ -340,8 +339,7 @@ void map_delete_record(JSRuntime *rt, JSMapState *s, JSMapRecord *mr)
   s->record_count--;
 }
 
-void map_decref_record(JSRuntime *rt, JSMapRecord *mr)
-{
+void map_decref_record(JSRuntime* rt, JSMapRecord* mr) {
   if (--mr->ref_count == 0) {
     /* the record can be safely removed */
     assert(mr->empty);
@@ -350,14 +348,13 @@ void map_decref_record(JSRuntime *rt, JSMapRecord *mr)
   }
 }
 
-void reset_weak_ref(JSRuntime *rt, JSObject *p)
-{
+void reset_weak_ref(JSRuntime* rt, JSObject* p) {
   JSMapRecord *mr, *mr_next;
-  JSMapState *s;
+  JSMapState* s;
 
   /* first pass to remove the records from the WeakMap/WeakSet
      lists */
-  for(mr = p->first_weak_ref; mr != NULL; mr = mr->next_weak_ref) {
+  for (mr = p->first_weak_ref; mr != NULL; mr = mr->next_weak_ref) {
     s = mr->map;
     assert(s->is_weak);
     assert(!mr->empty); /* no iterator on WeakMap/WeakSet */
@@ -367,7 +364,7 @@ void reset_weak_ref(JSRuntime *rt, JSObject *p)
 
   /* second pass to free the values to avoid modifying the weak
      reference list while traversing it. */
-  for(mr = p->first_weak_ref; mr != NULL; mr = mr_next) {
+  for (mr = p->first_weak_ref; mr != NULL; mr = mr_next) {
     mr_next = mr->next_weak_ref;
     JS_FreeValueRT(rt, mr->value);
     js_free_rt(rt, mr);
@@ -376,11 +373,14 @@ void reset_weak_ref(JSRuntime *rt, JSObject *p)
   p->first_weak_ref = NULL; /* fail safe */
 }
 
-JSValue js_map_set(JSContext *ctx, JSValueConst this_val,
-                          int argc, JSValueConst *argv, int magic)
-{
-  JSMapState *s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
-  JSMapRecord *mr;
+JSValue js_map_set(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
+  JSMapState* s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
+  JSMapRecord* mr;
   JSValueConst key, value;
 
   if (!s)
@@ -404,11 +404,14 @@ JSValue js_map_set(JSContext *ctx, JSValueConst this_val,
   return JS_DupValue(ctx, this_val);
 }
 
-JSValue js_map_get(JSContext *ctx, JSValueConst this_val,
-                          int argc, JSValueConst *argv, int magic)
-{
-  JSMapState *s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
-  JSMapRecord *mr;
+JSValue js_map_get(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
+  JSMapState* s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
+  JSMapRecord* mr;
   JSValueConst key;
 
   if (!s)
@@ -421,11 +424,14 @@ JSValue js_map_get(JSContext *ctx, JSValueConst this_val,
     return JS_DupValue(ctx, mr->value);
 }
 
-JSValue js_map_has(JSContext *ctx, JSValueConst this_val,
-                          int argc, JSValueConst *argv, int magic)
-{
-  JSMapState *s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
-  JSMapRecord *mr;
+JSValue js_map_has(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
+  JSMapState* s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
+  JSMapRecord* mr;
   JSValueConst key;
 
   if (!s)
@@ -435,11 +441,14 @@ JSValue js_map_has(JSContext *ctx, JSValueConst this_val,
   return JS_NewBool(ctx, (mr != NULL));
 }
 
-JSValue js_map_delete(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv, int magic)
-{
-  JSMapState *s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
-  JSMapRecord *mr;
+JSValue js_map_delete(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
+  JSMapState* s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
+  JSMapRecord* mr;
   JSValueConst key;
 
   if (!s)
@@ -452,12 +461,15 @@ JSValue js_map_delete(JSContext *ctx, JSValueConst this_val,
   return JS_TRUE;
 }
 
-JSValue js_map_clear(JSContext *ctx, JSValueConst this_val,
-                            int argc, JSValueConst *argv, int magic)
-{
-  JSMapState *s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
+JSValue js_map_clear(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
+  JSMapState* s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
   struct list_head *el, *el1;
-  JSMapRecord *mr;
+  JSMapRecord* mr;
 
   if (!s)
     return JS_EXCEPTION;
@@ -468,22 +480,24 @@ JSValue js_map_clear(JSContext *ctx, JSValueConst this_val,
   return JS_UNDEFINED;
 }
 
-JSValue js_map_get_size(JSContext *ctx, JSValueConst this_val, int magic)
-{
-  JSMapState *s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
+JSValue js_map_get_size(JSContext* ctx, JSValueConst this_val, int magic) {
+  JSMapState* s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
   if (!s)
     return JS_EXCEPTION;
   return JS_NewUint32(ctx, s->record_count);
 }
 
-JSValue js_map_forEach(JSContext *ctx, JSValueConst this_val,
-                              int argc, JSValueConst *argv, int magic)
-{
-  JSMapState *s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
+JSValue js_map_forEach(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
+  JSMapState* s = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP + magic);
   JSValueConst func, this_arg;
   JSValue ret, args[3];
-  struct list_head *el;
-  JSMapRecord *mr;
+  struct list_head* el;
+  JSMapRecord* mr;
 
   if (!s)
     return JS_EXCEPTION;
@@ -508,7 +522,7 @@ JSValue js_map_forEach(JSContext *ctx, JSValueConst this_val,
       else
         args[0] = JS_DupValue(ctx, mr->value);
       args[2] = this_val;
-      ret = JS_Call(ctx, func, this_arg, 3, (JSValueConst *)args);
+      ret = JS_Call(ctx, func, this_arg, 3, (JSValueConst*)args);
       JS_FreeValue(ctx, args[0]);
       if (!magic)
         JS_FreeValue(ctx, args[1]);
@@ -524,12 +538,11 @@ JSValue js_map_forEach(JSContext *ctx, JSValueConst this_val,
   return JS_UNDEFINED;
 }
 
-void js_map_finalizer(JSRuntime *rt, JSValue val)
-{
-  JSObject *p;
-  JSMapState *s;
+void js_map_finalizer(JSRuntime* rt, JSValue val) {
+  JSObject* p;
+  JSMapState* s;
   struct list_head *el, *el1;
-  JSMapRecord *mr;
+  JSMapRecord* mr;
 
   p = JS_VALUE_GET_OBJ(val);
   s = p->u.map_state;
@@ -552,12 +565,11 @@ void js_map_finalizer(JSRuntime *rt, JSValue val)
   }
 }
 
-void js_map_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
-{
-  JSObject *p = JS_VALUE_GET_OBJ(val);
-  JSMapState *s;
-  struct list_head *el;
-  JSMapRecord *mr;
+void js_map_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func) {
+  JSObject* p = JS_VALUE_GET_OBJ(val);
+  JSMapState* s;
+  struct list_head* el;
+  JSMapRecord* mr;
 
   s = p->u.map_state;
   if (s) {
@@ -575,13 +587,12 @@ void js_map_mark(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 typedef struct JSMapIteratorData {
   JSValue obj;
   JSIteratorKindEnum kind;
-  JSMapRecord *cur_record;
+  JSMapRecord* cur_record;
 } JSMapIteratorData;
 
-void js_map_iterator_finalizer(JSRuntime *rt, JSValue val)
-{
-  JSObject *p;
-  JSMapIteratorData *it;
+void js_map_iterator_finalizer(JSRuntime* rt, JSValue val) {
+  JSObject* p;
+  JSMapIteratorData* it;
 
   p = JS_VALUE_GET_OBJ(val);
   it = p->u.map_iterator_data;
@@ -596,11 +607,12 @@ void js_map_iterator_finalizer(JSRuntime *rt, JSValue val)
   }
 }
 
-void js_map_iterator_mark(JSRuntime *rt, JSValueConst val,
-                                 JS_MarkFunc *mark_func)
-{
-  JSObject *p = JS_VALUE_GET_OBJ(val);
-  JSMapIteratorData *it;
+void js_map_iterator_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func) {
+  JSObject* p = JS_VALUE_GET_OBJ(val);
+  JSMapIteratorData* it;
   it = p->u.map_iterator_data;
   if (it) {
     /* the record is already marked by the object */
@@ -608,12 +620,15 @@ void js_map_iterator_mark(JSRuntime *rt, JSValueConst val,
   }
 }
 
-JSValue js_create_map_iterator(JSContext *ctx, JSValueConst this_val,
-                                      int argc, JSValueConst *argv, int magic)
-{
+JSValue js_create_map_iterator(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   JSIteratorKindEnum kind;
-  JSMapState *s;
-  JSMapIteratorData *it;
+  JSMapState* s;
+  JSMapIteratorData* it;
   JSValue enum_obj;
 
   kind = magic >> 2;
@@ -638,14 +653,17 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_map_iterator_next(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv,
-                                    BOOL *pdone, int magic)
-{
-  JSMapIteratorData *it;
-  JSMapState *s;
-  JSMapRecord *mr;
-  struct list_head *el;
+JSValue js_map_iterator_next(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  BOOL* pdone,
+  int magic) {
+  JSMapIteratorData* it;
+  JSMapState* s;
+  JSMapRecord* mr;
+  struct list_head* el;
 
   it = JS_GetOpaque2(ctx, this_val, JS_CLASS_MAP_ITERATOR + magic);
   if (!it) {
@@ -663,7 +681,7 @@ JSValue js_map_iterator_next(JSContext *ctx, JSValueConst this_val,
     el = mr->link.next;
     map_decref_record(ctx->rt, mr); /* the record can be freed here */
   }
-  for(;;) {
+  for (;;) {
     if (el == &s->records) {
       /* no more record  */
       it->cur_record = NULL;
@@ -704,108 +722,148 @@ JSValue js_map_iterator_next(JSContext *ctx, JSValueConst this_val,
 }
 
 const JSCFunctionListEntry js_map_funcs[] = {
-    JS_CGETSET_DEF("[Symbol.species]", js_get_this, NULL ),
+  JS_CGETSET_DEF("[Symbol.species]", js_get_this, NULL),
 };
 
 const JSCFunctionListEntry js_map_proto_funcs[] = {
-    JS_CFUNC_MAGIC_DEF("set", 2, js_map_set, 0 ),
-    JS_CFUNC_MAGIC_DEF("get", 1, js_map_get, 0 ),
-    JS_CFUNC_MAGIC_DEF("has", 1, js_map_has, 0 ),
-    JS_CFUNC_MAGIC_DEF("delete", 1, js_map_delete, 0 ),
-    JS_CFUNC_MAGIC_DEF("clear", 0, js_map_clear, 0 ),
-    JS_CGETSET_MAGIC_DEF("size", js_map_get_size, NULL, 0),
-    JS_CFUNC_MAGIC_DEF("forEach", 1, js_map_forEach, 0 ),
-    JS_CFUNC_MAGIC_DEF("values", 0, js_create_map_iterator, (JS_ITERATOR_KIND_VALUE << 2) | 0 ),
-    JS_CFUNC_MAGIC_DEF("keys", 0, js_create_map_iterator, (JS_ITERATOR_KIND_KEY << 2) | 0 ),
-    JS_CFUNC_MAGIC_DEF("entries", 0, js_create_map_iterator, (JS_ITERATOR_KIND_KEY_AND_VALUE << 2) | 0 ),
-    JS_ALIAS_DEF("[Symbol.iterator]", "entries" ),
-    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "Map", JS_PROP_CONFIGURABLE ),
+  JS_CFUNC_MAGIC_DEF("set", 2, js_map_set, 0),
+  JS_CFUNC_MAGIC_DEF("get", 1, js_map_get, 0),
+  JS_CFUNC_MAGIC_DEF("has", 1, js_map_has, 0),
+  JS_CFUNC_MAGIC_DEF("delete", 1, js_map_delete, 0),
+  JS_CFUNC_MAGIC_DEF("clear", 0, js_map_clear, 0),
+  JS_CGETSET_MAGIC_DEF("size", js_map_get_size, NULL, 0),
+  JS_CFUNC_MAGIC_DEF("forEach", 1, js_map_forEach, 0),
+  JS_CFUNC_MAGIC_DEF(
+    "values",
+    0,
+    js_create_map_iterator,
+    (JS_ITERATOR_KIND_VALUE << 2) | 0),
+  JS_CFUNC_MAGIC_DEF(
+    "keys",
+    0,
+    js_create_map_iterator,
+    (JS_ITERATOR_KIND_KEY << 2) | 0),
+  JS_CFUNC_MAGIC_DEF(
+    "entries",
+    0,
+    js_create_map_iterator,
+    (JS_ITERATOR_KIND_KEY_AND_VALUE << 2) | 0),
+  JS_ALIAS_DEF("[Symbol.iterator]", "entries"),
+  JS_PROP_STRING_DEF("[Symbol.toStringTag]", "Map", JS_PROP_CONFIGURABLE),
 };
 
 const JSCFunctionListEntry js_map_iterator_proto_funcs[] = {
-    JS_ITERATOR_NEXT_DEF("next", 0, js_map_iterator_next, 0 ),
-    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "Map Iterator", JS_PROP_CONFIGURABLE ),
+  JS_ITERATOR_NEXT_DEF("next", 0, js_map_iterator_next, 0),
+  JS_PROP_STRING_DEF(
+    "[Symbol.toStringTag]",
+    "Map Iterator",
+    JS_PROP_CONFIGURABLE),
 };
 
 const JSCFunctionListEntry js_set_proto_funcs[] = {
-    JS_CFUNC_MAGIC_DEF("add", 1, js_map_set, MAGIC_SET ),
-    JS_CFUNC_MAGIC_DEF("has", 1, js_map_has, MAGIC_SET ),
-    JS_CFUNC_MAGIC_DEF("delete", 1, js_map_delete, MAGIC_SET ),
-    JS_CFUNC_MAGIC_DEF("clear", 0, js_map_clear, MAGIC_SET ),
-    JS_CGETSET_MAGIC_DEF("size", js_map_get_size, NULL, MAGIC_SET ),
-    JS_CFUNC_MAGIC_DEF("forEach", 1, js_map_forEach, MAGIC_SET ),
-    JS_CFUNC_MAGIC_DEF("values", 0, js_create_map_iterator, (JS_ITERATOR_KIND_KEY << 2) | MAGIC_SET ),
-    JS_ALIAS_DEF("keys", "values" ),
-    JS_ALIAS_DEF("[Symbol.iterator]", "values" ),
-    JS_CFUNC_MAGIC_DEF("entries", 0, js_create_map_iterator, (JS_ITERATOR_KIND_KEY_AND_VALUE << 2) | MAGIC_SET ),
-    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "Set", JS_PROP_CONFIGURABLE ),
+  JS_CFUNC_MAGIC_DEF("add", 1, js_map_set, MAGIC_SET),
+  JS_CFUNC_MAGIC_DEF("has", 1, js_map_has, MAGIC_SET),
+  JS_CFUNC_MAGIC_DEF("delete", 1, js_map_delete, MAGIC_SET),
+  JS_CFUNC_MAGIC_DEF("clear", 0, js_map_clear, MAGIC_SET),
+  JS_CGETSET_MAGIC_DEF("size", js_map_get_size, NULL, MAGIC_SET),
+  JS_CFUNC_MAGIC_DEF("forEach", 1, js_map_forEach, MAGIC_SET),
+  JS_CFUNC_MAGIC_DEF(
+    "values",
+    0,
+    js_create_map_iterator,
+    (JS_ITERATOR_KIND_KEY << 2) | MAGIC_SET),
+  JS_ALIAS_DEF("keys", "values"),
+  JS_ALIAS_DEF("[Symbol.iterator]", "values"),
+  JS_CFUNC_MAGIC_DEF(
+    "entries",
+    0,
+    js_create_map_iterator,
+    (JS_ITERATOR_KIND_KEY_AND_VALUE << 2) | MAGIC_SET),
+  JS_PROP_STRING_DEF("[Symbol.toStringTag]", "Set", JS_PROP_CONFIGURABLE),
 };
 
 const JSCFunctionListEntry js_set_iterator_proto_funcs[] = {
-    JS_ITERATOR_NEXT_DEF("next", 0, js_map_iterator_next, MAGIC_SET ),
-    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "Set Iterator", JS_PROP_CONFIGURABLE ),
+  JS_ITERATOR_NEXT_DEF("next", 0, js_map_iterator_next, MAGIC_SET),
+  JS_PROP_STRING_DEF(
+    "[Symbol.toStringTag]",
+    "Set Iterator",
+    JS_PROP_CONFIGURABLE),
 };
 
 const JSCFunctionListEntry js_weak_map_proto_funcs[] = {
-    JS_CFUNC_MAGIC_DEF("set", 2, js_map_set, MAGIC_WEAK ),
-    JS_CFUNC_MAGIC_DEF("get", 1, js_map_get, MAGIC_WEAK ),
-    JS_CFUNC_MAGIC_DEF("has", 1, js_map_has, MAGIC_WEAK ),
-    JS_CFUNC_MAGIC_DEF("delete", 1, js_map_delete, MAGIC_WEAK ),
-    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "WeakMap", JS_PROP_CONFIGURABLE ),
+  JS_CFUNC_MAGIC_DEF("set", 2, js_map_set, MAGIC_WEAK),
+  JS_CFUNC_MAGIC_DEF("get", 1, js_map_get, MAGIC_WEAK),
+  JS_CFUNC_MAGIC_DEF("has", 1, js_map_has, MAGIC_WEAK),
+  JS_CFUNC_MAGIC_DEF("delete", 1, js_map_delete, MAGIC_WEAK),
+  JS_PROP_STRING_DEF("[Symbol.toStringTag]", "WeakMap", JS_PROP_CONFIGURABLE),
 };
 
 const JSCFunctionListEntry js_weak_set_proto_funcs[] = {
-    JS_CFUNC_MAGIC_DEF("add", 1, js_map_set, MAGIC_SET | MAGIC_WEAK ),
-    JS_CFUNC_MAGIC_DEF("has", 1, js_map_has, MAGIC_SET | MAGIC_WEAK ),
-    JS_CFUNC_MAGIC_DEF("delete", 1, js_map_delete, MAGIC_SET | MAGIC_WEAK ),
-    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "WeakSet", JS_PROP_CONFIGURABLE ),
+  JS_CFUNC_MAGIC_DEF("add", 1, js_map_set, MAGIC_SET | MAGIC_WEAK),
+  JS_CFUNC_MAGIC_DEF("has", 1, js_map_has, MAGIC_SET | MAGIC_WEAK),
+  JS_CFUNC_MAGIC_DEF("delete", 1, js_map_delete, MAGIC_SET | MAGIC_WEAK),
+  JS_PROP_STRING_DEF("[Symbol.toStringTag]", "WeakSet", JS_PROP_CONFIGURABLE),
 };
 
-const JSCFunctionListEntry * const js_map_proto_funcs_ptr[6] = {
-    js_map_proto_funcs,
-    js_set_proto_funcs,
-    js_weak_map_proto_funcs,
-    js_weak_set_proto_funcs,
-    js_map_iterator_proto_funcs,
-    js_set_iterator_proto_funcs,
+const JSCFunctionListEntry* const js_map_proto_funcs_ptr[6] = {
+  js_map_proto_funcs,
+  js_set_proto_funcs,
+  js_weak_map_proto_funcs,
+  js_weak_set_proto_funcs,
+  js_map_iterator_proto_funcs,
+  js_set_iterator_proto_funcs,
 };
 
 const uint8_t js_map_proto_funcs_count[6] = {
-    countof(js_map_proto_funcs),
-    countof(js_set_proto_funcs),
-    countof(js_weak_map_proto_funcs),
-    countof(js_weak_set_proto_funcs),
-    countof(js_map_iterator_proto_funcs),
-    countof(js_set_iterator_proto_funcs),
+  countof(js_map_proto_funcs),
+  countof(js_set_proto_funcs),
+  countof(js_weak_map_proto_funcs),
+  countof(js_weak_set_proto_funcs),
+  countof(js_map_iterator_proto_funcs),
+  countof(js_set_iterator_proto_funcs),
 };
 
-void JS_AddIntrinsicMapSet(JSContext *ctx)
-{
+void JS_AddIntrinsicMapSet(JSContext* ctx) {
   int i;
   JSValue obj1;
   char buf[ATOM_GET_STR_BUF_SIZE];
 
-  for(i = 0; i < 4; i++) {
-    const char *name = JS_AtomGetStr(ctx, buf, sizeof(buf),
-                                     JS_ATOM_Map + i);
+  for (i = 0; i < 4; i++) {
+    const char* name = JS_AtomGetStr(ctx, buf, sizeof(buf), JS_ATOM_Map + i);
     ctx->class_proto[JS_CLASS_MAP + i] = JS_NewObject(ctx);
-    JS_SetPropertyFunctionList(ctx, ctx->class_proto[JS_CLASS_MAP + i],
-                               js_map_proto_funcs_ptr[i],
-                               js_map_proto_funcs_count[i]);
-    obj1 = JS_NewCFunctionMagic(ctx, js_map_constructor, name, 0,
-                                JS_CFUNC_constructor_magic, i);
+    JS_SetPropertyFunctionList(
+      ctx,
+      ctx->class_proto[JS_CLASS_MAP + i],
+      js_map_proto_funcs_ptr[i],
+      js_map_proto_funcs_count[i]);
+    obj1 = JS_NewCFunctionMagic(
+      ctx,
+      js_map_constructor,
+      name,
+      0,
+      JS_CFUNC_constructor_magic,
+      i);
     if (i < 2) {
-      JS_SetPropertyFunctionList(ctx, obj1, js_map_funcs,
-                                 countof(js_map_funcs));
+      JS_SetPropertyFunctionList(
+        ctx,
+        obj1,
+        js_map_funcs,
+        countof(js_map_funcs));
     }
-    JS_NewGlobalCConstructor2(ctx, obj1, name, ctx->class_proto[JS_CLASS_MAP + i]);
+    JS_NewGlobalCConstructor2(
+      ctx,
+      obj1,
+      name,
+      ctx->class_proto[JS_CLASS_MAP + i]);
   }
 
-  for(i = 0; i < 2; i++) {
+  for (i = 0; i < 2; i++) {
     ctx->class_proto[JS_CLASS_MAP_ITERATOR + i] =
-        JS_NewObjectProto(ctx, ctx->iterator_proto);
-    JS_SetPropertyFunctionList(ctx, ctx->class_proto[JS_CLASS_MAP_ITERATOR + i],
-                               js_map_proto_funcs_ptr[i + 4],
-                               js_map_proto_funcs_count[i + 4]);
+      JS_NewObjectProto(ctx, ctx->iterator_proto);
+    JS_SetPropertyFunctionList(
+      ctx,
+      ctx->class_proto[JS_CLASS_MAP_ITERATOR + i],
+      js_map_proto_funcs_ptr[i + 4],
+      js_map_proto_funcs_count[i + 4]);
   }
 }

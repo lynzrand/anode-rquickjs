@@ -24,7 +24,9 @@
  */
 
 #include "function.h"
+
 #include <quickjs/cutils.h>
+
 #include "builtins/js-array.h"
 #include "builtins/js-big-num.h"
 #include "builtins/js-closures.h"
@@ -41,12 +43,13 @@
 #include "runtime.h"
 #include "string.h"
 
-JSValue js_call_c_function(JSContext* ctx,
-                           JSValueConst func_obj,
-                           JSValueConst this_obj,
-                           int argc,
-                           JSValueConst* argv,
-                           int flags) {
+JSValue js_call_c_function(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags) {
   JSRuntime* rt = ctx->rt;
   JSCFunctionType func;
   JSObject* p;
@@ -123,7 +126,8 @@ JSValue js_call_c_function(JSContext* ctx,
       }
       /* fall thru */
     case JS_CFUNC_generic_magic:
-      ret_val = func.generic_magic(ctx, this_obj, argc, arg_buf, p->u.cfunc.magic);
+      ret_val =
+        func.generic_magic(ctx, this_obj, argc, arg_buf, p->u.cfunc.magic);
       break;
     case JS_CFUNC_getter:
       ret_val = func.getter(ctx, this_obj);
@@ -161,7 +165,9 @@ JSValue js_call_c_function(JSContext* ctx,
     } break;
     case JS_CFUNC_iterator_next: {
       int done;
-      ret_val = func.iterator_next(ctx, this_obj, argc, arg_buf, &done, p->u.cfunc.magic);
+      ret_val =
+        func
+          .iterator_next(ctx, this_obj, argc, arg_buf, &done, p->u.cfunc.magic);
       if (!JS_IsException(ret_val) && done != 2) {
         ret_val = js_create_iterator_result(ctx, ret_val, done);
       }
@@ -174,12 +180,13 @@ JSValue js_call_c_function(JSContext* ctx,
   return ret_val;
 }
 
-JSValue js_call_bound_function(JSContext* ctx,
-                               JSValueConst func_obj,
-                               JSValueConst this_obj,
-                               int argc,
-                               JSValueConst* argv,
-                               int flags) {
+JSValue js_call_bound_function(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags) {
   JSObject* p;
   JSBoundFunction* bf;
   JSValueConst *arg_buf, new_target;
@@ -201,20 +208,26 @@ JSValue js_call_bound_function(JSContext* ctx,
     new_target = this_obj;
     if (js_same_value(ctx, func_obj, new_target))
       new_target = bf->func_obj;
-    return JS_CallConstructor2(ctx, bf->func_obj, new_target, arg_count, arg_buf);
+    return JS_CallConstructor2(
+      ctx,
+      bf->func_obj,
+      new_target,
+      arg_count,
+      arg_buf);
   } else {
     return JS_Call(ctx, bf->func_obj, bf->this_val, arg_count, arg_buf);
   }
 }
 
 /* argv[] is modified if (flags & JS_CALL_FLAG_COPY_ARGV) = 0. */
-JSValue JS_CallInternal(JSContext* caller_ctx,
-                        JSValueConst func_obj,
-                        JSValueConst this_obj,
-                        JSValueConst new_target,
-                        int argc,
-                        JSValue* argv,
-                        int flags) {
+JSValue JS_CallInternal(
+  JSContext* caller_ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  JSValueConst new_target,
+  int argc,
+  JSValue* argv,
+  int flags) {
   JSRuntime* rt = caller_ctx->rt;
   JSContext* ctx;
   JSObject* p;
@@ -228,26 +241,26 @@ JSValue JS_CallInternal(JSContext* caller_ctx,
   InlineCache* ic;
 
 #if !DIRECT_DISPATCH
-#define SWITCH(pc) switch (opcode = *pc++)
-#define CASE(op) case op:
-#define DEFAULT default:
-#define BREAK break
+  #define SWITCH(pc) switch (opcode = *pc++)
+  #define CASE(op) case op:
+  #define DEFAULT default:
+  #define BREAK break
 #else
   static const void* const dispatch_table[256] = {
-#define DEF(id, size, n_pop, n_push, f) &&case_OP_##id,
-#if SHORT_OPCODES
-#define def(id, size, n_pop, n_push, f)
-#else
-#define def(id, size, n_pop, n_push, f) &&case_default,
-#endif
-#include "quickjs/quickjs-opcode.h"
+  #define DEF(id, size, n_pop, n_push, f) &&case_OP_##id,
+  #if SHORT_OPCODES
+    #define def(id, size, n_pop, n_push, f)
+  #else
+    #define def(id, size, n_pop, n_push, f) &&case_default,
+  #endif
+  #include "quickjs/quickjs-opcode.h"
     [OP_COUNT... 255] = &&case_default
   };
-#define SWITCH(pc) goto* dispatch_table[opcode = *pc++];
-#define CASE(op) case_##op:
-#define DEFAULT \
+  #define SWITCH(pc) goto* dispatch_table[opcode = *pc++];
+  #define CASE(op) case_##op:
+  #define DEFAULT \
   case_default:
-#define BREAK SWITCH(pc)
+  #define BREAK SWITCH(pc)
 #endif
 
   if (js_poll_interrupts(caller_ctx))
@@ -287,7 +300,13 @@ JSValue JS_CallInternal(JSContext* caller_ctx,
     not_a_function:
       return JS_ThrowTypeError(caller_ctx, "not a function");
     }
-    return call_func(caller_ctx, func_obj, this_obj, argc, (JSValueConst*)argv, flags);
+    return call_func(
+      caller_ctx,
+      func_obj,
+      this_obj,
+      argc,
+      (JSValueConst*)argv,
+      flags);
   }
   b = p->u.func.function_bytecode;
 
@@ -298,7 +317,8 @@ JSValue JS_CallInternal(JSContext* caller_ctx,
   }
 
   // Check for optimized function
-  if (b->compiled_function.function != NULL && !(flags & JS_CALL_FLAG_IS_DEOPT)) {
+  if (
+    b->compiled_function.function != NULL && !(flags & JS_CALL_FLAG_IS_DEOPT)) {
     arg_buf = argv;
     if (arg_allocated_size) {
       // copy argv, but since we're not using the interpreter, we don't need to
@@ -311,10 +331,12 @@ JSValue JS_CallInternal(JSContext* caller_ctx,
         arg_buf[i] = JS_UNDEFINED;
       }
     }
-    return b->compiled_function.function(caller_ctx, func_obj, this_obj, new_target, argc, arg_buf);
+    return b->compiled_function
+      .function(caller_ctx, func_obj, this_obj, new_target, argc, arg_buf);
   }
 
-  alloca_size = sizeof(JSValue) * (arg_allocated_size + b->var_count + b->stack_size);
+  alloca_size =
+    sizeof(JSValue) * (arg_allocated_size + b->var_count + b->stack_size);
   if (js_check_stack_overflow(rt, alloca_size))
     return JS_ThrowStackOverflow(caller_ctx);
 
@@ -395,7 +417,8 @@ restart:
         BREAK;
       }
       CASE(OP_fclosure8) {
-        *sp++ = js_closure(ctx, JS_DupValue(ctx, b->cpool[*pc++]), var_refs, sf);
+        *sp++ =
+          js_closure(ctx, JS_DupValue(ctx, b->cpool[*pc++]), var_refs, sf);
         if (unlikely(JS_IsException(sp[-1])))
           goto exception;
         BREAK;
@@ -473,7 +496,12 @@ restart:
               goto exception;
             break;
           case OP_SPECIAL_OBJECT_MAPPED_ARGUMENTS:
-            *sp++ = js_build_mapped_arguments(ctx, argc, (JSValueConst*)argv, sf, min_int(argc, b->arg_count));
+            *sp++ = js_build_mapped_arguments(
+              ctx,
+              argc,
+              (JSValueConst*)argv,
+              sf,
+              min_int(argc, b->arg_count));
             if (unlikely(JS_IsException(sp[-1])))
               goto exception;
             break;
@@ -694,7 +722,14 @@ restart:
       has_call_argc:
         call_argv = sp - call_argc;
         sf->cur_pc = pc;
-        ret_val = JS_CallInternal(ctx, call_argv[-1], JS_UNDEFINED, JS_UNDEFINED, call_argc, call_argv, 0);
+        ret_val = JS_CallInternal(
+          ctx,
+          call_argv[-1],
+          JS_UNDEFINED,
+          JS_UNDEFINED,
+          call_argc,
+          call_argv,
+          0);
         if (unlikely(JS_IsException(ret_val)))
           goto exception;
         if (opcode == OP_tail_call)
@@ -711,7 +746,13 @@ restart:
         pc += 2;
         call_argv = sp - call_argc;
         sf->cur_pc = pc;
-        ret_val = JS_CallConstructorInternal(ctx, call_argv[-2], call_argv[-1], call_argc, call_argv, 0);
+        ret_val = JS_CallConstructorInternal(
+          ctx,
+          call_argv[-2],
+          call_argv[-1],
+          call_argc,
+          call_argv,
+          0);
         if (unlikely(JS_IsException(ret_val)))
           goto exception;
         for (i = -2; i < call_argc; i++)
@@ -727,7 +768,14 @@ restart:
         pc += 2;
         call_argv = sp - call_argc;
         sf->cur_pc = pc;
-        ret_val = JS_CallInternal(ctx, call_argv[-1], call_argv[-2], JS_UNDEFINED, call_argc, call_argv, 0);
+        ret_val = JS_CallInternal(
+          ctx,
+          call_argv[-1],
+          call_argv[-2],
+          JS_UNDEFINED,
+          call_argc,
+          call_argv,
+          0);
         if (unlikely(JS_IsException(ret_val)))
           goto exception;
         if (opcode == OP_tail_call_method)
@@ -749,8 +797,12 @@ restart:
           goto exception;
         call_argv = sp - call_argc;
         for (i = 0; i < call_argc; i++) {
-          ret =
-              JS_DefinePropertyValue(ctx, ret_val, __JS_AtomFromUInt32(i), call_argv[i], JS_PROP_C_W_E | JS_PROP_THROW);
+          ret = JS_DefinePropertyValue(
+            ctx,
+            ret_val,
+            __JS_AtomFromUInt32(i),
+            call_argv[i],
+            JS_PROP_C_W_E | JS_PROP_THROW);
           call_argv[i] = JS_UNDEFINED;
           if (ret < 0) {
             JS_FreeValue(ctx, ret_val);
@@ -767,7 +819,8 @@ restart:
         magic = get_u16(pc);
         pc += 2;
 
-        ret_val = js_function_apply(ctx, sp[-3], 2, (JSValueConst*)&sp[-2], magic);
+        ret_val =
+          js_function_apply(ctx, sp[-3], 2, (JSValueConst*)&sp[-2], magic);
         if (unlikely(JS_IsException(ret_val)))
           goto exception;
         JS_FreeValue(ctx, sp[-3]);
@@ -786,10 +839,13 @@ restart:
         goto done;
       }
 
-      CASE(OP_check_ctor_return) { /* return TRUE if 'this' should be returned */
+      CASE(OP_check_ctor_return) {
+        /* return TRUE if 'this' should be returned */
         if (!JS_IsObject(sp[-1])) {
           if (!JS_IsUndefined(sp[-1])) {
-            JS_ThrowTypeError(caller_ctx, "derived class constructor must return an object or undefined");
+            JS_ThrowTypeError(
+              caller_ctx,
+              "derived class constructor must return an object or undefined");
             goto exception;
           }
           sp[0] = JS_TRUE;
@@ -801,7 +857,9 @@ restart:
       }
       CASE(OP_check_ctor) {
         if (JS_IsUndefined(new_target)) {
-          JS_ThrowTypeError(ctx, "class constructors must be invoked with 'new'");
+          JS_ThrowTypeError(
+            ctx,
+            "class constructors must be invoked with 'new'");
           goto exception;
         }
         BREAK;
@@ -859,9 +917,21 @@ restart:
             obj = call_argv[0];
           else
             obj = JS_UNDEFINED;
-          ret_val = JS_EvalObject(ctx, JS_UNDEFINED, obj, JS_EVAL_TYPE_DIRECT, scope_idx);
+          ret_val = JS_EvalObject(
+            ctx,
+            JS_UNDEFINED,
+            obj,
+            JS_EVAL_TYPE_DIRECT,
+            scope_idx);
         } else {
-          ret_val = JS_CallInternal(ctx, call_argv[-1], JS_UNDEFINED, JS_UNDEFINED, call_argc, call_argv, 0);
+          ret_val = JS_CallInternal(
+            ctx,
+            call_argv[-1],
+            JS_UNDEFINED,
+            JS_UNDEFINED,
+            call_argc,
+            call_argv,
+            0);
         }
         if (unlikely(JS_IsException(ret_val)))
           goto exception;
@@ -889,7 +959,12 @@ restart:
             obj = tab[0];
           else
             obj = JS_UNDEFINED;
-          ret_val = JS_EvalObject(ctx, JS_UNDEFINED, obj, JS_EVAL_TYPE_DIRECT, scope_idx);
+          ret_val = JS_EvalObject(
+            ctx,
+            JS_UNDEFINED,
+            obj,
+            JS_EVAL_TYPE_DIRECT,
+            scope_idx);
         } else {
           ret_val = JS_Call(ctx, sp[-2], JS_UNDEFINED, len, (JSValueConst*)tab);
         }
@@ -904,7 +979,8 @@ restart:
       }
 
       CASE(OP_regexp) {
-        sp[-2] = js_regexp_constructor_internal(ctx, JS_UNDEFINED, sp[-2], sp[-1]);
+        sp[-2] =
+          js_regexp_constructor_internal(ctx, JS_UNDEFINED, sp[-2], sp[-1]);
         sp--;
         BREAK;
       }
@@ -1362,7 +1438,11 @@ restart:
           if (!var_ref)
             goto exception;
         }
-        pr = add_property(ctx, JS_VALUE_GET_OBJ(sp[-1]), atom, JS_PROP_WRITABLE | JS_PROP_VARREF);
+        pr = add_property(
+          ctx,
+          JS_VALUE_GET_OBJ(sp[-1]),
+          atom,
+          JS_PROP_WRITABLE | JS_PROP_VARREF);
         if (!pr) {
           free_var_ref(rt, var_ref);
           goto exception;
@@ -1561,8 +1641,8 @@ restart:
         BREAK;
       }
 
-      CASE(OP_iterator_close) {    /* iter_obj next catch_offset -> */
-        sp--;                      /* drop the catch offset to avoid getting caught by exception */
+      CASE(OP_iterator_close) { /* iter_obj next catch_offset -> */
+        sp--; /* drop the catch offset to avoid getting caught by exception */
         JS_FreeValue(ctx, sp[-1]); /* drop the next method */
         sp--;
         if (!JS_IsUndefined(sp[-1])) {
@@ -1578,7 +1658,8 @@ restart:
         /* iter_obj next catch_offset ... ret_val ->
            ret_eval iter_obj next catch_offset */
         ret_val = *--sp;
-        while (sp > stack_buf && JS_VALUE_GET_TAG(sp[-1]) != JS_TAG_CATCH_OFFSET) {
+        while (sp > stack_buf
+               && JS_VALUE_GET_TAG(sp[-1]) != JS_TAG_CATCH_OFFSET) {
           JS_FreeValue(ctx, *--sp);
         }
         if (unlikely(sp < stack_buf + 3)) {
@@ -1611,7 +1692,10 @@ restart:
         BOOL ret_flag;
         int flags;
         flags = *pc++;
-        method = JS_GetProperty(ctx, sp[-4], (flags & 1) ? JS_ATOM_throw : JS_ATOM_return);
+        method = JS_GetProperty(
+          ctx,
+          sp[-4],
+          (flags & 1) ? JS_ATOM_throw : JS_ATOM_return);
         if (JS_IsException(method))
           goto exception;
         if (JS_IsUndefined(method) || JS_IsNull(method)) {
@@ -1677,7 +1761,14 @@ restart:
         atom = get_ic_atom(ic, ic_offset);
         pc += 4;
 
-        val = JS_GetPropertyInternalWithIC(ctx, sp[-1], atom, sp[-1], ic, ic_offset, FALSE);
+        val = JS_GetPropertyInternalWithIC(
+          ctx,
+          sp[-1],
+          atom,
+          sp[-1],
+          ic,
+          ic_offset,
+          FALSE);
         ic->updated = FALSE;
         if (unlikely(JS_IsException(val)))
           goto exception;
@@ -1714,7 +1805,14 @@ restart:
         atom = get_ic_atom(ic, ic_offset);
         pc += 4;
 
-        val = JS_GetPropertyInternalWithIC(ctx, sp[-1], atom, sp[-1], ic, ic_offset, FALSE);
+        val = JS_GetPropertyInternalWithIC(
+          ctx,
+          sp[-1],
+          atom,
+          sp[-1],
+          ic,
+          ic_offset,
+          FALSE);
         ic->updated = FALSE;
         if (unlikely(JS_IsException(val)))
           goto exception;
@@ -1728,7 +1826,13 @@ restart:
         atom = get_u32(pc);
         pc += 4;
 
-        ret = JS_SetPropertyInternal(ctx, sp[-2], atom, sp[-1], JS_PROP_THROW_STRICT, ic);
+        ret = JS_SetPropertyInternal(
+          ctx,
+          sp[-2],
+          atom,
+          sp[-1],
+          JS_PROP_THROW_STRICT,
+          ic);
         JS_FreeValue(ctx, sp[-2]);
         sp -= 2;
         if (unlikely(ret < 0))
@@ -1751,7 +1855,14 @@ restart:
         atom = get_ic_atom(ic, ic_offset);
         pc += 4;
 
-        ret = JS_SetPropertyInternalWithIC(ctx, sp[-2], atom, sp[-1], JS_PROP_THROW_STRICT, ic, ic_offset);
+        ret = JS_SetPropertyInternalWithIC(
+          ctx,
+          sp[-2],
+          atom,
+          sp[-1],
+          JS_PROP_THROW_STRICT,
+          ic,
+          ic_offset);
         ic->updated = FALSE;
         JS_FreeValue(ctx, sp[-2]);
         sp -= 2;
@@ -1813,7 +1924,12 @@ restart:
         atom = get_u32(pc);
         pc += 4;
 
-        ret = JS_DefinePropertyValue(ctx, sp[-2], atom, sp[-1], JS_PROP_C_W_E | JS_PROP_THROW);
+        ret = JS_DefinePropertyValue(
+          ctx,
+          sp[-2],
+          atom,
+          sp[-1],
+          JS_PROP_C_W_E | JS_PROP_THROW);
         sp--;
         if (unlikely(ret < 0))
           goto exception;
@@ -1833,7 +1949,11 @@ restart:
       }
       CASE(OP_set_name_computed) {
         int ret;
-        ret = JS_DefineObjectNameComputed(ctx, sp[-1], sp[-2], JS_PROP_CONFIGURABLE);
+        ret = JS_DefineObjectNameComputed(
+          ctx,
+          sp[-1],
+          sp[-2],
+          JS_PROP_CONFIGURABLE);
         if (unlikely(ret < 0))
           goto exception;
         BREAK;
@@ -1874,7 +1994,8 @@ restart:
         op_flags = *pc++;
 
         obj = sp[-2 - is_computed];
-        flags = JS_PROP_HAS_CONFIGURABLE | JS_PROP_CONFIGURABLE | JS_PROP_HAS_ENUMERABLE | JS_PROP_THROW;
+        flags = JS_PROP_HAS_CONFIGURABLE | JS_PROP_CONFIGURABLE
+          | JS_PROP_HAS_ENUMERABLE | JS_PROP_THROW;
         if (op_flags & OP_DEFINE_METHOD_ENUMERABLE)
           flags |= JS_PROP_ENUMERABLE;
         op_flags &= 3;
@@ -1914,7 +2035,16 @@ restart:
         atom = get_u32(pc);
         class_flags = pc[4];
         pc += 5;
-        if (js_op_define_class(ctx, sp, atom, class_flags, var_refs, sf, (opcode == OP_define_class_computed)) < 0)
+        if (
+          js_op_define_class(
+            ctx,
+            sp,
+            atom,
+            class_flags,
+            var_refs,
+            sf,
+            (opcode == OP_define_class_computed))
+          < 0)
           goto exception;
       }
       BREAK;
@@ -1980,7 +2110,12 @@ restart:
       CASE(OP_put_array_el) {
         int ret;
 
-        ret = JS_SetPropertyValue(ctx, sp[-3], sp[-2], sp[-1], JS_PROP_THROW_STRICT);
+        ret = JS_SetPropertyValue(
+          ctx,
+          sp[-3],
+          sp[-2],
+          sp[-1],
+          JS_PROP_THROW_STRICT);
         JS_FreeValue(ctx, sp[-3]);
         sp -= 3;
         if (unlikely(ret < 0))
@@ -2024,7 +2159,13 @@ restart:
         atom = JS_ValueToAtom(ctx, sp[-2]);
         if (unlikely(atom == JS_ATOM_NULL))
           goto exception;
-        ret = JS_SetPropertyGeneric(ctx, sp[-3], atom, sp[-1], sp[-4], JS_PROP_THROW_STRICT);
+        ret = JS_SetPropertyGeneric(
+          ctx,
+          sp[-3],
+          atom,
+          sp[-1],
+          sp[-4],
+          JS_PROP_THROW_STRICT);
         JS_FreeAtom(ctx, atom);
         JS_FreeValue(ctx, sp[-4]);
         JS_FreeValue(ctx, sp[-3]);
@@ -2037,7 +2178,12 @@ restart:
 
       CASE(OP_define_array_el) {
         int ret;
-        ret = JS_DefinePropertyValueValue(ctx, sp[-3], JS_DupValue(ctx, sp[-2]), sp[-1], JS_PROP_C_W_E | JS_PROP_THROW);
+        ret = JS_DefinePropertyValueValue(
+          ctx,
+          sp[-3],
+          JS_DupValue(ctx, sp[-2]),
+          sp[-1],
+          JS_PROP_C_W_E | JS_PROP_THROW);
         sp -= 1;
         if (unlikely(ret < 0))
           goto exception;
@@ -2061,7 +2207,12 @@ restart:
         int mask;
 
         mask = *pc++;
-        if (JS_CopyDataProperties(ctx, sp[-1 - (mask & 3)], sp[-1 - ((mask >> 2) & 7)], sp[-1 - ((mask >> 5) & 7)], 0))
+        if (JS_CopyDataProperties(
+              ctx,
+              sp[-1 - (mask & 3)],
+              sp[-1 - ((mask >> 2) & 7)],
+              sp[-1 - ((mask >> 5) & 7)],
+              0))
           goto exception;
       }
       BREAK;
@@ -2078,7 +2229,9 @@ restart:
           sp[-2] = JS_NewInt32(ctx, r);
           sp--;
         } else if (JS_VALUE_IS_BOTH_FLOAT(op1, op2)) {
-          sp[-2] = __JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(op1) + JS_VALUE_GET_FLOAT64(op2));
+          sp[-2] = __JS_NewFloat64(
+            ctx,
+            JS_VALUE_GET_FLOAT64(op1) + JS_VALUE_GET_FLOAT64(op2));
           sp--;
         } else {
         add_slow:
@@ -2139,7 +2292,9 @@ restart:
           sp[-2] = JS_NewInt32(ctx, r);
           sp--;
         } else if (JS_VALUE_IS_BOTH_FLOAT(op1, op2)) {
-          sp[-2] = __JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(op1) - JS_VALUE_GET_FLOAT64(op2));
+          sp[-2] = __JS_NewFloat64(
+            ctx,
+            JS_VALUE_GET_FLOAT64(op1) - JS_VALUE_GET_FLOAT64(op2));
           sp--;
         } else {
           goto binary_arith_slow;
@@ -2159,7 +2314,9 @@ restart:
           r = (int64_t)v1 * v2;
           if (unlikely((int)r != r)) {
 #ifdef CONFIG_BIGNUM
-            if (unlikely(sf->js_mode & JS_MODE_MATH) && (r < -MAX_SAFE_INTEGER || r > MAX_SAFE_INTEGER))
+            if (
+              unlikely(sf->js_mode & JS_MODE_MATH)
+              && (r < -MAX_SAFE_INTEGER || r > MAX_SAFE_INTEGER))
               goto binary_arith_slow;
 #endif
             d = (double)r;
@@ -2461,7 +2618,8 @@ restart:
         op1 = sp[-2];
         op2 = sp[-1];
         if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
-          sp[-2] = JS_NewInt32(ctx, JS_VALUE_GET_INT(op1) & JS_VALUE_GET_INT(op2));
+          sp[-2] =
+            JS_NewInt32(ctx, JS_VALUE_GET_INT(op1) & JS_VALUE_GET_INT(op2));
           sp--;
         } else {
           if (js_binary_logic_slow(ctx, sp, opcode))
@@ -2475,7 +2633,8 @@ restart:
         op1 = sp[-2];
         op2 = sp[-1];
         if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
-          sp[-2] = JS_NewInt32(ctx, JS_VALUE_GET_INT(op1) | JS_VALUE_GET_INT(op2));
+          sp[-2] =
+            JS_NewInt32(ctx, JS_VALUE_GET_INT(op1) | JS_VALUE_GET_INT(op2));
           sp--;
         } else {
           if (js_binary_logic_slow(ctx, sp, opcode))
@@ -2489,7 +2648,8 @@ restart:
         op1 = sp[-2];
         op2 = sp[-1];
         if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
-          sp[-2] = JS_NewInt32(ctx, JS_VALUE_GET_INT(op1) ^ JS_VALUE_GET_INT(op2));
+          sp[-2] =
+            JS_NewInt32(ctx, JS_VALUE_GET_INT(op1) ^ JS_VALUE_GET_INT(op2));
           sp--;
         } else {
           if (js_binary_logic_slow(ctx, sp, opcode))
@@ -2499,20 +2659,22 @@ restart:
       }
       BREAK;
 
-#define OP_CMP(opcode, binary_op, slow_call)                                           \
-  CASE(opcode) {                                                                       \
-    JSValue op1, op2;                                                                  \
-    op1 = sp[-2];                                                                      \
-    op2 = sp[-1];                                                                      \
-    if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {                                      \
-      sp[-2] = JS_NewBool(ctx, JS_VALUE_GET_INT(op1) binary_op JS_VALUE_GET_INT(op2)); \
-      sp--;                                                                            \
-    } else {                                                                           \
-      if (slow_call)                                                                   \
-        goto exception;                                                                \
-      sp--;                                                                            \
-    }                                                                                  \
-  }                                                                                    \
+#define OP_CMP(opcode, binary_op, slow_call) \
+  CASE(opcode) { \
+    JSValue op1, op2; \
+    op1 = sp[-2]; \
+    op2 = sp[-1]; \
+    if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) { \
+      sp[-2] = JS_NewBool( \
+        ctx, \
+        JS_VALUE_GET_INT(op1) binary_op JS_VALUE_GET_INT(op2)); \
+      sp--; \
+    } else { \
+      if (slow_call) \
+        goto exception; \
+      sp--; \
+    } \
+  } \
   BREAK;
 
       OP_CMP(OP_lt, <, js_relational_slow(ctx, sp, opcode));
@@ -2669,7 +2831,13 @@ restart:
               break;
             case OP_with_put_var:
               /* XXX: check if strict mode */
-              ret = JS_SetPropertyInternal(ctx, obj, atom, sp[-2], JS_PROP_THROW_STRICT, NULL);
+              ret = JS_SetPropertyInternal(
+                ctx,
+                obj,
+                atom,
+                sp[-2],
+                JS_PROP_THROW_STRICT,
+                NULL);
               JS_FreeValue(ctx, sp[-1]);
               sp -= 2;
               if (unlikely(ret < 0))
@@ -2735,7 +2903,9 @@ restart:
       CASE(OP_nop) BREAK;
 
       CASE(OP_is_undefined_or_null) {
-        if (JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_UNDEFINED || JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_NULL) {
+        if (
+          JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_UNDEFINED
+          || JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_NULL) {
           goto set_true;
         } else {
           goto free_and_set_false;
@@ -2783,7 +2953,11 @@ restart:
 
       CASE(OP_invalid)
       DEFAULT {
-        JS_ThrowInternalError(ctx, "invalid opcode: pc=%u opcode=0x%02x", (int)(pc - b->byte_code_buf - 1), opcode);
+        JS_ThrowInternalError(
+          ctx,
+          "invalid opcode: pc=%u opcode=0x%02x",
+          (int)(pc - b->byte_code_buf - 1),
+          opcode);
         goto exception;
       }
     }
@@ -2839,29 +3013,59 @@ exception:
   return ret_val;
 }
 
-JSValue JS_Call(JSContext* ctx, JSValueConst func_obj, JSValueConst this_obj, int argc, JSValueConst* argv) {
-  return JS_CallInternal(ctx, func_obj, this_obj, JS_UNDEFINED, argc, (JSValue*)argv, JS_CALL_FLAG_COPY_ARGV);
+JSValue JS_Call(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv) {
+  return JS_CallInternal(
+    ctx,
+    func_obj,
+    this_obj,
+    JS_UNDEFINED,
+    argc,
+    (JSValue*)argv,
+    JS_CALL_FLAG_COPY_ARGV);
 }
 
-JSValue JS_CallFree(JSContext* ctx, JSValue func_obj, JSValueConst this_obj, int argc, JSValueConst* argv) {
-  JSValue res = JS_CallInternal(ctx, func_obj, this_obj, JS_UNDEFINED, argc, (JSValue*)argv, JS_CALL_FLAG_COPY_ARGV);
+JSValue JS_CallFree(
+  JSContext* ctx,
+  JSValue func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv) {
+  JSValue res = JS_CallInternal(
+    ctx,
+    func_obj,
+    this_obj,
+    JS_UNDEFINED,
+    argc,
+    (JSValue*)argv,
+    JS_CALL_FLAG_COPY_ARGV);
   JS_FreeValue(ctx, func_obj);
   return res;
 }
 
-JSValue JS_InvokeFree(JSContext* ctx, JSValue this_val, JSAtom atom, int argc, JSValueConst* argv) {
+JSValue JS_InvokeFree(
+  JSContext* ctx,
+  JSValue this_val,
+  JSAtom atom,
+  int argc,
+  JSValueConst* argv) {
   JSValue res = JS_Invoke(ctx, this_val, atom, argc, argv);
   JS_FreeValue(ctx, this_val);
   return res;
 }
 
 /* argv[] is modified if (flags & JS_CALL_FLAG_COPY_ARGV) = 0. */
-JSValue JS_CallConstructorInternal(JSContext* ctx,
-                                   JSValueConst func_obj,
-                                   JSValueConst new_target,
-                                   int argc,
-                                   JSValue* argv,
-                                   int flags) {
+JSValue JS_CallConstructorInternal(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst new_target,
+  int argc,
+  JSValue* argv,
+  int flags) {
   JSObject* p;
   JSFunctionBytecode* b;
 
@@ -2880,12 +3084,25 @@ JSValue JS_CallConstructorInternal(JSContext* ctx,
     not_a_function:
       return JS_ThrowTypeError(ctx, "not a function");
     }
-    return call_func(ctx, func_obj, new_target, argc, (JSValueConst*)argv, flags);
+    return call_func(
+      ctx,
+      func_obj,
+      new_target,
+      argc,
+      (JSValueConst*)argv,
+      flags);
   }
 
   b = p->u.func.function_bytecode;
   if (b->is_derived_class_constructor) {
-    return JS_CallInternal(ctx, func_obj, JS_UNDEFINED, new_target, argc, argv, flags);
+    return JS_CallInternal(
+      ctx,
+      func_obj,
+      JS_UNDEFINED,
+      new_target,
+      argc,
+      argv,
+      flags);
   } else {
     JSValue obj, ret;
     /* legacy constructor behavior */
@@ -2903,7 +3120,11 @@ JSValue JS_CallConstructorInternal(JSContext* ctx,
   }
 }
 
-BOOL JS_IsCFunction(JSContext* ctx, JSValueConst val, JSCFunction* func, int magic) {
+BOOL JS_IsCFunction(
+  JSContext* ctx,
+  JSValueConst val,
+  JSCFunction* func,
+  int magic) {
   JSObject* p;
   if (JS_VALUE_GET_TAG(val) != JS_TAG_OBJECT)
     return FALSE;
@@ -2922,19 +3143,41 @@ BOOL JS_IsConstructor(JSContext* ctx, JSValueConst val) {
   return p->is_constructor;
 }
 
-JSValue JS_CallConstructor2(JSContext* ctx,
-                            JSValueConst func_obj,
-                            JSValueConst new_target,
-                            int argc,
-                            JSValueConst* argv) {
-  return JS_CallConstructorInternal(ctx, func_obj, new_target, argc, (JSValue*)argv, JS_CALL_FLAG_COPY_ARGV);
+JSValue JS_CallConstructor2(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
+  return JS_CallConstructorInternal(
+    ctx,
+    func_obj,
+    new_target,
+    argc,
+    (JSValue*)argv,
+    JS_CALL_FLAG_COPY_ARGV);
 }
 
-JSValue JS_CallConstructor(JSContext* ctx, JSValueConst func_obj, int argc, JSValueConst* argv) {
-  return JS_CallConstructorInternal(ctx, func_obj, func_obj, argc, (JSValue*)argv, JS_CALL_FLAG_COPY_ARGV);
+JSValue JS_CallConstructor(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  int argc,
+  JSValueConst* argv) {
+  return JS_CallConstructorInternal(
+    ctx,
+    func_obj,
+    func_obj,
+    argc,
+    (JSValue*)argv,
+    JS_CALL_FLAG_COPY_ARGV);
 }
 
-JSValue JS_Invoke(JSContext* ctx, JSValueConst this_val, JSAtom atom, int argc, JSValueConst* argv) {
+JSValue JS_Invoke(
+  JSContext* ctx,
+  JSValueConst this_val,
+  JSAtom atom,
+  int argc,
+  JSValueConst* argv) {
   JSValue func_obj;
   func_obj = JS_GetProperty(ctx, this_val, atom);
   if (JS_IsException(func_obj))
@@ -2943,13 +3186,14 @@ JSValue JS_Invoke(JSContext* ctx, JSValueConst this_val, JSAtom atom, int argc, 
 }
 
 /* Note: at least 'length' arguments will be readable in 'argv' */
-JSValue JS_NewCFunction3(JSContext* ctx,
-                         JSCFunction* func,
-                         const char* name,
-                         int length,
-                         JSCFunctionEnum cproto,
-                         int magic,
-                         JSValueConst proto_val) {
+JSValue JS_NewCFunction3(
+  JSContext* ctx,
+  JSCFunction* func,
+  const char* name,
+  int length,
+  JSCFunctionEnum cproto,
+  int magic,
+  JSValueConst proto_val) {
   JSValue func_obj;
   JSObject* p;
   JSAtom name_atom;
@@ -2963,8 +3207,10 @@ JSValue JS_NewCFunction3(JSContext* ctx,
   p->u.cfunc.length = length;
   p->u.cfunc.cproto = cproto;
   p->u.cfunc.magic = magic;
-  p->is_constructor = (cproto == JS_CFUNC_constructor || cproto == JS_CFUNC_constructor_magic ||
-                       cproto == JS_CFUNC_constructor_or_func || cproto == JS_CFUNC_constructor_or_func_magic);
+  p->is_constructor =
+    (cproto == JS_CFUNC_constructor || cproto == JS_CFUNC_constructor_magic
+     || cproto == JS_CFUNC_constructor_or_func
+     || cproto == JS_CFUNC_constructor_or_func_magic);
   if (!name)
     name = "";
   name_atom = JS_NewAtom(ctx, name);
@@ -2974,13 +3220,21 @@ JSValue JS_NewCFunction3(JSContext* ctx,
 }
 
 /* Note: at least 'length' arguments will be readable in 'argv' */
-JSValue JS_NewCFunction2(JSContext* ctx,
-                         JSCFunction* func,
-                         const char* name,
-                         int length,
-                         JSCFunctionEnum cproto,
-                         int magic) {
-  return JS_NewCFunction3(ctx, func, name, length, cproto, magic, ctx->function_proto);
+JSValue JS_NewCFunction2(
+  JSContext* ctx,
+  JSCFunction* func,
+  const char* name,
+  int length,
+  JSCFunctionEnum cproto,
+  int magic) {
+  return JS_NewCFunction3(
+    ctx,
+    func,
+    name,
+    length,
+    cproto,
+    magic,
+    ctx->function_proto);
 }
 
 /* warning: the refcount of the context is not incremented. Return
@@ -3038,7 +3292,10 @@ void js_c_function_data_finalizer(JSRuntime* rt, JSValue val) {
   }
 }
 
-void js_c_function_data_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func) {
+void js_c_function_data_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func) {
   JSCFunctionDataRecord* s = JS_GetOpaque(val, JS_CLASS_C_FUNCTION_DATA);
   int i;
 
@@ -3049,12 +3306,13 @@ void js_c_function_data_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_
   }
 }
 
-JSValue js_c_function_data_call(JSContext* ctx,
-                                JSValueConst func_obj,
-                                JSValueConst this_val,
-                                int argc,
-                                JSValueConst* argv,
-                                int flags) {
+JSValue js_c_function_data_call(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int flags) {
   JSCFunctionDataRecord* s = JS_GetOpaque(func_obj, JS_CLASS_C_FUNCTION_DATA);
   JSValueConst* arg_buf;
   int i;
@@ -3073,13 +3331,14 @@ JSValue js_c_function_data_call(JSContext* ctx,
   return s->func(ctx, this_val, argc, arg_buf, s->magic, s->data);
 }
 
-int js_op_define_class(JSContext* ctx,
-                       JSValue* sp,
-                       JSAtom class_name,
-                       int class_flags,
-                       JSVarRef** cur_var_refs,
-                       JSStackFrame* sf,
-                       BOOL is_computed_name) {
+int js_op_define_class(
+  JSContext* ctx,
+  JSValue* sp,
+  JSAtom class_name,
+  int class_flags,
+  JSVarRef** cur_var_refs,
+  JSStackFrame* sf,
+  BOOL is_computed_name) {
   JSValue bfunc, parent_class, proto = JS_UNDEFINED;
   JSValue ctor = JS_UNDEFINED, parent_proto = JS_UNDEFINED;
   JSFunctionBytecode* b;
@@ -3125,10 +3384,16 @@ int js_op_define_class(JSContext* ctx,
   js_method_set_home_object(ctx, ctor, proto);
   JS_SetConstructorBit(ctx, ctor, TRUE);
 
-  JS_DefinePropertyValue(ctx, ctor, JS_ATOM_length, JS_NewInt32(ctx, b->defined_arg_count), JS_PROP_CONFIGURABLE);
+  JS_DefinePropertyValue(
+    ctx,
+    ctor,
+    JS_ATOM_length,
+    JS_NewInt32(ctx, b->defined_arg_count),
+    JS_PROP_CONFIGURABLE);
 
   if (is_computed_name) {
-    if (JS_DefineObjectNameComputed(ctx, ctor, sp[-3], JS_PROP_CONFIGURABLE) < 0)
+    if (
+      JS_DefineObjectNameComputed(ctx, ctor, sp[-3], JS_PROP_CONFIGURABLE) < 0)
       goto fail;
   } else {
     if (JS_DefineObjectName(ctx, ctor, class_name, JS_PROP_CONFIGURABLE) < 0)
@@ -3137,11 +3402,24 @@ int js_op_define_class(JSContext* ctx,
 
   /* the constructor property must be first. It can be overriden by
      computed property names */
-  if (JS_DefinePropertyValue(ctx, proto, JS_ATOM_constructor, JS_DupValue(ctx, ctor),
-                             JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE | JS_PROP_THROW) < 0)
+  if (
+    JS_DefinePropertyValue(
+      ctx,
+      proto,
+      JS_ATOM_constructor,
+      JS_DupValue(ctx, ctor),
+      JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE | JS_PROP_THROW)
+    < 0)
     goto fail;
   /* set the prototype property */
-  if (JS_DefinePropertyValue(ctx, ctor, JS_ATOM_prototype, JS_DupValue(ctx, proto), JS_PROP_THROW) < 0)
+  if (
+    JS_DefinePropertyValue(
+      ctx,
+      ctor,
+      JS_ATOM_prototype,
+      JS_DupValue(ctx, proto),
+      JS_PROP_THROW)
+    < 0)
     goto fail;
   set_cycle_flag(ctx, ctor);
   set_cycle_flag(ctx, proto);

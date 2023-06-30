@@ -32,7 +32,7 @@
 #include "quickjs/quickjs.h"
 
 #if CONFIG_BIGNUM
-#include "quickjs/libbf.h"
+  #include "quickjs/libbf.h"
 #endif
 
 #ifdef __cplusplus
@@ -41,75 +41,77 @@ extern "C" {
 
 enum {
   /* classid tag        */ /* union usage   | properties */
-  JS_CLASS_OBJECT = 1,     /* must be first */
-  JS_CLASS_ARRAY,          /* u.array       | length */
+  JS_CLASS_OBJECT = 1, /* must be first */
+  JS_CLASS_ARRAY, /* u.array       | length */
   JS_CLASS_ERROR,
-  JS_CLASS_NUMBER,           /* u.object_data */
-  JS_CLASS_STRING,           /* u.object_data */
-  JS_CLASS_BOOLEAN,          /* u.object_data */
-  JS_CLASS_SYMBOL,           /* u.object_data */
-  JS_CLASS_ARGUMENTS,        /* u.array       | length */
+  JS_CLASS_NUMBER, /* u.object_data */
+  JS_CLASS_STRING, /* u.object_data */
+  JS_CLASS_BOOLEAN, /* u.object_data */
+  JS_CLASS_SYMBOL, /* u.object_data */
+  JS_CLASS_ARGUMENTS, /* u.array       | length */
   JS_CLASS_MAPPED_ARGUMENTS, /*               | length */
-  JS_CLASS_DATE,             /* u.object_data */
+  JS_CLASS_DATE, /* u.object_data */
   JS_CLASS_MODULE_NS,
-  JS_CLASS_C_FUNCTION,          /* u.cfunc */
-  JS_CLASS_BYTECODE_FUNCTION,   /* u.func */
-  JS_CLASS_BOUND_FUNCTION,      /* u.bound_function */
-  JS_CLASS_C_FUNCTION_DATA,     /* u.c_function_data_record */
-  JS_CLASS_GENERATOR_FUNCTION,  /* u.func */
-  JS_CLASS_FOR_IN_ITERATOR,     /* u.for_in_iterator */
-  JS_CLASS_REGEXP,              /* u.regexp */
-  JS_CLASS_ARRAY_BUFFER,        /* u.array_buffer */
+  JS_CLASS_C_FUNCTION, /* u.cfunc */
+  JS_CLASS_BYTECODE_FUNCTION, /* u.func */
+  JS_CLASS_BOUND_FUNCTION, /* u.bound_function */
+  JS_CLASS_C_FUNCTION_DATA, /* u.c_function_data_record */
+  JS_CLASS_GENERATOR_FUNCTION, /* u.func */
+  JS_CLASS_FOR_IN_ITERATOR, /* u.for_in_iterator */
+  JS_CLASS_REGEXP, /* u.regexp */
+  JS_CLASS_ARRAY_BUFFER, /* u.array_buffer */
   JS_CLASS_SHARED_ARRAY_BUFFER, /* u.array_buffer */
-  JS_CLASS_UINT8C_ARRAY,        /* u.array (typed_array) */
-  JS_CLASS_INT8_ARRAY,          /* u.array (typed_array) */
-  JS_CLASS_UINT8_ARRAY,         /* u.array (typed_array) */
-  JS_CLASS_INT16_ARRAY,         /* u.array (typed_array) */
-  JS_CLASS_UINT16_ARRAY,        /* u.array (typed_array) */
-  JS_CLASS_INT32_ARRAY,         /* u.array (typed_array) */
-  JS_CLASS_UINT32_ARRAY,        /* u.array (typed_array) */
+  JS_CLASS_UINT8C_ARRAY, /* u.array (typed_array) */
+  JS_CLASS_INT8_ARRAY, /* u.array (typed_array) */
+  JS_CLASS_UINT8_ARRAY, /* u.array (typed_array) */
+  JS_CLASS_INT16_ARRAY, /* u.array (typed_array) */
+  JS_CLASS_UINT16_ARRAY, /* u.array (typed_array) */
+  JS_CLASS_INT32_ARRAY, /* u.array (typed_array) */
+  JS_CLASS_UINT32_ARRAY, /* u.array (typed_array) */
 #ifdef CONFIG_BIGNUM
-  JS_CLASS_BIG_INT64_ARRAY,  /* u.array (typed_array) */
+  JS_CLASS_BIG_INT64_ARRAY, /* u.array (typed_array) */
   JS_CLASS_BIG_UINT64_ARRAY, /* u.array (typed_array) */
 #endif
   JS_CLASS_FLOAT32_ARRAY, /* u.array (typed_array) */
   JS_CLASS_FLOAT64_ARRAY, /* u.array (typed_array) */
-  JS_CLASS_DATAVIEW,      /* u.typed_array */
+  JS_CLASS_DATAVIEW, /* u.typed_array */
 #ifdef CONFIG_BIGNUM
-  JS_CLASS_BIG_INT,      /* u.object_data */
-  JS_CLASS_BIG_FLOAT,    /* u.object_data */
-  JS_CLASS_FLOAT_ENV,    /* u.float_env */
-  JS_CLASS_BIG_DECIMAL,  /* u.object_data */
+  JS_CLASS_BIG_INT, /* u.object_data */
+  JS_CLASS_BIG_FLOAT, /* u.object_data */
+  JS_CLASS_FLOAT_ENV, /* u.float_env */
+  JS_CLASS_BIG_DECIMAL, /* u.object_data */
   JS_CLASS_OPERATOR_SET, /* u.operator_set */
 #endif
-  JS_CLASS_MAP,                      /* u.map_state */
-  JS_CLASS_SET,                      /* u.map_state */
-  JS_CLASS_WEAKMAP,                  /* u.map_state */
-  JS_CLASS_WEAKSET,                  /* u.map_state */
-  JS_CLASS_MAP_ITERATOR,             /* u.map_iterator_data */
-  JS_CLASS_SET_ITERATOR,             /* u.map_iterator_data */
-  JS_CLASS_ARRAY_ITERATOR,           /* u.array_iterator_data */
-  JS_CLASS_STRING_ITERATOR,          /* u.array_iterator_data */
-  JS_CLASS_REGEXP_STRING_ITERATOR,   /* u.regexp_string_iterator_data */
-  JS_CLASS_GENERATOR,                /* u.generator_data */
-  JS_CLASS_PROXY,                    /* u.proxy_data */
-  JS_CLASS_PROMISE,                  /* u.promise_data */
+  JS_CLASS_MAP, /* u.map_state */
+  JS_CLASS_SET, /* u.map_state */
+  JS_CLASS_WEAKMAP, /* u.map_state */
+  JS_CLASS_WEAKSET, /* u.map_state */
+  JS_CLASS_MAP_ITERATOR, /* u.map_iterator_data */
+  JS_CLASS_SET_ITERATOR, /* u.map_iterator_data */
+  JS_CLASS_ARRAY_ITERATOR, /* u.array_iterator_data */
+  JS_CLASS_STRING_ITERATOR, /* u.array_iterator_data */
+  JS_CLASS_REGEXP_STRING_ITERATOR, /* u.regexp_string_iterator_data */
+  JS_CLASS_GENERATOR, /* u.generator_data */
+  JS_CLASS_PROXY, /* u.proxy_data */
+  JS_CLASS_PROMISE, /* u.promise_data */
   JS_CLASS_PROMISE_RESOLVE_FUNCTION, /* u.promise_function_data */
-  JS_CLASS_PROMISE_REJECT_FUNCTION,  /* u.promise_function_data */
-  JS_CLASS_ASYNC_FUNCTION,           /* u.func */
-  JS_CLASS_ASYNC_FUNCTION_RESOLVE,   /* u.async_function_data */
-  JS_CLASS_ASYNC_FUNCTION_REJECT,    /* u.async_function_data */
+  JS_CLASS_PROMISE_REJECT_FUNCTION, /* u.promise_function_data */
+  JS_CLASS_ASYNC_FUNCTION, /* u.func */
+  JS_CLASS_ASYNC_FUNCTION_RESOLVE, /* u.async_function_data */
+  JS_CLASS_ASYNC_FUNCTION_REJECT, /* u.async_function_data */
   JS_CLASS_ASYNC_FROM_SYNC_ITERATOR, /* u.async_from_sync_iterator_data */
   JS_CLASS_ASYNC_GENERATOR_FUNCTION, /* u.func */
-  JS_CLASS_ASYNC_GENERATOR,          /* u.async_generator_data */
+  JS_CLASS_ASYNC_GENERATOR, /* u.async_generator_data */
 
   JS_CLASS_INIT_COUNT, /* last entry for predefined classes */
 };
 
 /* number of typed array types */
-#define JS_TYPED_ARRAY_COUNT (JS_CLASS_FLOAT64_ARRAY - JS_CLASS_UINT8C_ARRAY + 1)
+#define JS_TYPED_ARRAY_COUNT \
+  (JS_CLASS_FLOAT64_ARRAY - JS_CLASS_UINT8C_ARRAY + 1)
 static uint8_t const typed_array_size_log2[JS_TYPED_ARRAY_COUNT];
-#define typed_array_size_log2(classid) (typed_array_size_log2[(classid)-JS_CLASS_UINT8C_ARRAY])
+#define typed_array_size_log2(classid) \
+  (typed_array_size_log2[(classid)-JS_CLASS_UINT8C_ARRAY])
 
 typedef enum JSErrorEnum {
   JS_EVAL_ERROR,
@@ -147,12 +149,23 @@ typedef enum OPCodeEnum OPCodeEnum;
    possible to remove some numeric types */
 typedef struct {
   JSValue (*to_string)(JSContext* ctx, JSValueConst val);
-  JSValue (*from_string)(JSContext* ctx, const char* buf, int radix, int flags, slimb_t* pexponent);
+  JSValue (*from_string)(
+    JSContext* ctx,
+    const char* buf,
+    int radix,
+    int flags,
+    slimb_t* pexponent);
   int (*unary_arith)(JSContext* ctx, JSValue* pres, OPCodeEnum op, JSValue op1);
-  int (*binary_arith)(JSContext* ctx, OPCodeEnum op, JSValue* pres, JSValue op1, JSValue op2);
+  int (*binary_arith)(
+    JSContext* ctx,
+    OPCodeEnum op,
+    JSValue* pres,
+    JSValue op1,
+    JSValue op2);
   int (*compare)(JSContext* ctx, OPCodeEnum op, JSValue op1, JSValue op2);
   /* only for bigfloat: */
-  JSValue (*mul_pow10_to_float64)(JSContext* ctx, const bf_t* a, int64_t exponent);
+  JSValue (
+    *mul_pow10_to_float64)(JSContext* ctx, const bf_t* a, int64_t exponent);
   int (*mul_pow10)(JSContext* ctx, JSValue* sp);
 } JSNumericOperations;
 #endif
@@ -250,11 +263,12 @@ struct JSClass {
 
 typedef struct JSStackFrame {
   struct JSStackFrame* prev_frame; /* NULL if first stack frame */
-  JSValue cur_func;                /* current function, JS_UNDEFINED if the frame is detached */
-  JSValue* arg_buf;                /* arguments */
-  JSValue* var_buf;                /* variables */
-  struct list_head var_ref_list;   /* list of JSVarRef.link */
-  uint8_t* cur_pc;                 /* only used in bytecode functions : PC of the
+  JSValue
+    cur_func; /* current function, JS_UNDEFINED if the frame is detached */
+  JSValue* arg_buf; /* arguments */
+  JSValue* var_buf; /* variables */
+  struct list_head var_ref_list; /* list of JSVarRef.link */
+  uint8_t* cur_pc; /* only used in bytecode functions : PC of the
                                       instruction after the call */
   int arg_count;
   int js_mode; /* 0 or JS_MODE_MATH for C functions */
@@ -279,8 +293,8 @@ struct JSGCObjectHeader {
   int ref_count; /* must come first, 32-bit */
   JSGCObjectTypeEnum gc_obj_type : 4;
   uint8_t mark : 4; /* used by the GC */
-  uint8_t dummy1;   /* not used by the GC */
-  uint16_t dummy2;  /* not used by the GC */
+  uint8_t dummy1; /* not used by the GC */
+  uint16_t dummy2; /* not used by the GC */
   struct list_head link;
 };
 
@@ -289,7 +303,7 @@ typedef struct JSVarRef {
     JSGCObjectHeader header; /* must come first */
     struct {
       int __gc_ref_count; /* corresponds to header.ref_count */
-      uint8_t __gc_mark;  /* corresponds to header.mark/gc_obj_type */
+      uint8_t __gc_mark; /* corresponds to header.mark/gc_obj_type */
 
       /* 0 : the JSVarRef is on the stack. header.link is an element
          of JSStackFrame.var_ref_list.
@@ -303,7 +317,7 @@ typedef struct JSVarRef {
   };
   JSValue* pvalue; /* pointer to the value, either on the stack or
                       to 'value' */
-  JSValue value;   /* used when the variable is no longer on the stack */
+  JSValue value; /* used when the variable is no longer on the stack */
 } JSVarRef;
 
 #ifdef CONFIG_BIGNUM
@@ -365,14 +379,14 @@ struct JSContext {
   JSValue throw_type_error;
   JSValue eval_obj;
 
-  JSValue global_obj;     /* global object */
+  JSValue global_obj; /* global object */
   JSValue global_var_obj; /* contains the global let/const definitions */
 
   uint64_t random_state;
 #ifdef CONFIG_BIGNUM
   bf_context_t* bf_ctx; /* points to rt->bf_ctx, shared by all contexts */
-  JSFloatEnv fp_env;    /* global FP environment */
-  BOOL bignum_ext : 8;  /* enable math mode */
+  JSFloatEnv fp_env; /* global FP environment */
+  BOOL bignum_ext : 8; /* enable math mode */
   BOOL allow_operator_overloading : 8;
 #endif
   /* when the counter reaches zero, JSRutime.interrupt_handler is called */
@@ -382,15 +396,17 @@ struct JSContext {
   struct list_head loaded_modules; /* list of JSModuleDef.link */
 
   /* if NULL, RegExp compilation is not supported */
-  JSValue (*compile_regexp)(JSContext* ctx, JSValueConst pattern, JSValueConst flags);
+  JSValue (
+    *compile_regexp)(JSContext* ctx, JSValueConst pattern, JSValueConst flags);
   /* if NULL, eval is not supported */
-  JSValue (*eval_internal)(JSContext* ctx,
-                           JSValueConst this_obj,
-                           const char* input,
-                           size_t input_len,
-                           const char* filename,
-                           int flags,
-                           int scope_idx);
+  JSValue (*eval_internal)(
+    JSContext* ctx,
+    JSValueConst this_obj,
+    const char* input,
+    size_t input_len,
+    const char* filename,
+    int flags,
+    int scope_idx);
   void* user_opaque;
 };
 
@@ -429,7 +445,7 @@ struct JSString {
      XXX: could change encoding to have one more bit in hash */
   uint32_t hash : 30;
   uint8_t atom_type : 2; /* != 0 if atom, JS_ATOM_TYPE_x */
-  uint32_t hash_next;    /* atom_index for JS_ATOM_TYPE_SYMBOL */
+  uint32_t hash_next; /* atom_index for JS_ATOM_TYPE_SYMBOL */
 #ifdef DUMP_LEAKS
   struct list_head link; /* string list */
 #endif
@@ -457,13 +473,13 @@ typedef struct JSClosureVar {
 
 typedef struct JSVarScope {
   int parent; /* index into fd->scopes of the enclosing scope */
-  int first;  /* index into fd->vars of the last variable in this scope */
+  int first; /* index into fd->vars of the last variable in this scope */
 } JSVarScope;
 
 typedef enum {
   /* XXX: add more variable kinds here instead of using bit fields */
   JS_VAR_NORMAL,
-  JS_VAR_FUNCTION_DECL,     /* lexical var with function declaration */
+  JS_VAR_FUNCTION_DECL, /* lexical var with function declaration */
   JS_VAR_NEW_FUNCTION_DECL, /* lexical var with async/generator
                                function declaration */
   JS_VAR_CATCH,
@@ -471,7 +487,7 @@ typedef enum {
   JS_VAR_PRIVATE_FIELD,
   JS_VAR_PRIVATE_METHOD,
   JS_VAR_PRIVATE_GETTER,
-  JS_VAR_PRIVATE_SETTER,        /* must come after JS_VAR_PRIVATE_GETTER */
+  JS_VAR_PRIVATE_SETTER, /* must come after JS_VAR_PRIVATE_GETTER */
   JS_VAR_PRIVATE_GETTER_SETTER, /* must come after JS_VAR_PRIVATE_SETTER */
 } JSVarKindEnum;
 
@@ -575,19 +591,21 @@ typedef struct JSFunctionBytecode {
   uint8_t* byte_code_buf; /* (self pointer) */
   int byte_code_len;
   JSAtom func_name;
-  JSVarDef* vardefs;         /* arguments + local variables (arg_count + var_count)
+  JSVarDef* vardefs; /* arguments + local variables (arg_count + var_count)
                                 (self pointer) */
-  JSClosureVar* closure_var; /* list of variables in the closure (self pointer) */
+  JSClosureVar*
+    closure_var; /* list of variables in the closure (self pointer) */
   uint16_t arg_count;
   uint16_t var_count;
   uint16_t defined_arg_count; /* for length function property */
-  uint16_t stack_size;        /* maximum stack size */
-  JSContext* realm;           /* function realm */
-  JSValue* cpool;             /* constant pool (self pointer) */
+  uint16_t stack_size; /* maximum stack size */
+  JSContext* realm; /* function realm */
+  JSValue* cpool; /* constant pool (self pointer) */
   int cpool_count;
   int closure_var_count;
   InlineCache* ic;
-  AnodeCompiledFunction compiled_function; /* Pre-compiled function info, can be null */
+  AnodeCompiledFunction
+    compiled_function; /* Pre-compiled function info, can be null */
   struct {
     /* debug info, move to separate structure to save memory? */
     JSAtom filename;
@@ -638,7 +656,7 @@ typedef struct JSArrayBuffer {
   int byte_length; /* 0 if detached */
   uint8_t detached;
   uint8_t shared; /* if shared, the array buffer cannot be detached */
-  uint8_t* data;  /* NULL if detached */
+  uint8_t* data; /* NULL if detached */
   struct list_head array_list;
   void* opaque;
   JSFreeArrayBufferDataFunc* free_func;
@@ -646,16 +664,16 @@ typedef struct JSArrayBuffer {
 
 typedef struct JSTypedArray {
   struct list_head link; /* link to arraybuffer */
-  JSObject* obj;         /* back pointer to the TypedArray/DataView object */
-  JSObject* buffer;      /* based array buffer */
-  uint32_t offset;       /* offset in the array buffer */
-  uint32_t length;       /* length in the array buffer */
+  JSObject* obj; /* back pointer to the TypedArray/DataView object */
+  JSObject* buffer; /* based array buffer */
+  uint32_t offset; /* offset in the array buffer */
+  uint32_t length; /* length in the array buffer */
 } JSTypedArray;
 
 typedef struct JSAsyncFunctionState {
   JSValue this_val; /* 'this' generator argument */
-  int argc;         /* number of function arguments */
-  BOOL throw_flag;  /* used to throw an exception in JS_CallInternal() */
+  int argc; /* number of function arguments */
+  BOOL throw_flag; /* used to throw an exception in JS_CallInternal() */
   JSStackFrame frame;
 } JSAsyncFunctionState;
 
@@ -728,13 +746,13 @@ typedef enum JSExportTypeEnum {
 typedef struct JSExportEntry {
   union {
     struct {
-      int var_idx;       /* closure variable index */
+      int var_idx; /* closure variable index */
       JSVarRef* var_ref; /* if != NULL, reference to the variable */
-    } local;             /* for local export */
-    int req_module_idx;  /* module for indirect export */
+    } local; /* for local export */
+    int req_module_idx; /* module for indirect export */
   } u;
   JSExportTypeEnum export_type;
-  JSAtom local_name;  /* '*' if export ns from. not used for local
+  JSAtom local_name; /* '*' if export ns from. not used for local
                          export after compilation */
   JSAtom export_name; /* exported variable name */
 } JSExportEntry;
@@ -771,7 +789,7 @@ struct JSModuleDef {
   int import_entries_size;
 
   JSValue module_ns;
-  JSValue func_obj;            /* only used for JS modules */
+  JSValue func_obj; /* only used for JS modules */
   JSModuleInitFunc* init_func; /* only used for C modules */
   BOOL resolved : 8;
   BOOL func_created : 8;
@@ -795,13 +813,13 @@ typedef struct JSJobEntry {
 
 typedef struct JSProperty {
   union {
-    JSValue value;      /* JS_PROP_NORMAL */
-    struct {            /* JS_PROP_GETSET */
+    JSValue value; /* JS_PROP_NORMAL */
+    struct { /* JS_PROP_GETSET */
       JSObject* getter; /* NULL if undefined */
       JSObject* setter; /* NULL if undefined */
     } getset;
     JSVarRef* var_ref; /* JS_PROP_VARREF */
-    struct {           /* JS_PROP_AUTOINIT */
+    struct { /* JS_PROP_AUTOINIT */
       /* in order to use only 2 pointers, we compress the realm
          and the init function pointer */
       uintptr_t realm_and_id; /* realm and init_id (JS_AUTOINIT_ID_x)
@@ -817,8 +835,8 @@ typedef struct JSProperty {
 
 typedef struct JSShapeProperty {
   uint32_t hash_next : 26; /* 0 if last in list */
-  uint32_t flags : 6;      /* JS_PROP_XXX */
-  JSAtom atom;             /* JS_ATOM_NULL = free property entry */
+  uint32_t flags : 6; /* JS_PROP_XXX */
+  JSAtom atom; /* JS_ATOM_NULL = free property entry */
 } JSShapeProperty;
 
 struct JSShape {
@@ -834,7 +852,7 @@ struct JSShape {
   uint8_t has_small_array_index;
   uint32_t hash; /* current hash value */
   uint32_t prop_hash_mask;
-  int prop_size;  /* allocated properties */
+  int prop_size; /* allocated properties */
   int prop_count; /* include deleted properties */
   int deleted_prop_count;
   JSShape* shape_hash_next; /* in JSRuntime.shape_hash[h] list */
@@ -847,53 +865,63 @@ struct JSObject {
     JSGCObjectHeader header;
     struct {
       int __gc_ref_count; /* corresponds to header.ref_count */
-      uint8_t __gc_mark;  /* corresponds to header.mark/gc_obj_type */
+      uint8_t __gc_mark; /* corresponds to header.mark/gc_obj_type */
 
       uint8_t extensible : 1;
-      uint8_t free_mark : 1;            /* only used when freeing objects with cycles */
-      uint8_t is_exotic : 1;            /* TRUE if object has exotic property handlers */
-      uint8_t fast_array : 1;           /* TRUE if u.array is used for get/put (for
+      uint8_t free_mark : 1; /* only used when freeing objects with cycles */
+      uint8_t is_exotic : 1; /* TRUE if object has exotic property handlers */
+      uint8_t fast_array : 1; /* TRUE if u.array is used for get/put (for
                                            JS_CLASS_ARRAY, JS_CLASS_ARGUMENTS and typed
                                            arrays) */
-      uint8_t is_constructor : 1;       /* TRUE if object is a constructor function */
+      uint8_t is_constructor : 1; /* TRUE if object is a constructor function */
       uint8_t is_uncatchable_error : 1; /* if TRUE, error is not catchable */
-      uint8_t tmp_mark : 1;             /* used in JS_WriteObjectRec() */
-      uint8_t is_HTMLDDA : 1;           /* specific annex B IsHtmlDDA behavior */
-      uint16_t class_id;                /* see JS_CLASS_x */
+      uint8_t tmp_mark : 1; /* used in JS_WriteObjectRec() */
+      uint8_t is_HTMLDDA : 1; /* specific annex B IsHtmlDDA behavior */
+      uint16_t class_id; /* see JS_CLASS_x */
     };
   };
   /* byte offsets: 16/24 */
-  JSShape* shape;   /* prototype and property names + flag */
+  JSShape* shape; /* prototype and property names + flag */
   JSProperty* prop; /* array of properties */
   /* byte offsets: 24/40 */
-  struct JSMapRecord* first_weak_ref; /* XXX: use a bit and an external hash table? */
+  struct JSMapRecord*
+    first_weak_ref; /* XXX: use a bit and an external hash table? */
   /* byte offsets: 28/48 */
   union {
     void* opaque;
-    struct JSBoundFunction* bound_function;               /* JS_CLASS_BOUND_FUNCTION */
-    struct JSCFunctionDataRecord* c_function_data_record; /* JS_CLASS_C_FUNCTION_DATA */
-    struct JSForInIterator* for_in_iterator;              /* JS_CLASS_FOR_IN_ITERATOR */
-    struct JSArrayBuffer* array_buffer;                   /* JS_CLASS_ARRAY_BUFFER, JS_CLASS_SHARED_ARRAY_BUFFER */
-    struct JSTypedArray* typed_array;                     /* JS_CLASS_UINT8C_ARRAY..JS_CLASS_DATAVIEW */
+    struct JSBoundFunction* bound_function; /* JS_CLASS_BOUND_FUNCTION */
+    struct JSCFunctionDataRecord*
+      c_function_data_record; /* JS_CLASS_C_FUNCTION_DATA */
+    struct JSForInIterator* for_in_iterator; /* JS_CLASS_FOR_IN_ITERATOR */
+    struct JSArrayBuffer*
+      array_buffer; /* JS_CLASS_ARRAY_BUFFER, JS_CLASS_SHARED_ARRAY_BUFFER */
+    struct JSTypedArray*
+      typed_array; /* JS_CLASS_UINT8C_ARRAY..JS_CLASS_DATAVIEW */
 #ifdef CONFIG_BIGNUM
-    struct JSFloatEnv* float_env;    /* JS_CLASS_FLOAT_ENV */
+    struct JSFloatEnv* float_env; /* JS_CLASS_FLOAT_ENV */
     JSOperatorSetData* operator_set; /* JS_CLASS_OPERATOR_SET */
 #endif
-    struct JSMapState* map_state;                                   /* JS_CLASS_MAP..JS_CLASS_WEAKSET */
-    struct JSMapIteratorData* map_iterator_data;                    /* JS_CLASS_MAP_ITERATOR, JS_CLASS_SET_ITERATOR */
-    struct JSArrayIteratorData* array_iterator_data;                /* JS_CLASS_ARRAY_ITERATOR,
+    struct JSMapState* map_state; /* JS_CLASS_MAP..JS_CLASS_WEAKSET */
+    struct JSMapIteratorData*
+      map_iterator_data; /* JS_CLASS_MAP_ITERATOR, JS_CLASS_SET_ITERATOR */
+    struct JSArrayIteratorData* array_iterator_data; /* JS_CLASS_ARRAY_ITERATOR,
                                                                        JS_CLASS_STRING_ITERATOR */
-    struct JSRegExpStringIteratorData* regexp_string_iterator_data; /* JS_CLASS_REGEXP_STRING_ITERATOR */
-    struct JSGeneratorData* generator_data;                         /* JS_CLASS_GENERATOR */
-    struct JSProxyData* proxy_data;                                 /* JS_CLASS_PROXY */
-    struct JSPromiseData* promise_data;                             /* JS_CLASS_PROMISE */
-    struct JSPromiseFunctionData* promise_function_data;            /* JS_CLASS_PROMISE_RESOLVE_FUNCTION,
+    struct JSRegExpStringIteratorData*
+      regexp_string_iterator_data; /* JS_CLASS_REGEXP_STRING_ITERATOR */
+    struct JSGeneratorData* generator_data; /* JS_CLASS_GENERATOR */
+    struct JSProxyData* proxy_data; /* JS_CLASS_PROXY */
+    struct JSPromiseData* promise_data; /* JS_CLASS_PROMISE */
+    struct JSPromiseFunctionData*
+      promise_function_data; /* JS_CLASS_PROMISE_RESOLVE_FUNCTION,
                                                                        JS_CLASS_PROMISE_REJECT_FUNCTION */
-    struct JSAsyncFunctionData* async_function_data;                /* JS_CLASS_ASYNC_FUNCTION_RESOLVE,
+    struct JSAsyncFunctionData*
+      async_function_data; /* JS_CLASS_ASYNC_FUNCTION_RESOLVE,
                                                                        JS_CLASS_ASYNC_FUNCTION_REJECT */
-    struct JSAsyncFromSyncIteratorData* async_from_sync_iterator_data; /* JS_CLASS_ASYNC_FROM_SYNC_ITERATOR */
-    struct JSAsyncGeneratorData* async_generator_data;                 /* JS_CLASS_ASYNC_GENERATOR */
-    struct {                                                           /* JS_CLASS_BYTECODE_FUNCTION: 12/24 bytes */
+    struct JSAsyncFromSyncIteratorData*
+      async_from_sync_iterator_data; /* JS_CLASS_ASYNC_FROM_SYNC_ITERATOR */
+    struct JSAsyncGeneratorData*
+      async_generator_data; /* JS_CLASS_ASYNC_GENERATOR */
+    struct { /* JS_CLASS_BYTECODE_FUNCTION: 12/24 bytes */
       /* also used by JS_CLASS_GENERATOR_FUNCTION, JS_CLASS_ASYNC_FUNCTION and
        * JS_CLASS_ASYNC_GENERATOR_FUNCTION */
       struct JSFunctionBytecode* function_bytecode;
@@ -911,26 +939,27 @@ struct JSObject {
     struct { /* JS_CLASS_ARRAY, JS_CLASS_ARGUMENTS,
                 JS_CLASS_UINT8C_ARRAY..JS_CLASS_FLOAT64_ARRAY */
       union {
-        uint32_t size;                    /* JS_CLASS_ARRAY, JS_CLASS_ARGUMENTS */
-        struct JSTypedArray* typed_array; /* JS_CLASS_UINT8C_ARRAY..JS_CLASS_FLOAT64_ARRAY */
+        uint32_t size; /* JS_CLASS_ARRAY, JS_CLASS_ARGUMENTS */
+        struct JSTypedArray*
+          typed_array; /* JS_CLASS_UINT8C_ARRAY..JS_CLASS_FLOAT64_ARRAY */
       } u1;
       union {
-        JSValue* values;      /* JS_CLASS_ARRAY, JS_CLASS_ARGUMENTS */
-        void* ptr;            /* JS_CLASS_UINT8C_ARRAY..JS_CLASS_FLOAT64_ARRAY */
-        int8_t* int8_ptr;     /* JS_CLASS_INT8_ARRAY */
-        uint8_t* uint8_ptr;   /* JS_CLASS_UINT8_ARRAY, JS_CLASS_UINT8C_ARRAY */
-        int16_t* int16_ptr;   /* JS_CLASS_INT16_ARRAY */
+        JSValue* values; /* JS_CLASS_ARRAY, JS_CLASS_ARGUMENTS */
+        void* ptr; /* JS_CLASS_UINT8C_ARRAY..JS_CLASS_FLOAT64_ARRAY */
+        int8_t* int8_ptr; /* JS_CLASS_INT8_ARRAY */
+        uint8_t* uint8_ptr; /* JS_CLASS_UINT8_ARRAY, JS_CLASS_UINT8C_ARRAY */
+        int16_t* int16_ptr; /* JS_CLASS_INT16_ARRAY */
         uint16_t* uint16_ptr; /* JS_CLASS_UINT16_ARRAY */
-        int32_t* int32_ptr;   /* JS_CLASS_INT32_ARRAY */
+        int32_t* int32_ptr; /* JS_CLASS_INT32_ARRAY */
         uint32_t* uint32_ptr; /* JS_CLASS_UINT32_ARRAY */
-        int64_t* int64_ptr;   /* JS_CLASS_INT64_ARRAY */
+        int64_t* int64_ptr; /* JS_CLASS_INT64_ARRAY */
         uint64_t* uint64_ptr; /* JS_CLASS_UINT64_ARRAY */
-        float* float_ptr;     /* JS_CLASS_FLOAT32_ARRAY */
-        double* double_ptr;   /* JS_CLASS_FLOAT64_ARRAY */
+        float* float_ptr; /* JS_CLASS_FLOAT32_ARRAY */
+        double* double_ptr; /* JS_CLASS_FLOAT64_ARRAY */
       } u;
-      uint32_t count;    /* <= 2^31-1. 0 for a detached typed array */
-    } array;             /* 12/20 bytes */
-    JSRegExp regexp;     /* JS_CLASS_REGEXP: 8/16 bytes */
+      uint32_t count; /* <= 2^31-1. 0 for a detached typed array */
+    } array; /* 12/20 bytes */
+    JSRegExp regexp; /* JS_CLASS_REGEXP: 8/16 bytes */
     JSValue object_data; /* for JS_SetObjectData(): 8/16/16 bytes */
   } u;
   /* byte sizes: 40/48/72 */

@@ -1,7 +1,9 @@
 #include "anode-ext.h"
+
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+
 #include "core/builtins/js-big-num.h"
 #include "core/builtins/js-operator.h"
 #include "core/quickjs-internals.h"
@@ -10,20 +12,27 @@
 JSFunctionBytecode* anode_get_function_bytecode(JSValue function) {
   int tag = JS_VALUE_GET_TAG(function);
   if (tag != JS_TAG_OBJECT) {
-    fprintf(stderr, "anode_get_function_bytecode: expected object, got tag %d\n", tag);
+    fprintf(
+      stderr,
+      "anode_get_function_bytecode: expected object, got tag %d\n",
+      tag);
     abort();
   }
 
   JSObject* obj = JS_VALUE_GET_OBJ(function);
   if (obj->class_id != JS_CLASS_BYTECODE_FUNCTION) {
-    fprintf(stderr, "anode_get_function_bytecode: expected bytecode function, got class id %d\n", obj->class_id);
+    fprintf(
+      stderr,
+      "anode_get_function_bytecode: expected bytecode function, got class id %d\n",
+      obj->class_id);
     abort();
   }
 
   return obj->u.func.function_bytecode;
 }
 
-JSValue anode_get_function_var_ref(JSContext* ctx, JSValue function, int32_t var_idx) {
+JSValue
+anode_get_function_var_ref(JSContext* ctx, JSValue function, int32_t var_idx) {
   JSObject* func_obj = JS_VALUE_GET_OBJ(function);
   assert(func_obj->class_id == JS_CLASS_BYTECODE_FUNCTION);
   return JS_DupValue(ctx, *(func_obj->u.func.var_refs[var_idx]->pvalue));
@@ -46,10 +55,14 @@ JSValue anode_js_add_any(JSContext* ctx, JSValue x, JSValue y) {
     if ((sum ^ JS_VALUE_GET_INT(x)) >= 0) {
       return JS_NewInt32(ctx, sum);
     } else {
-      return JS_NewFloat64(ctx, (double)JS_VALUE_GET_INT(x) + (double)JS_VALUE_GET_INT(y));
+      return JS_NewFloat64(
+        ctx,
+        (double)JS_VALUE_GET_INT(x) + (double)JS_VALUE_GET_INT(y));
     }
   } else if (JS_VALUE_IS_BOTH_FLOAT(x, y)) {
-    return JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(x) + JS_VALUE_GET_FLOAT64(y));
+    return JS_NewFloat64(
+      ctx,
+      JS_VALUE_GET_FLOAT64(x) + JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
     // js_xxx_slow functions expect the input sp at the end of the args array
@@ -67,10 +80,14 @@ JSValue anode_js_sub_any(JSContext* ctx, JSValue x, JSValue y) {
     if ((diff ^ JS_VALUE_GET_INT(x)) >= 0) {
       return JS_NewInt32(ctx, diff);
     } else {
-      return JS_NewFloat64(ctx, (double)JS_VALUE_GET_INT(x) - (double)JS_VALUE_GET_INT(y));
+      return JS_NewFloat64(
+        ctx,
+        (double)JS_VALUE_GET_INT(x) - (double)JS_VALUE_GET_INT(y));
     }
   } else if (JS_VALUE_IS_BOTH_FLOAT(x, y)) {
-    return JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(x) - JS_VALUE_GET_FLOAT64(y));
+    return JS_NewFloat64(
+      ctx,
+      JS_VALUE_GET_FLOAT64(x) - JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
     if (js_binary_arith_slow(ctx, args + 2, OP_sub)) {
@@ -87,10 +104,14 @@ JSValue anode_js_mul_any(JSContext* ctx, JSValue x, JSValue y) {
     if ((int32_t)prod == prod) {
       return JS_NewInt32(ctx, (int32_t)prod);
     } else {
-      return JS_NewFloat64(ctx, (double)JS_VALUE_GET_INT(x) * (double)JS_VALUE_GET_INT(y));
+      return JS_NewFloat64(
+        ctx,
+        (double)JS_VALUE_GET_INT(x) * (double)JS_VALUE_GET_INT(y));
     }
   } else if (JS_VALUE_IS_BOTH_FLOAT(x, y)) {
-    return JS_NewFloat64(ctx, JS_VALUE_GET_FLOAT64(x) * JS_VALUE_GET_FLOAT64(y));
+    return JS_NewFloat64(
+      ctx,
+      JS_VALUE_GET_FLOAT64(x) * JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
     if (js_binary_arith_slow(ctx, args + 2, OP_mul)) {
@@ -103,7 +124,9 @@ JSValue anode_js_mul_any(JSContext* ctx, JSValue x, JSValue y) {
 JSValue anode_js_div_any(JSContext* ctx, JSValue x, JSValue y) {
   // division is always a float
   if (JS_VALUE_IS_BOTH_INT(x, y)) {
-    return JS_NewFloat64(ctx, (double)JS_VALUE_GET_INT(x) / (double)JS_VALUE_GET_INT(y));
+    return JS_NewFloat64(
+      ctx,
+      (double)JS_VALUE_GET_INT(x) / (double)JS_VALUE_GET_INT(y));
   } else {
     JSValue args[] = {x, y};
     if (js_binary_arith_slow(ctx, args + 2, OP_div)) {
@@ -122,7 +145,9 @@ JSValue anode_js_mod_any(JSContext* ctx, JSValue x, JSValue y) {
     }
     return JS_NewInt32(ctx, x_int % y_int);
   } else if (JS_VALUE_IS_BOTH_FLOAT(x, y)) {
-    return JS_NewFloat64(ctx, fmod(JS_VALUE_GET_FLOAT64(x), JS_VALUE_GET_FLOAT64(y)));
+    return JS_NewFloat64(
+      ctx,
+      fmod(JS_VALUE_GET_FLOAT64(x), JS_VALUE_GET_FLOAT64(y)));
   } else {
     JSValue args[] = {x, y};
     if (js_binary_arith_slow(ctx, args + 2, OP_mod)) {
@@ -190,7 +215,9 @@ JSValue anode_js_bit_not_any(JSContext* ctx, JSValue x) {
 
 JSValue anode_js_shift_left_any(JSContext* ctx, JSValue x, JSValue y) {
   if (JS_VALUE_IS_BOTH_INT(x, y)) {
-    return JS_NewInt32(ctx, JS_VALUE_GET_INT(x) << (JS_VALUE_GET_INT(y) & 0x1f));
+    return JS_NewInt32(
+      ctx,
+      JS_VALUE_GET_INT(x) << (JS_VALUE_GET_INT(y) & 0x1f));
   } else {
     JSValue args[] = {x, y};
     if (js_binary_logic_slow(ctx, args + 2, OP_shl)) {
@@ -202,7 +229,9 @@ JSValue anode_js_shift_left_any(JSContext* ctx, JSValue x, JSValue y) {
 
 JSValue anode_js_shift_right_any(JSContext* ctx, JSValue x, JSValue y) {
   if (JS_VALUE_IS_BOTH_INT(x, y)) {
-    return JS_NewInt32(ctx, JS_VALUE_GET_INT(x) >> (JS_VALUE_GET_INT(y) & 0x1f));
+    return JS_NewInt32(
+      ctx,
+      JS_VALUE_GET_INT(x) >> (JS_VALUE_GET_INT(y) & 0x1f));
   } else {
     JSValue args[] = {x, y};
     if (js_shr_slow(ctx, args + 2)) {
@@ -214,7 +243,9 @@ JSValue anode_js_shift_right_any(JSContext* ctx, JSValue x, JSValue y) {
 
 JSValue anode_js_shift_right_arith_any(JSContext* ctx, JSValue x, JSValue y) {
   if (JS_VALUE_IS_BOTH_INT(x, y)) {
-    return JS_NewInt32(ctx, (int32_t)JS_VALUE_GET_INT(x) >> (JS_VALUE_GET_INT(y) & 0x1f));
+    return JS_NewInt32(
+      ctx,
+      (int32_t)JS_VALUE_GET_INT(x) >> (JS_VALUE_GET_INT(y) & 0x1f));
   } else {
     JSValue args[] = {x, y};
     if (js_binary_logic_slow(ctx, args + 2, OP_sar)) {

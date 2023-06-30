@@ -29,8 +29,7 @@
 #include "quickjs/quickjs.h"
 
 #ifdef CONFIG_ATOMICS
-void JS_AddIntrinsicAtomics(JSContext *ctx);
+void JS_AddIntrinsicAtomics(JSContext* ctx);
 #endif
-
 
 #endif

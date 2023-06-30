@@ -24,6 +24,7 @@
  */
 
 #include "js-symbol.h"
+
 #include "../exception.h"
 #include "../string.h"
 #include "../types.h"
@@ -31,11 +32,13 @@
 
 /* Symbol */
 
-JSValue js_symbol_constructor(JSContext *ctx, JSValueConst new_target,
-                                     int argc, JSValueConst *argv)
-{
+JSValue js_symbol_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   JSValue str;
-  JSString *p;
+  JSString* p;
 
   if (!JS_IsUndefined(new_target))
     return JS_ThrowTypeError(ctx, "not a constructor");
@@ -50,13 +53,12 @@ JSValue js_symbol_constructor(JSContext *ctx, JSValueConst new_target,
   return JS_NewSymbol(ctx, p, JS_ATOM_TYPE_SYMBOL);
 }
 
-JSValue js_thisSymbolValue(JSContext *ctx, JSValueConst this_val)
-{
+JSValue js_thisSymbolValue(JSContext* ctx, JSValueConst this_val) {
   if (JS_VALUE_GET_TAG(this_val) == JS_TAG_SYMBOL)
     return JS_DupValue(ctx, this_val);
 
   if (JS_VALUE_GET_TAG(this_val) == JS_TAG_OBJECT) {
-    JSObject *p = JS_VALUE_GET_OBJ(this_val);
+    JSObject* p = JS_VALUE_GET_OBJ(this_val);
     if (p->class_id == JS_CLASS_SYMBOL) {
       if (JS_VALUE_GET_TAG(p->u.object_data) == JS_TAG_SYMBOL)
         return JS_DupValue(ctx, p->u.object_data);
@@ -65,29 +67,32 @@ JSValue js_thisSymbolValue(JSContext *ctx, JSValueConst this_val)
   return JS_ThrowTypeError(ctx, "not a symbol");
 }
 
-JSValue js_symbol_toString(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv)
-{
+JSValue js_symbol_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, ret;
   val = js_thisSymbolValue(ctx, this_val);
   if (JS_IsException(val))
     return val;
   /* XXX: use JS_ToStringInternal() with a flags */
-  ret = js_string_constructor(ctx, JS_UNDEFINED, 1, (JSValueConst *)&val);
+  ret = js_string_constructor(ctx, JS_UNDEFINED, 1, (JSValueConst*)&val);
   JS_FreeValue(ctx, val);
   return ret;
 }
 
-JSValue js_symbol_valueOf(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv)
-{
+JSValue js_symbol_valueOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return js_thisSymbolValue(ctx, this_val);
 }
 
-JSValue js_symbol_get_description(JSContext *ctx, JSValueConst this_val)
-{
+JSValue js_symbol_get_description(JSContext* ctx, JSValueConst this_val) {
   JSValue val, ret;
-  JSAtomStruct *p;
+  JSAtomStruct* p;
 
   val = js_thisSymbolValue(ctx, this_val);
   if (JS_IsException(val))
@@ -102,21 +107,28 @@ JSValue js_symbol_get_description(JSContext *ctx, JSValueConst this_val)
   return ret;
 }
 
-JSValue js_symbol_for(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
-{
+JSValue js_symbol_for(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue str;
 
   str = JS_ToString(ctx, argv[0]);
   if (JS_IsException(str))
     return JS_EXCEPTION;
-  return JS_NewSymbol(ctx, JS_VALUE_GET_STRING(str), JS_ATOM_TYPE_GLOBAL_SYMBOL);
+  return JS_NewSymbol(
+    ctx,
+    JS_VALUE_GET_STRING(str),
+    JS_ATOM_TYPE_GLOBAL_SYMBOL);
 }
 
-JSValue js_symbol_keyFor(JSContext *ctx, JSValueConst this_val,
-                                int argc, JSValueConst *argv)
-{
-  JSAtomStruct *p;
+JSValue js_symbol_keyFor(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
+  JSAtomStruct* p;
 
   if (!JS_IsSymbol(argv[0]))
     return JS_ThrowTypeError(ctx, "not a symbol");

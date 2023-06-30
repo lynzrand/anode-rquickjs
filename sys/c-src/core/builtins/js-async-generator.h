@@ -26,10 +26,9 @@
 #ifndef QUICKJS_JS_ASYNC_GENERATOR_H
 #define QUICKJS_JS_ASYNC_GENERATOR_H
 
-#include "quickjs/quickjs.h"
-#include "quickjs/cutils.h"
 #include "../types.h"
-
+#include "quickjs/cutils.h"
+#include "quickjs/quickjs.h"
 
 typedef enum JSAsyncGeneratorStateEnum {
   JS_ASYNC_GENERATOR_STATE_SUSPENDED_START,
@@ -51,57 +50,67 @@ typedef struct JSAsyncGeneratorRequest {
 } JSAsyncGeneratorRequest;
 
 typedef struct JSAsyncGeneratorData {
-  JSObject *generator; /* back pointer to the object (const) */
+  JSObject* generator; /* back pointer to the object (const) */
   JSAsyncGeneratorStateEnum state;
   JSAsyncFunctionState func_state;
   struct list_head queue; /* list of JSAsyncGeneratorRequest.link */
 } JSAsyncGeneratorData;
 
-void js_async_generator_free(JSRuntime *rt,
-                                    JSAsyncGeneratorData *s);
-void js_async_generator_finalizer(JSRuntime *rt, JSValue obj);
-void js_async_generator_mark(JSRuntime *rt, JSValueConst val,
-                                    JS_MarkFunc *mark_func);
+void js_async_generator_free(JSRuntime* rt, JSAsyncGeneratorData* s);
+void js_async_generator_finalizer(JSRuntime* rt, JSValue obj);
+void js_async_generator_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func);
 
-int js_async_generator_resolve_function_create(JSContext *ctx,
-                                                      JSValueConst generator,
-                                                      JSValue *resolving_funcs,
-                                                      BOOL is_resume_next);
-int js_async_generator_await(JSContext *ctx,
-                                    JSAsyncGeneratorData *s,
-                                    JSValueConst value);
-void js_async_generator_resolve_or_reject(JSContext *ctx,
-                                                 JSAsyncGeneratorData *s,
-                                                 JSValueConst result,
-                                                 int is_reject);
+int js_async_generator_resolve_function_create(
+  JSContext* ctx,
+  JSValueConst generator,
+  JSValue* resolving_funcs,
+  BOOL is_resume_next);
+int js_async_generator_await(
+  JSContext* ctx,
+  JSAsyncGeneratorData* s,
+  JSValueConst value);
+void js_async_generator_resolve_or_reject(
+  JSContext* ctx,
+  JSAsyncGeneratorData* s,
+  JSValueConst result,
+  int is_reject);
 
-void js_async_generator_resolve(JSContext *ctx,
-                                       JSAsyncGeneratorData *s,
-                                       JSValueConst value,
-                                       BOOL done);
+void js_async_generator_resolve(
+  JSContext* ctx,
+  JSAsyncGeneratorData* s,
+  JSValueConst value,
+  BOOL done);
 
-void js_async_generator_reject(JSContext *ctx,
-                                      JSAsyncGeneratorData *s,
-                                      JSValueConst exception);
+void js_async_generator_reject(
+  JSContext* ctx,
+  JSAsyncGeneratorData* s,
+  JSValueConst exception);
 
-void js_async_generator_complete(JSContext *ctx,
-                                        JSAsyncGeneratorData *s);
+void js_async_generator_complete(JSContext* ctx, JSAsyncGeneratorData* s);
 
-int js_async_generator_completed_return(JSContext *ctx,
-                                               JSAsyncGeneratorData *s,
-                                               JSValueConst value);
+int js_async_generator_completed_return(
+  JSContext* ctx,
+  JSAsyncGeneratorData* s,
+  JSValueConst value);
 
-void js_async_generator_resume_next(JSContext *ctx,
-                                           JSAsyncGeneratorData *s);
+void js_async_generator_resume_next(JSContext* ctx, JSAsyncGeneratorData* s);
 /* magic = GEN_MAGIC_x */
-JSValue js_async_generator_next(JSContext *ctx, JSValueConst this_val,
-                                       int argc, JSValueConst *argv,
-                                       int magic);
+JSValue js_async_generator_next(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic);
 
-JSValue js_async_generator_function_call(JSContext *ctx, JSValueConst func_obj,
-                                                JSValueConst this_obj,
-                                                int argc, JSValueConst *argv,
-                                                int flags);
-
+JSValue js_async_generator_function_call(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags);
 
 #endif

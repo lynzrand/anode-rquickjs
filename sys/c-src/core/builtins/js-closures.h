@@ -26,23 +26,27 @@
 #ifndef QUICKJS_JS_CLOSURES_H
 #define QUICKJS_JS_CLOSURES_H
 
-#include "quickjs/quickjs.h"
-#include "quickjs/cutils.h"
 #include "../types.h"
+#include "quickjs/cutils.h"
+#include "quickjs/quickjs.h"
 
-void close_lexical_var(JSContext *ctx, JSStackFrame *sf, int idx, int is_arg);
+void close_lexical_var(JSContext* ctx, JSStackFrame* sf, int idx, int is_arg);
 
-JSVarRef *get_var_ref(JSContext *ctx, JSStackFrame *sf,
-                             int var_idx, BOOL is_arg);
+JSVarRef*
+get_var_ref(JSContext* ctx, JSStackFrame* sf, int var_idx, BOOL is_arg);
 
-JSValue js_closure2(JSContext *ctx, JSValue func_obj,
-                           JSFunctionBytecode *b,
-                           JSVarRef **cur_var_refs,
-                           JSStackFrame *sf);
+JSValue js_closure2(
+  JSContext* ctx,
+  JSValue func_obj,
+  JSFunctionBytecode* b,
+  JSVarRef** cur_var_refs,
+  JSStackFrame* sf);
 
-JSValue js_closure(JSContext *ctx, JSValue bfunc,
-                          JSVarRef **cur_var_refs,
-                          JSStackFrame *sf);
+JSValue js_closure(
+  JSContext* ctx,
+  JSValue bfunc,
+  JSVarRef** cur_var_refs,
+  JSStackFrame* sf);
 
 void close_var_refs(JSRuntime* rt, JSStackFrame* sf);
 

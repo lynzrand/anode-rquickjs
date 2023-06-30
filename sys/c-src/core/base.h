@@ -39,55 +39,55 @@
 
 #ifdef _MSC_VER
 
-#pragma function(ceil)
-#pragma function(floor)
+  #pragma function(ceil)
+  #pragma function(floor)
 
-#include <WinSock2.h>
+  #include <WinSock2.h>
 
 // From: https://stackoverflow.com/a/26085827
-int gettimeofday(struct timeval *tp, struct timezone *tzp);
+int gettimeofday(struct timeval* tp, struct timezone* tzp);
 
-// From
-// https://stackoverflow.com/questions/5404277/porting-clock-gettime-to-windows
-#define CLOCK_REALTIME 0
+  // From
+  // https://stackoverflow.com/questions/5404277/porting-clock-gettime-to-windows
+  #define CLOCK_REALTIME 0
 
 LARGE_INTEGER getFILETIMEoffset();
 
-int clock_gettime(int X, struct timeval *tv);
+int clock_gettime(int X, struct timeval* tv);
 
 #else
-#include <sys/time.h>
-#ifndef INFINITY
-#define INFINITY 1.0 / 0.0
-#endif
+  #include <sys/time.h>
+  #ifndef INFINITY
+    #define INFINITY 1.0 / 0.0
+  #endif
 #endif
 
 #ifdef CONFIG_BIGNUM
-#include "quickjs/libbf.h"
+  #include "quickjs/libbf.h"
 #endif
 
 #define OPTIMIZE 1
 #define SHORT_OPCODES 1
 #if defined(EMSCRIPTEN) || defined(_MSC_VER)
-#define DIRECT_DISPATCH 0
+  #define DIRECT_DISPATCH 0
 #else
-#define DIRECT_DISPATCH 1
+  #define DIRECT_DISPATCH 1
 #endif
 
 #if defined(__APPLE__)
-#define MALLOC_OVERHEAD 0
+  #define MALLOC_OVERHEAD 0
 #else
-#define MALLOC_OVERHEAD 8
+  #define MALLOC_OVERHEAD 8
 #endif
 
 #if !defined(_WIN32)
-/* define it if printf uses the RNDN rounding mode instead of RNDNA */
-#define CONFIG_PRINTF_RNDN
+  /* define it if printf uses the RNDN rounding mode instead of RNDNA */
+  #define CONFIG_PRINTF_RNDN
 #endif
 
 #if !defined(EMSCRIPTEN)
-/* enable stack limitation */
-#define CONFIG_STACK_CHECK
+  /* enable stack limitation */
+  #define CONFIG_STACK_CHECK
 #endif
 
 /* dump object free */
@@ -121,13 +121,13 @@ int clock_gettime(int X, struct timeval *tv);
 //#define FORCE_GC_AT_MALLOC
 
 #ifdef CONFIG_ATOMICS
-#include <errno.h>
-#include <pthread.h>
-#include <stdatomic.h>
+  #include <errno.h>
+  #include <pthread.h>
+  #include <stdatomic.h>
 #endif
 
 #ifndef CONFIG_VERSION
-#define CONFIG_VERSION "anode_rquickjs_dev"
+  #define CONFIG_VERSION "anode_rquickjs_dev"
 #endif
 
 #endif

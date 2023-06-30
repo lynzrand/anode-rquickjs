@@ -23,10 +23,12 @@
  * THE SOFTWARE.
  */
 
-#include "quickjs/cutils.h"
 #include "malloc.h"
-#include "exception.h"
+
 #include <malloc.h>
+
+#include "exception.h"
+#include "quickjs/cutils.h"
 
 void js_trigger_gc(JSRuntime* rt, size_t size) {
   BOOL force_gc;
@@ -40,10 +42,10 @@ void js_trigger_gc(JSRuntime* rt, size_t size) {
     printf("GC: size=%" PRIu64 "\n", (uint64_t)rt->malloc_state.malloc_size);
 #endif
     JS_RunGC(rt);
-    rt->malloc_gc_threshold = rt->malloc_state.malloc_size + (rt->malloc_state.malloc_size >> 1);
+    rt->malloc_gc_threshold =
+      rt->malloc_state.malloc_size + (rt->malloc_state.malloc_size >> 1);
   }
 }
-
 
 /* default memory allocation functions with memory limitation */
 size_t js_def_malloc_usable_size(void* ptr) {
@@ -169,7 +171,12 @@ char* js_strdup(JSContext* ctx, const char* str) {
   return js_strndup(ctx, str, strlen(str));
 }
 
-no_inline int js_realloc_array(JSContext* ctx, void** parray, int elem_size, int* psize, int req_size) {
+no_inline int js_realloc_array(
+  JSContext* ctx,
+  void** parray,
+  int elem_size,
+  int* psize,
+  int req_size) {
   int new_size;
   size_t slack;
   void* new_array;
@@ -242,7 +249,6 @@ void* js_def_realloc(JSMallocState* s, void* ptr, size_t size) {
 }
 
 /* use -1 to disable automatic GC */
-void JS_SetGCThreshold(JSRuntime *rt, size_t gc_threshold)
-{
+void JS_SetGCThreshold(JSRuntime* rt, size_t gc_threshold) {
   rt->malloc_gc_threshold = gc_threshold;
 }

@@ -30,56 +30,57 @@
 #include "types.h"
 
 typedef struct JSResolveEntry {
-  JSModuleDef *module;
+  JSModuleDef* module;
   JSAtom name;
 } JSResolveEntry;
 
 typedef struct JSResolveState {
-  JSResolveEntry *array;
+  JSResolveEntry* array;
   int size;
   int count;
 } JSResolveState;
 
 /* 'name' is freed */
-JSModuleDef *js_new_module_def(JSContext *ctx, JSAtom name);
+JSModuleDef* js_new_module_def(JSContext* ctx, JSAtom name);
 
-void js_mark_module_def(JSRuntime *rt, JSModuleDef *m,
-                               JS_MarkFunc *mark_func);
+void js_mark_module_def(JSRuntime* rt, JSModuleDef* m, JS_MarkFunc* mark_func);
 
-int add_req_module_entry(JSContext *ctx, JSModuleDef *m,
-                                JSAtom module_name);
+int add_req_module_entry(JSContext* ctx, JSModuleDef* m, JSAtom module_name);
 
-JSExportEntry *find_export_entry(JSContext *ctx, JSModuleDef *m,
-                                        JSAtom export_name);
+JSExportEntry*
+find_export_entry(JSContext* ctx, JSModuleDef* m, JSAtom export_name);
 
-char *js_default_module_normalize_name(JSContext *ctx,
-                                              const char *base_name,
-                                              const char *name);
+char* js_default_module_normalize_name(
+  JSContext* ctx,
+  const char* base_name,
+  const char* name);
 
-JSModuleDef *js_find_loaded_module(JSContext *ctx, JSAtom name);
+JSModuleDef* js_find_loaded_module(JSContext* ctx, JSAtom name);
 
 /* return NULL in case of exception (e.g. module could not be loaded) */
-JSModuleDef *js_host_resolve_imported_module(JSContext *ctx,
-                                                    const char *base_cname,
-                                                    const char *cname1);
+JSModuleDef* js_host_resolve_imported_module(
+  JSContext* ctx,
+  const char* base_cname,
+  const char* cname1);
 
-JSModuleDef *js_host_resolve_imported_module_atom(JSContext *ctx,
-                                                         JSAtom base_module_name,
-                                                         JSAtom module_name1);
+JSModuleDef* js_host_resolve_imported_module_atom(
+  JSContext* ctx,
+  JSAtom base_module_name,
+  JSAtom module_name1);
 
-int js_create_module_function(JSContext *ctx, JSModuleDef *m);
+int js_create_module_function(JSContext* ctx, JSModuleDef* m);
 
 /* Load all the required modules for module 'm' */
-int js_resolve_module(JSContext *ctx, JSModuleDef *m);
+int js_resolve_module(JSContext* ctx, JSModuleDef* m);
 
 /* Prepare a module to be executed by resolving all the imported
    variables. */
-int js_link_module(JSContext *ctx, JSModuleDef *m);
+int js_link_module(JSContext* ctx, JSModuleDef* m);
 
 /* Run the <eval> function of the module and of all its requested
    modules. */
-JSValue js_evaluate_module(JSContext *ctx, JSModuleDef *m);
+JSValue js_evaluate_module(JSContext* ctx, JSModuleDef* m);
 
-JSValue js_dynamic_import(JSContext *ctx, JSValueConst specifier);
+JSValue js_dynamic_import(JSContext* ctx, JSValueConst specifier);
 
 #endif

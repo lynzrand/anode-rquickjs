@@ -24,6 +24,7 @@
  */
 
 #include "js-generator.h"
+
 #include "../exception.h"
 #include "../function.h"
 #include "../object.h"
@@ -31,17 +32,15 @@
 #include "quickjs/cutils.h"
 
 /* Generators */
-void free_generator_stack_rt(JSRuntime *rt, JSGeneratorData *s)
-{
+void free_generator_stack_rt(JSRuntime* rt, JSGeneratorData* s) {
   if (s->state == JS_GENERATOR_STATE_COMPLETED)
     return;
   async_func_free(rt, &s->func_state);
   s->state = JS_GENERATOR_STATE_COMPLETED;
 }
 
-void js_generator_finalizer(JSRuntime *rt, JSValue obj)
-{
-  JSGeneratorData *s = JS_GetOpaque(obj, JS_CLASS_GENERATOR);
+void js_generator_finalizer(JSRuntime* rt, JSValue obj) {
+  JSGeneratorData* s = JS_GetOpaque(obj, JS_CLASS_GENERATOR);
 
   if (s) {
     free_generator_stack_rt(rt, s);
@@ -49,35 +48,38 @@ void js_generator_finalizer(JSRuntime *rt, JSValue obj)
   }
 }
 
-void free_generator_stack(JSContext *ctx, JSGeneratorData *s)
-{
+void free_generator_stack(JSContext* ctx, JSGeneratorData* s) {
   free_generator_stack_rt(ctx->rt, s);
 }
 
-void js_generator_mark(JSRuntime *rt, JSValueConst val,
-                              JS_MarkFunc *mark_func)
-{
-  JSObject *p = JS_VALUE_GET_OBJ(val);
-  JSGeneratorData *s = p->u.generator_data;
+void js_generator_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func) {
+  JSObject* p = JS_VALUE_GET_OBJ(val);
+  JSGeneratorData* s = p->u.generator_data;
 
   if (!s || s->state == JS_GENERATOR_STATE_COMPLETED)
     return;
   async_func_mark(rt, &s->func_state, mark_func);
 }
 
-JSValue js_generator_next(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv,
-                                 BOOL *pdone, int magic)
-{
-  JSGeneratorData *s = JS_GetOpaque(this_val, JS_CLASS_GENERATOR);
-  JSStackFrame *sf;
+JSValue js_generator_next(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  BOOL* pdone,
+  int magic) {
+  JSGeneratorData* s = JS_GetOpaque(this_val, JS_CLASS_GENERATOR);
+  JSStackFrame* sf;
   JSValue ret, func_ret;
 
   *pdone = TRUE;
   if (!s)
     return JS_ThrowTypeError(ctx, "not a generator");
   sf = &s->func_state.frame;
-  switch(s->state) {
+  switch (s->state) {
     default:
     case JS_GENERATOR_STATE_SUSPENDED_START:
       if (magic == GEN_MAGIC_NEXT) {
@@ -91,8 +93,9 @@ JSValue js_generator_next(JSContext *ctx, JSValueConst this_val,
     case JS_GENERATOR_STATE_SUSPENDED_YIELD:
       /* cur_sp[-1] was set to JS_UNDEFINED in the previous call */
       ret = JS_DupValue(ctx, argv[0]);
-      if (magic == GEN_MAGIC_THROW &&
-          s->state == JS_GENERATOR_STATE_SUSPENDED_YIELD) {
+      if (
+        magic == GEN_MAGIC_THROW
+        && s->state == JS_GENERATOR_STATE_SUSPENDED_YIELD) {
         JS_Throw(ctx, ret);
         s->func_state.throw_flag = TRUE;
       } else {
@@ -132,7 +135,7 @@ JSValue js_generator_next(JSContext *ctx, JSValueConst this_val,
     case JS_GENERATOR_STATE_COMPLETED:
     done:
       /* execution is finished */
-      switch(magic) {
+      switch (magic) {
         default:
         case GEN_MAGIC_NEXT:
           ret = JS_UNDEFINED;
@@ -152,13 +155,15 @@ JSValue js_generator_next(JSContext *ctx, JSValueConst this_val,
   return ret;
 }
 
-JSValue js_generator_function_call(JSContext *ctx, JSValueConst func_obj,
-                                          JSValueConst this_obj,
-                                          int argc, JSValueConst *argv,
-                                          int flags)
-{
+JSValue js_generator_function_call(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags) {
   JSValue obj, func_ret;
-  JSGeneratorData *s;
+  JSGeneratorData* s;
 
   s = js_mallocz(ctx, sizeof(*s));
   if (!s)

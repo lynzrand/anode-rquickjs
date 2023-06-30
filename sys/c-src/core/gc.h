@@ -26,9 +26,9 @@
 #ifndef QUICKJS_GC_H
 #define QUICKJS_GC_H
 
-#include "quickjs/quickjs.h"
 #include "quickjs/cutils.h"
 #include "quickjs/list.h"
+#include "quickjs/quickjs.h"
 #include "types.h"
 
 /* object list */
@@ -55,7 +55,10 @@ typedef enum JSFreeModuleEnum {
 
 void js_object_list_init(JSObjectList* s);
 uint32_t js_object_list_get_hash(JSObject* p, uint32_t hash_size);
-int js_object_list_resize_hash(JSContext* ctx, JSObjectList* s, uint32_t new_hash_size);
+int js_object_list_resize_hash(
+  JSContext* ctx,
+  JSObjectList* s,
+  uint32_t new_hash_size);
 /* the reference count of 'obj' is not modified. Return 0 if OK, -1 if
    memory error */
 int js_object_list_add(JSContext* ctx, JSObjectList* s, JSObject* obj);
@@ -75,7 +78,8 @@ __maybe_unused void JS_DumpObject(JSRuntime* rt, JSObject* p);
 __maybe_unused void JS_DumpGCObject(JSRuntime* rt, JSGCObjectHeader* p);
 __maybe_unused void JS_DumpValueShort(JSRuntime* rt, JSValueConst val);
 __maybe_unused void JS_DumpValue(JSContext* ctx, JSValueConst val);
-__maybe_unused void JS_PrintValue(JSContext* ctx, const char* str, JSValueConst val);
+__maybe_unused void
+JS_PrintValue(JSContext* ctx, const char* str, JSValueConst val);
 
 /* used by the GC */
 void JS_MarkContext(JSRuntime* rt, JSContext* ctx, JS_MarkFunc* mark_func);
@@ -88,7 +92,7 @@ void gc_scan_incref_child2(JSRuntime* rt, JSGCObjectHeader* p);
 void gc_scan(JSRuntime* rt);
 void gc_free_cycles(JSRuntime* rt);
 
-    void free_var_ref(JSRuntime* rt, JSVarRef* var_ref);
+void free_var_ref(JSRuntime* rt, JSVarRef* var_ref);
 void free_object(JSRuntime* rt, JSObject* p);
 void add_gc_object(JSRuntime* rt, JSGCObjectHeader* h, JSGCObjectTypeEnum type);
 void set_cycle_flag(JSContext* ctx, JSValueConst obj);
@@ -96,25 +100,40 @@ void remove_gc_object(JSGCObjectHeader* h);
 void js_regexp_finalizer(JSRuntime* rt, JSValue val);
 void js_array_buffer_finalizer(JSRuntime* rt, JSValue val);
 void js_typed_array_finalizer(JSRuntime* rt, JSValue val);
-void js_typed_array_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
+void js_typed_array_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func);
 void js_proxy_finalizer(JSRuntime* rt, JSValue val);
 void js_proxy_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
 void js_map_finalizer(JSRuntime* rt, JSValue val);
 void js_map_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
 void js_map_iterator_finalizer(JSRuntime* rt, JSValue val);
-void js_map_iterator_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
+void js_map_iterator_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func);
 
 void js_regexp_string_iterator_finalizer(JSRuntime* rt, JSValue val);
-void js_regexp_string_iterator_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
+void js_regexp_string_iterator_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func);
 void js_generator_finalizer(JSRuntime* rt, JSValue obj);
 void js_generator_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
 void js_promise_finalizer(JSRuntime* rt, JSValue val);
 void js_promise_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
 void js_promise_resolve_function_finalizer(JSRuntime* rt, JSValue val);
-void js_promise_resolve_function_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
+void js_promise_resolve_function_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func);
 #ifdef CONFIG_BIGNUM
 void js_operator_set_finalizer(JSRuntime* rt, JSValue val);
-void js_operator_set_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
+void js_operator_set_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func);
 #endif
 
 #endif

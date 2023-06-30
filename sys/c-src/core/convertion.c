@@ -24,13 +24,15 @@
  */
 
 #include "convertion.h"
+
 #include "builtins/js-big-num.h"
 #include "exception.h"
 #include "function.h"
 #include "quickjs/libregexp.h"
 #include "string.h"
 
-static JSValue JS_ToNumberHintFree(JSContext* ctx, JSValue val, JSToNumberHintEnum flag);
+static JSValue
+JS_ToNumberHintFree(JSContext* ctx, JSValue val, JSToNumberHintEnum flag);
 
 int skip_spaces(const char* pc) {
   const uint8_t *p, *p_next, *p_start;
@@ -130,7 +132,11 @@ JSValue JS_ToPrimitive(JSContext* ctx, JSValueConst val, int hint) {
   return JS_ToPrimitiveFree(ctx, JS_DupValue(ctx, val), hint);
 }
 
-__exception int JS_ToArrayLengthFree(JSContext* ctx, uint32_t* plen, JSValue val, BOOL is_array_ctor) {
+__exception int JS_ToArrayLengthFree(
+  JSContext* ctx,
+  uint32_t* plen,
+  JSValue val,
+  BOOL is_array_ctor) {
   uint32_t tag, len;
 
   tag = JS_VALUE_GET_TAG(val);
@@ -218,7 +224,8 @@ JSValue JS_ToNumeric(JSContext* ctx, JSValueConst val) {
   return JS_ToNumericFree(ctx, JS_DupValue(ctx, val));
 }
 
-static JSValue JS_ToNumberHintFree(JSContext* ctx, JSValue val, JSToNumberHintEnum flag) {
+static JSValue
+JS_ToNumberHintFree(JSContext* ctx, JSValue val, JSToNumberHintEnum flag) {
   uint32_t tag;
   JSValue ret;
 
@@ -453,7 +460,13 @@ int JS_ToInt32Sat(JSContext* ctx, int* pres, JSValueConst val) {
   return JS_ToInt32SatFree(ctx, pres, JS_DupValue(ctx, val));
 }
 
-int JS_ToInt32Clamp(JSContext* ctx, int* pres, JSValueConst val, int min, int max, int min_offset) {
+int JS_ToInt32Clamp(
+  JSContext* ctx,
+  int* pres,
+  JSValueConst val,
+  int min,
+  int max,
+  int min_offset) {
   int res = JS_ToInt32SatFree(ctx, pres, JS_DupValue(ctx, val));
   if (res == 0) {
     if (*pres < min) {
@@ -519,7 +532,13 @@ int JS_ToInt64Sat(JSContext* ctx, int64_t* pres, JSValueConst val) {
   return JS_ToInt64SatFree(ctx, pres, JS_DupValue(ctx, val));
 }
 
-int JS_ToInt64Clamp(JSContext* ctx, int64_t* pres, JSValueConst val, int64_t min, int64_t max, int64_t neg_offset) {
+int JS_ToInt64Clamp(
+  JSContext* ctx,
+  int64_t* pres,
+  JSValueConst val,
+  int64_t min,
+  int64_t max,
+  int64_t neg_offset) {
   int res = JS_ToInt64SatFree(ctx, pres, JS_DupValue(ctx, val));
   if (res == 0) {
     if (*pres < 0)
@@ -820,7 +839,12 @@ double js_strtod(const char* p, int radix, BOOL is_float) {
 }
 
 #ifdef CONFIG_BIGNUM
-JSValue js_string_to_bigint(JSContext* ctx, const char* buf, int radix, int flags, slimb_t* pexponent) {
+JSValue js_string_to_bigint(
+  JSContext* ctx,
+  const char* buf,
+  int radix,
+  int flags,
+  slimb_t* pexponent) {
   bf_t a_s, *a = &a_s;
   int ret;
   JSValue val;
@@ -837,7 +861,12 @@ JSValue js_string_to_bigint(JSContext* ctx, const char* buf, int radix, int flag
   return val;
 }
 
-JSValue js_string_to_bigfloat(JSContext* ctx, const char* buf, int radix, int flags, slimb_t* pexponent) {
+JSValue js_string_to_bigfloat(
+  JSContext* ctx,
+  const char* buf,
+  int radix,
+  int flags,
+  slimb_t* pexponent) {
   bf_t* a;
   int ret;
   JSValue val;
@@ -848,7 +877,14 @@ JSValue js_string_to_bigfloat(JSContext* ctx, const char* buf, int radix, int fl
   a = JS_GetBigFloat(val);
   if (flags & ATOD_ACCEPT_SUFFIX) {
     /* return the exponent to get infinite precision */
-    ret = bf_atof2(a, pexponent, buf, NULL, radix, BF_PREC_INF, BF_RNDZ | BF_ATOF_EXPONENT);
+    ret = bf_atof2(
+      a,
+      pexponent,
+      buf,
+      NULL,
+      radix,
+      BF_PREC_INF,
+      BF_RNDZ | BF_ATOF_EXPONENT);
   } else {
     ret = bf_atof(a, buf, NULL, radix, ctx->fp_env.prec, ctx->fp_env.flags);
   }
@@ -859,7 +895,12 @@ JSValue js_string_to_bigfloat(JSContext* ctx, const char* buf, int radix, int fl
   return val;
 }
 
-JSValue js_string_to_bigdecimal(JSContext* ctx, const char* buf, int radix, int flags, slimb_t* pexponent) {
+JSValue js_string_to_bigdecimal(
+  JSContext* ctx,
+  const char* buf,
+  int radix,
+  int flags,
+  slimb_t* pexponent) {
   bfdec_t* a;
   int ret;
   JSValue val;
@@ -881,9 +922,16 @@ JSValue js_string_to_bigdecimal(JSContext* ctx, const char* buf, int radix, int 
 /* return an exception in case of memory error. Return JS_NAN if
    invalid syntax */
 #ifdef CONFIG_BIGNUM
-JSValue js_atof2(JSContext* ctx, const char* str, const char** pp, int radix, int flags, slimb_t* pexponent)
+JSValue js_atof2(
+  JSContext* ctx,
+  const char* str,
+  const char** pp,
+  int radix,
+  int flags,
+  slimb_t* pexponent)
 #else
-JSValue js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int flags)
+JSValue
+js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int flags)
 #endif
 {
   const char *p, *p_start;
@@ -918,13 +966,19 @@ JSValue js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int
     if ((p[1] == 'x' || p[1] == 'X') && (radix == 0 || radix == 16)) {
       p += 2;
       radix = 16;
-    } else if ((p[1] == 'o' || p[1] == 'O') && radix == 0 && (flags & ATOD_ACCEPT_BIN_OCT)) {
+    } else if (
+      (p[1] == 'o' || p[1] == 'O') && radix == 0
+      && (flags & ATOD_ACCEPT_BIN_OCT)) {
       p += 2;
       radix = 8;
-    } else if ((p[1] == 'b' || p[1] == 'B') && radix == 0 && (flags & ATOD_ACCEPT_BIN_OCT)) {
+    } else if (
+      (p[1] == 'b' || p[1] == 'B') && radix == 0
+      && (flags & ATOD_ACCEPT_BIN_OCT)) {
       p += 2;
       radix = 2;
-    } else if ((p[1] >= '0' && p[1] <= '9') && radix == 0 && (flags & ATOD_ACCEPT_LEGACY_OCTAL)) {
+    } else if (
+      (p[1] >= '0' && p[1] <= '9') && radix == 0
+      && (flags & ATOD_ACCEPT_LEGACY_OCTAL)) {
       int i;
       has_legacy_octal = TRUE;
       sep = 256;
@@ -943,7 +997,10 @@ JSValue js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int
   no_prefix:;
   } else {
   no_radix_prefix:
-    if (!(flags & ATOD_INT_ONLY) && (atod_type == ATOD_TYPE_FLOAT64 || atod_type == ATOD_TYPE_BIG_FLOAT) && strstart(p, "Infinity", &p)) {
+    if (
+      !(flags & ATOD_INT_ONLY)
+      && (atod_type == ATOD_TYPE_FLOAT64 || atod_type == ATOD_TYPE_BIG_FLOAT)
+      && strstart(p, "Infinity", &p)) {
 #ifdef CONFIG_BIGNUM
       if (atod_type == ATOD_TYPE_BIG_FLOAT) {
         bf_t* a;
@@ -967,7 +1024,9 @@ JSValue js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int
     radix = 10;
   is_float = FALSE;
   p_start = p;
-  while (to_digit((uint8_t)*p) < radix || (*p == sep && (radix != 10 || p != p_start + 1 || p[-1] != '0') && to_digit((uint8_t)p[1]) < radix)) {
+  while (
+    to_digit((uint8_t)*p) < radix
+    || (*p == sep && (radix != 10 || p != p_start + 1 || p[-1] != '0') && to_digit((uint8_t)p[1]) < radix)) {
     p++;
   }
   if (!(flags & ATOD_INT_ONLY)) {
@@ -976,10 +1035,13 @@ JSValue js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int
       p++;
       if (*p == sep)
         goto fail;
-      while (to_digit((uint8_t)*p) < radix || (*p == sep && to_digit((uint8_t)p[1]) < radix))
+      while (to_digit((uint8_t)*p) < radix
+             || (*p == sep && to_digit((uint8_t)p[1]) < radix))
         p++;
     }
-    if (p > p_start && (((*p == 'e' || *p == 'E') && radix == 10) || ((*p == 'p' || *p == 'P') && (radix == 2 || radix == 8 || radix == 16)))) {
+    if (
+      p > p_start
+      && (((*p == 'e' || *p == 'E') && radix == 10) || ((*p == 'p' || *p == 'P') && (radix == 2 || radix == 8 || radix == 16)))) {
       const char* p1 = p + 1;
       is_float = TRUE;
       if (*p1 == '+') {
@@ -1067,7 +1129,8 @@ JSValue js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int
     case ATOD_TYPE_BIG_FLOAT:
       if (has_legacy_octal)
         goto fail;
-      val = ctx->rt->bigfloat_ops.from_string(ctx, buf, radix, flags, pexponent);
+      val =
+        ctx->rt->bigfloat_ops.from_string(ctx, buf, radix, flags, pexponent);
       break;
     case ATOD_TYPE_BIG_DECIMAL:
       if (radix != 10)
@@ -1103,7 +1166,12 @@ mem_error:
 }
 
 #ifdef CONFIG_BIGNUM
-JSValue js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int flags) {
+JSValue js_atof(
+  JSContext* ctx,
+  const char* str,
+  const char** pp,
+  int radix,
+  int flags) {
   return js_atof2(ctx, str, pp, radix, flags, NULL);
 }
 #endif
@@ -1192,7 +1260,12 @@ JSValue js_bigint_to_string1(JSContext* ctx, JSValueConst val, int radix) {
   saved_sign = a->sign;
   if (a->expn == BF_EXP_ZERO)
     a->sign = 0;
-  str = bf_ftoa(NULL, a, radix, 0, BF_RNDZ | BF_FTOA_FORMAT_FRAC | BF_FTOA_JS_QUIRKS);
+  str = bf_ftoa(
+    NULL,
+    a,
+    radix,
+    0,
+    BF_RNDZ | BF_FTOA_FORMAT_FRAC | BF_FTOA_JS_QUIRKS);
   a->sign = saved_sign;
   JS_FreeBigInt(ctx, a, &a_s);
   if (!str)
@@ -1206,7 +1279,12 @@ JSValue js_bigint_to_string(JSContext* ctx, JSValueConst val) {
   return js_bigint_to_string1(ctx, val, 10);
 }
 
-JSValue js_ftoa(JSContext* ctx, JSValueConst val1, int radix, limb_t prec, bf_flags_t flags) {
+JSValue js_ftoa(
+  JSContext* ctx,
+  JSValueConst val1,
+  int radix,
+  limb_t prec,
+  bf_flags_t flags) {
   JSValue val, ret;
   bf_t a_s, *a;
   char* str;
@@ -1230,7 +1308,8 @@ JSValue js_ftoa(JSContext* ctx, JSValueConst val1, int radix, limb_t prec, bf_fl
       /* must round first */
       if (JS_VALUE_GET_TAG(val) == JS_TAG_BIG_FLOAT) {
         prec = ctx->fp_env.prec;
-        flags1 = ctx->fp_env.flags & (BF_FLAG_SUBNORMAL | (BF_EXP_BITS_MASK << BF_EXP_BITS_SHIFT));
+        flags1 = ctx->fp_env.flags
+          & (BF_FLAG_SUBNORMAL | (BF_EXP_BITS_MASK << BF_EXP_BITS_SHIFT));
       } else {
         prec = 53;
         flags1 = bf_set_exp_bits(11) | BF_FLAG_SUBNORMAL;
@@ -1261,7 +1340,11 @@ JSValue js_bigfloat_to_string(JSContext* ctx, JSValueConst val) {
   return js_ftoa(ctx, val, 10, 0, BF_RNDN | BF_FTOA_FORMAT_FREE_MIN);
 }
 
-JSValue js_bigdecimal_to_string1(JSContext* ctx, JSValueConst val, limb_t prec, int flags) {
+JSValue js_bigdecimal_to_string1(
+  JSContext* ctx,
+  JSValueConst val,
+  limb_t prec,
+  int flags) {
   JSValue ret;
   bfdec_t* a;
   char* str;
@@ -1312,7 +1395,15 @@ char* i64toa(char* buf_end, int64_t n, unsigned int base) {
 }
 
 /* buf1 contains the printf result */
-void js_ecvt1(double d, int n_digits, int* decpt, int* sign, char* buf, int rounding_mode, char* buf1, int buf1_size) {
+void js_ecvt1(
+  double d,
+  int n_digits,
+  int* decpt,
+  int* sign,
+  char* buf,
+  int rounding_mode,
+  char* buf1,
+  int buf1_size) {
   if (rounding_mode != FE_TONEAREST)
     fesetround(rounding_mode);
   snprintf(buf1, buf1_size, "%+.*e", n_digits - 1, d);
@@ -1330,7 +1421,13 @@ void js_ecvt1(double d, int n_digits, int* decpt, int* sign, char* buf, int roun
 
 /* needed because ecvt usually limits the number of digits to
    17. Return the number of digits. */
-int js_ecvt(double d, int n_digits, int* decpt, int* sign, char* buf, BOOL is_fixed) {
+int js_ecvt(
+  double d,
+  int n_digits,
+  int* decpt,
+  int* sign,
+  char* buf,
+  BOOL is_fixed) {
   int rounding_mode;
   char buf_tmp[JS_DTOA_BUF_SIZE];
 
@@ -1341,7 +1438,15 @@ int js_ecvt(double d, int n_digits, int* decpt, int* sign, char* buf, BOOL is_fi
     n_digits_max = 17;
     while (n_digits_min < n_digits_max) {
       n_digits = (n_digits_min + n_digits_max) / 2;
-      js_ecvt1(d, n_digits, decpt, sign, buf, FE_TONEAREST, buf_tmp, sizeof(buf_tmp));
+      js_ecvt1(
+        d,
+        n_digits,
+        decpt,
+        sign,
+        buf,
+        FE_TONEAREST,
+        buf_tmp,
+        sizeof(buf_tmp));
       if (strtod(buf_tmp, NULL) == d) {
         /* no need to keep the trailing zeros */
         while (n_digits >= 2 && buf[n_digits - 1] == '0')
@@ -1363,11 +1468,35 @@ int js_ecvt(double d, int n_digits, int* decpt, int* sign, char* buf, BOOL is_fi
          from zero (RNDNA), but in printf the "ties" case is not
          specified (for example it is RNDN for glibc, RNDNA for
          Windows), so we must round manually. */
-      js_ecvt1(d, n_digits + 1, &decpt1, &sign1, buf1, FE_TONEAREST, buf_tmp, sizeof(buf_tmp));
+      js_ecvt1(
+        d,
+        n_digits + 1,
+        &decpt1,
+        &sign1,
+        buf1,
+        FE_TONEAREST,
+        buf_tmp,
+        sizeof(buf_tmp));
       /* XXX: could use 2 digits to reduce the average running time */
       if (buf1[n_digits] == '5') {
-        js_ecvt1(d, n_digits + 1, &decpt1, &sign1, buf1, FE_DOWNWARD, buf_tmp, sizeof(buf_tmp));
-        js_ecvt1(d, n_digits + 1, &decpt2, &sign2, buf2, FE_UPWARD, buf_tmp, sizeof(buf_tmp));
+        js_ecvt1(
+          d,
+          n_digits + 1,
+          &decpt1,
+          &sign1,
+          buf1,
+          FE_DOWNWARD,
+          buf_tmp,
+          sizeof(buf_tmp));
+        js_ecvt1(
+          d,
+          n_digits + 1,
+          &decpt2,
+          &sign2,
+          buf2,
+          FE_UPWARD,
+          buf_tmp,
+          sizeof(buf_tmp));
         if (memcmp(buf1, buf2, n_digits + 1) == 0 && decpt1 == decpt2) {
           /* exact result: round away from zero */
           if (sign1)
@@ -1379,11 +1508,24 @@ int js_ecvt(double d, int n_digits, int* decpt, int* sign, char* buf, BOOL is_fi
     }
 #endif /* CONFIG_PRINTF_RNDN */
   }
-  js_ecvt1(d, n_digits, decpt, sign, buf, rounding_mode, buf_tmp, sizeof(buf_tmp));
+  js_ecvt1(
+    d,
+    n_digits,
+    decpt,
+    sign,
+    buf,
+    rounding_mode,
+    buf_tmp,
+    sizeof(buf_tmp));
   return n_digits;
 }
 
-int js_fcvt1(char* buf, int buf_size, double d, int n_digits, int rounding_mode) {
+int js_fcvt1(
+  char* buf,
+  int buf_size,
+  double d,
+  int n_digits,
+  int rounding_mode) {
   int n;
   if (rounding_mode != FE_TONEAREST)
     fesetround(rounding_mode);
@@ -1523,7 +1665,8 @@ JSValue js_dtoa(JSContext* ctx, double d, int radix, int n_digits, int flags) {
   return JS_NewString(ctx, buf);
 }
 
-JSValue JS_ToStringInternal(JSContext* ctx, JSValueConst val, BOOL is_ToPropertyKey) {
+JSValue
+JS_ToStringInternal(JSContext* ctx, JSValueConst val, BOOL is_ToPropertyKey) {
   uint32_t tag;
   const char* str;
   char buf[32];
@@ -1537,7 +1680,9 @@ JSValue JS_ToStringInternal(JSContext* ctx, JSValueConst val, BOOL is_ToProperty
       str = buf;
       goto new_string;
     case JS_TAG_BOOL:
-      return JS_AtomToString(ctx, JS_VALUE_GET_BOOL(val) ? JS_ATOM_true : JS_ATOM_false);
+      return JS_AtomToString(
+        ctx,
+        JS_VALUE_GET_BOOL(val) ? JS_ATOM_true : JS_ATOM_false);
     case JS_TAG_NULL:
       return JS_AtomToString(ctx, JS_ATOM_null);
     case JS_TAG_UNDEFINED:

@@ -26,29 +26,45 @@
 #ifndef QUICKJS_JS_MATH_H
 #define QUICKJS_JS_MATH_H
 
-#include "quickjs/quickjs.h"
-#include "quickjs/cutils.h"
 #include "../types.h"
+#include "quickjs/cutils.h"
+#include "quickjs/quickjs.h"
 
 /* precondition: a and b are not NaN */
 double js_fmin(double a, double b);
 /* precondition: a and b are not NaN */
 double js_fmax(double a, double b);
-JSValue js_math_min_max(JSContext *ctx, JSValueConst this_val,
-                               int argc, JSValueConst *argv, int magic);
+JSValue js_math_min_max(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic);
 double js_math_sign(double a);
 double js_math_round(double a);
-JSValue js_math_hypot(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv);
+JSValue js_math_hypot(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 double js_math_fround(double a);
-JSValue js_math_imul(JSContext *ctx, JSValueConst this_val,
-                            int argc, JSValueConst *argv);
-JSValue js_math_clz32(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv);
+JSValue js_math_imul(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_math_clz32(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 /* xorshift* random number generator by Marsaglia */
-uint64_t xorshift64star(uint64_t *pstate);
-void js_random_init(JSContext *ctx);
-JSValue js_math_random(JSContext *ctx, JSValueConst this_val,
-                              int argc, JSValueConst *argv);
+uint64_t xorshift64star(uint64_t* pstate);
+void js_random_init(JSContext* ctx);
+JSValue js_math_random(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 
 #endif

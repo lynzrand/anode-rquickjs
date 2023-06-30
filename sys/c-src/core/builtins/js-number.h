@@ -29,36 +29,74 @@
 #include "quickjs/quickjs.h"
 
 /* Number */
-JSValue js_number_constructor(JSContext *ctx, JSValueConst new_target,
-                                     int argc, JSValueConst *argv);
+JSValue js_number_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv);
 
-JSValue js_number_isNaN(JSContext *ctx, JSValueConst this_val,
-                               int argc, JSValueConst *argv);
+JSValue js_number_isNaN(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 
-JSValue js_number_isFinite(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv);
+JSValue js_number_isFinite(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 
-JSValue js_number_isInteger(JSContext *ctx, JSValueConst this_val,
-                                   int argc, JSValueConst *argv);
+JSValue js_number_isInteger(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 
-JSValue js_number_isSafeInteger(JSContext *ctx, JSValueConst this_val,
-                                       int argc, JSValueConst *argv);
+JSValue js_number_isSafeInteger(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 
-JSValue js_thisNumberValue(JSContext *ctx, JSValueConst this_val);
-JSValue js_number_valueOf(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv);
-int js_get_radix(JSContext *ctx, JSValueConst val);
-JSValue js_number_toString(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv, int magic);
-JSValue js_number_toFixed(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv);
-JSValue js_number_toExponential(JSContext *ctx, JSValueConst this_val,
-                                       int argc, JSValueConst *argv);
-JSValue js_number_toPrecision(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv);
+JSValue js_thisNumberValue(JSContext* ctx, JSValueConst this_val);
+JSValue js_number_valueOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+int js_get_radix(JSContext* ctx, JSValueConst val);
+JSValue js_number_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic);
+JSValue js_number_toFixed(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_number_toExponential(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_number_toPrecision(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 
-JSValue js_parseInt(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv);
-JSValue js_parseFloat(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv);
+JSValue js_parseInt(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_parseFloat(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 
 #endif

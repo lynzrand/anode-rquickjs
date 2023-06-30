@@ -29,8 +29,8 @@ static force_inline uint32_t get_index_hash(JSAtom atom, int hash_bits) {
   return (atom * 0x9e370001) >> (32 - hash_bits);
 }
 
-InlineCache *init_ic(JSContext *ctx) {
-  InlineCache *ic;
+InlineCache* init_ic(JSContext* ctx) {
+  InlineCache* ic;
   ic = js_malloc(ctx, sizeof(InlineCache));
   if (unlikely(!ic))
     goto fail;
@@ -50,9 +50,9 @@ fail:
   return NULL;
 }
 
-int rebuild_ic(InlineCache *ic) {
+int rebuild_ic(InlineCache* ic) {
   uint32_t i, count;
-  InlineCacheHashSlot *ch;
+  InlineCacheHashSlot* ch;
   if (ic->count == 0)
     goto end;
   count = 0;
@@ -73,10 +73,10 @@ fail:
   return -1;
 }
 
-int resize_ic_hash(InlineCache *ic) {
+int resize_ic_hash(InlineCache* ic) {
   uint32_t new_capacity, i, h;
   InlineCacheHashSlot *ch, *ch_next;
-  InlineCacheHashSlot **new_hash;
+  InlineCacheHashSlot** new_hash;
   ic->hash_bits += 1;
   new_capacity = 1 << ic->hash_bits;
   new_hash = js_malloc(ic->ctx, sizeof(ic->hash[0]) * new_capacity);
@@ -99,10 +99,10 @@ fail:
   return -1;
 }
 
-int free_ic(InlineCache *ic) {
+int free_ic(InlineCache* ic) {
   uint32_t i, j;
   InlineCacheHashSlot *ch, *ch_next;
-  InlineCacheRingItem *buffer;
+  InlineCacheRingItem* buffer;
   for (i = 0; i < ic->count; i++) {
     buffer = ic->cache[i].buffer;
     JS_FreeAtom(ic->ctx, ic->cache[i].atom);
@@ -124,13 +124,16 @@ int free_ic(InlineCache *ic) {
   return 0;
 }
 
-uint32_t add_ic_slot(InlineCache *ic, JSAtom atom, JSObject *object,
-                     uint32_t prop_offset) {
+uint32_t add_ic_slot(
+  InlineCache* ic,
+  JSAtom atom,
+  JSObject* object,
+  uint32_t prop_offset) {
   int32_t i;
   uint32_t h;
-  InlineCacheHashSlot *ch;
-  InlineCacheRingSlot *cr;
-  JSShape *sh;
+  InlineCacheHashSlot* ch;
+  InlineCacheRingSlot* cr;
+  JSShape* sh;
   cr = NULL;
   h = get_index_hash(atom, ic->hash_bits);
   for (ch = ic->hash[h]; ch != NULL; ch = ch->next)
@@ -160,9 +163,9 @@ end:
   return ch->index;
 }
 
-uint32_t add_ic_slot1(InlineCache *ic, JSAtom atom) {
+uint32_t add_ic_slot1(InlineCache* ic, JSAtom atom) {
   uint32_t h;
-  InlineCacheHashSlot *ch;
+  InlineCacheHashSlot* ch;
   if (ic->count + 1 >= ic->capacity && resize_ic_hash(ic))
     goto end;
   h = get_index_hash(atom, ic->hash_bits);

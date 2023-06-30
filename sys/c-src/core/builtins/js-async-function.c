@@ -24,6 +24,7 @@
  */
 
 #include "js-async-function.h"
+
 #include "../exception.h"
 #include "../function.h"
 #include "../gc.h"
@@ -33,13 +34,16 @@
 #include "quickjs/list.h"
 
 /* JSAsyncFunctionState (used by generator and async functions) */
-__exception int async_func_init(JSContext *ctx, JSAsyncFunctionState *s,
-                                       JSValueConst func_obj, JSValueConst this_obj,
-                                       int argc, JSValueConst *argv)
-{
-  JSObject *p;
-  JSFunctionBytecode *b;
-  JSStackFrame *sf;
+__exception int async_func_init(
+  JSContext* ctx,
+  JSAsyncFunctionState* s,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv) {
+  JSObject* p;
+  JSFunctionBytecode* b;
+  JSStackFrame* sf;
   int local_count, i, arg_buf_len, n;
 
   sf = &s->frame;
@@ -59,19 +63,20 @@ __exception int async_func_init(JSContext *ctx, JSAsyncFunctionState *s,
   sf->arg_count = arg_buf_len;
   sf->var_buf = sf->arg_buf + arg_buf_len;
   sf->cur_sp = sf->var_buf + b->var_count;
-  for(i = 0; i < argc; i++)
+  for (i = 0; i < argc; i++)
     sf->arg_buf[i] = JS_DupValue(ctx, argv[i]);
   n = arg_buf_len + b->var_count;
-  for(i = argc; i < n; i++)
+  for (i = argc; i < n; i++)
     sf->arg_buf[i] = JS_UNDEFINED;
   return 0;
 }
 
-void async_func_mark(JSRuntime *rt, JSAsyncFunctionState *s,
-                            JS_MarkFunc *mark_func)
-{
-  JSStackFrame *sf;
-  JSValue *sp;
+void async_func_mark(
+  JSRuntime* rt,
+  JSAsyncFunctionState* s,
+  JS_MarkFunc* mark_func) {
+  JSStackFrame* sf;
+  JSValue* sp;
 
   sf = &s->frame;
   JS_MarkValue(rt, sf->cur_func, mark_func);
@@ -81,15 +86,14 @@ void async_func_mark(JSRuntime *rt, JSAsyncFunctionState *s,
        cannot mark the stack. Marking the variables is not needed
        because a running function cannot be part of a removable
        cycle */
-    for(sp = sf->arg_buf; sp < sf->cur_sp; sp++)
+    for (sp = sf->arg_buf; sp < sf->cur_sp; sp++)
       JS_MarkValue(rt, *sp, mark_func);
   }
 }
 
-void async_func_free(JSRuntime *rt, JSAsyncFunctionState *s)
-{
-  JSStackFrame *sf;
-  JSValue *sp;
+void async_func_free(JSRuntime* rt, JSAsyncFunctionState* s) {
+  JSStackFrame* sf;
+  JSValue* sp;
 
   sf = &s->frame;
 
@@ -99,7 +103,7 @@ void async_func_free(JSRuntime *rt, JSAsyncFunctionState *s)
   if (sf->arg_buf) {
     /* cannot free the function if it is running */
     assert(sf->cur_sp != NULL);
-    for(sp = sf->arg_buf; sp < sf->cur_sp; sp++) {
+    for (sp = sf->arg_buf; sp < sf->cur_sp; sp++) {
       JS_FreeValueRT(rt, *sp);
     }
     js_free_rt(rt, sf->arg_buf);
@@ -108,8 +112,7 @@ void async_func_free(JSRuntime *rt, JSAsyncFunctionState *s)
   JS_FreeValueRT(rt, s->this_val);
 }
 
-JSValue async_func_resume(JSContext *ctx, JSAsyncFunctionState *s)
-{
+JSValue async_func_resume(JSContext* ctx, JSAsyncFunctionState* s) {
   JSValue func_obj;
 
   if (js_check_stack_overflow(ctx->rt, 0))
@@ -117,24 +120,26 @@ JSValue async_func_resume(JSContext *ctx, JSAsyncFunctionState *s)
 
   /* the tag does not matter provided it is not an object */
   func_obj = JS_MKPTR(JS_TAG_INT, s);
-  return JS_CallInternal(ctx, func_obj, s->this_val, JS_UNDEFINED,
-                         s->argc, s->frame.arg_buf, JS_CALL_FLAG_GENERATOR);
+  return JS_CallInternal(
+    ctx,
+    func_obj,
+    s->this_val,
+    JS_UNDEFINED,
+    s->argc,
+    s->frame.arg_buf,
+    JS_CALL_FLAG_GENERATOR);
 }
-
-
 
 /* AsyncFunction */
 
-void js_async_function_terminate(JSRuntime *rt, JSAsyncFunctionData *s)
-{
+void js_async_function_terminate(JSRuntime* rt, JSAsyncFunctionData* s) {
   if (s->is_active) {
     async_func_free(rt, &s->func_state);
     s->is_active = FALSE;
   }
 }
 
-void js_async_function_free0(JSRuntime *rt, JSAsyncFunctionData *s)
-{
+void js_async_function_free0(JSRuntime* rt, JSAsyncFunctionData* s) {
   js_async_function_terminate(rt, s);
   JS_FreeValueRT(rt, s->resolving_funcs[0]);
   JS_FreeValueRT(rt, s->resolving_funcs[1]);
@@ -142,43 +147,43 @@ void js_async_function_free0(JSRuntime *rt, JSAsyncFunctionData *s)
   js_free_rt(rt, s);
 }
 
-void js_async_function_free(JSRuntime *rt, JSAsyncFunctionData *s)
-{
+void js_async_function_free(JSRuntime* rt, JSAsyncFunctionData* s) {
   if (--s->header.ref_count == 0) {
     js_async_function_free0(rt, s);
   }
 }
 
-void js_async_function_resolve_finalizer(JSRuntime *rt, JSValue val)
-{
-  JSObject *p = JS_VALUE_GET_OBJ(val);
-  JSAsyncFunctionData *s = p->u.async_function_data;
+void js_async_function_resolve_finalizer(JSRuntime* rt, JSValue val) {
+  JSObject* p = JS_VALUE_GET_OBJ(val);
+  JSAsyncFunctionData* s = p->u.async_function_data;
   if (s) {
     js_async_function_free(rt, s);
   }
 }
 
-void js_async_function_resolve_mark(JSRuntime *rt, JSValueConst val,
-                                           JS_MarkFunc *mark_func)
-{
-  JSObject *p = JS_VALUE_GET_OBJ(val);
-  JSAsyncFunctionData *s = p->u.async_function_data;
+void js_async_function_resolve_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func) {
+  JSObject* p = JS_VALUE_GET_OBJ(val);
+  JSAsyncFunctionData* s = p->u.async_function_data;
   if (s) {
     mark_func(rt, &s->header);
   }
 }
 
-int js_async_function_resolve_create(JSContext *ctx,
-                                            JSAsyncFunctionData *s,
-                                            JSValue *resolving_funcs)
-{
+int js_async_function_resolve_create(
+  JSContext* ctx,
+  JSAsyncFunctionData* s,
+  JSValue* resolving_funcs) {
   int i;
-  JSObject *p;
+  JSObject* p;
 
-  for(i = 0; i < 2; i++) {
-    resolving_funcs[i] =
-        JS_NewObjectProtoClass(ctx, ctx->function_proto,
-                               JS_CLASS_ASYNC_FUNCTION_RESOLVE + i);
+  for (i = 0; i < 2; i++) {
+    resolving_funcs[i] = JS_NewObjectProtoClass(
+      ctx,
+      ctx->function_proto,
+      JS_CLASS_ASYNC_FUNCTION_RESOLVE + i);
     if (JS_IsException(resolving_funcs[i])) {
       if (i == 1)
         JS_FreeValue(ctx, resolving_funcs[0]);
@@ -191,8 +196,7 @@ int js_async_function_resolve_create(JSContext *ctx,
   return 0;
 }
 
-void js_async_function_resume(JSContext *ctx, JSAsyncFunctionData *s)
-{
+void js_async_function_resume(JSContext* ctx, JSAsyncFunctionData* s) {
   JSValue func_ret, ret2;
 
   func_ret = async_func_resume(ctx, &s->func_state);
@@ -200,8 +204,12 @@ void js_async_function_resume(JSContext *ctx, JSAsyncFunctionData *s)
     JSValue error;
   fail:
     error = JS_GetException(ctx);
-    ret2 = JS_Call(ctx, s->resolving_funcs[1], JS_UNDEFINED,
-                   1, (JSValueConst *)&error);
+    ret2 = JS_Call(
+      ctx,
+      s->resolving_funcs[1],
+      JS_UNDEFINED,
+      1,
+      (JSValueConst*)&error);
     JS_FreeValue(ctx, error);
     js_async_function_terminate(ctx->rt, s);
     JS_FreeValue(ctx, ret2); /* XXX: what to do if exception ? */
@@ -211,8 +219,12 @@ void js_async_function_resume(JSContext *ctx, JSAsyncFunctionData *s)
     s->func_state.frame.cur_sp[-1] = JS_UNDEFINED;
     if (JS_IsUndefined(func_ret)) {
       /* function returned */
-      ret2 = JS_Call(ctx, s->resolving_funcs[0], JS_UNDEFINED,
-                     1, (JSValueConst *)&value);
+      ret2 = JS_Call(
+        ctx,
+        s->resolving_funcs[0],
+        JS_UNDEFINED,
+        1,
+        (JSValueConst*)&value);
       JS_FreeValue(ctx, ret2); /* XXX: what to do if exception ? */
       JS_FreeValue(ctx, value);
       js_async_function_terminate(ctx->rt, s);
@@ -222,8 +234,8 @@ void js_async_function_resume(JSContext *ctx, JSAsyncFunctionData *s)
 
       /* await */
       JS_FreeValue(ctx, func_ret); /* not used */
-      promise = js_promise_resolve(ctx, ctx->promise_ctor,
-                                   1, (JSValueConst *)&value, 0);
+      promise =
+        js_promise_resolve(ctx, ctx->promise_ctor, 1, (JSValueConst*)&value, 0);
       JS_FreeValue(ctx, value);
       if (JS_IsException(promise))
         goto fail;
@@ -234,13 +246,15 @@ void js_async_function_resume(JSContext *ctx, JSAsyncFunctionData *s)
 
       /* Note: no need to create 'thrownawayCapability' as in
          the spec */
-      for(i = 0; i < 2; i++)
+      for (i = 0; i < 2; i++)
         resolving_funcs1[i] = JS_UNDEFINED;
-      res = perform_promise_then(ctx, promise,
-                                 (JSValueConst *)resolving_funcs,
-                                 (JSValueConst *)resolving_funcs1);
+      res = perform_promise_then(
+        ctx,
+        promise,
+        (JSValueConst*)resolving_funcs,
+        (JSValueConst*)resolving_funcs1);
       JS_FreeValue(ctx, promise);
-      for(i = 0; i < 2; i++)
+      for (i = 0; i < 2; i++)
         JS_FreeValue(ctx, resolving_funcs[i]);
       if (res)
         goto fail;
@@ -248,14 +262,15 @@ void js_async_function_resume(JSContext *ctx, JSAsyncFunctionData *s)
   }
 }
 
-JSValue js_async_function_resolve_call(JSContext *ctx,
-                                              JSValueConst func_obj,
-                                              JSValueConst this_obj,
-                                              int argc, JSValueConst *argv,
-                                              int flags)
-{
-  JSObject *p = JS_VALUE_GET_OBJ(func_obj);
-  JSAsyncFunctionData *s = p->u.async_function_data;
+JSValue js_async_function_resolve_call(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags) {
+  JSObject* p = JS_VALUE_GET_OBJ(func_obj);
+  JSAsyncFunctionData* s = p->u.async_function_data;
   BOOL is_reject = p->class_id - JS_CLASS_ASYNC_FUNCTION_RESOLVE;
   JSValueConst arg;
 
@@ -274,12 +289,15 @@ JSValue js_async_function_resolve_call(JSContext *ctx,
   return JS_UNDEFINED;
 }
 
-JSValue js_async_function_call(JSContext *ctx, JSValueConst func_obj,
-                                      JSValueConst this_obj,
-                                      int argc, JSValueConst *argv, int flags)
-{
+JSValue js_async_function_call(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags) {
   JSValue promise;
-  JSAsyncFunctionData *s;
+  JSAsyncFunctionData* s;
 
   s = js_mallocz(ctx, sizeof(*s));
   if (!s)

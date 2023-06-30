@@ -32,7 +32,8 @@
 
 #define JS_CALL_FLAG_COPY_ARGV (1 << 1)
 #define JS_CALL_FLAG_GENERATOR (1 << 2)
-#define JS_CALL_FLAG_IS_DEOPT (1 << 3)  // Used when calling a function that has been deoptimized
+#define JS_CALL_FLAG_IS_DEOPT \
+  (1 << 3)  // Used when calling a function that has been deoptimized
 
 #define OP_DEFINE_METHOD_METHOD 0
 #define OP_DEFINE_METHOD_GETTER 1
@@ -80,11 +81,11 @@ static inline BOOL js_check_stack_overflow(JSRuntime* rt, size_t alloca_size) {
 #else
 /* Note: OS and CPU dependent */
 static inline uintptr_t js_get_stack_pointer(void) {
-#ifdef _MSC_VER
+  #ifdef _MSC_VER
   return _AddressOfReturnAddress();
-#else
+  #else
   return (uintptr_t)__builtin_frame_address(0);
-#endif
+  #endif
 }
 
 static inline BOOL js_check_stack_overflow(JSRuntime* rt, size_t alloca_size) {
@@ -94,35 +95,89 @@ static inline BOOL js_check_stack_overflow(JSRuntime* rt, size_t alloca_size) {
 }
 #endif
 
-JSValue js_call_c_function(JSContext* ctx, JSValueConst func_obj, JSValueConst this_obj, int argc,
-                           JSValueConst* argv, int flags);
-JSValue js_call_bound_function(JSContext* ctx, JSValueConst func_obj, JSValueConst this_obj,
-                               int argc, JSValueConst* argv, int flags);
-JSValue JS_CallInternal(JSContext* ctx, JSValueConst func_obj, JSValueConst this_obj,
-                        JSValueConst new_target, int argc, JSValue* argv, int flags);
-JSValue JS_CallConstructorInternal(JSContext* ctx, JSValueConst func_obj, JSValueConst new_target,
-                                   int argc, JSValue* argv, int flags);
-BOOL JS_IsCFunction(JSContext* ctx, JSValueConst val, JSCFunction* func, int magic);
+JSValue js_call_c_function(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags);
+JSValue js_call_bound_function(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags);
+JSValue JS_CallInternal(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  JSValueConst new_target,
+  int argc,
+  JSValue* argv,
+  int flags);
+JSValue JS_CallConstructorInternal(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst new_target,
+  int argc,
+  JSValue* argv,
+  int flags);
+BOOL JS_IsCFunction(
+  JSContext* ctx,
+  JSValueConst val,
+  JSCFunction* func,
+  int magic);
 
 /* Note: at least 'length' arguments will be readable in 'argv' */
-JSValue JS_NewCFunction3(JSContext* ctx, JSCFunction* func, const char* name, int length,
-                         JSCFunctionEnum cproto, int magic, JSValueConst proto_val);
+JSValue JS_NewCFunction3(
+  JSContext* ctx,
+  JSCFunction* func,
+  const char* name,
+  int length,
+  JSCFunctionEnum cproto,
+  int magic,
+  JSValueConst proto_val);
 
 /* warning: the refcount of the context is not incremented. Return
    NULL in case of exception (case of revoked proxy only) */
 JSContext* JS_GetFunctionRealm(JSContext* ctx, JSValueConst func_obj);
 
-JSValue JS_CallFree(JSContext* ctx, JSValue func_obj, JSValueConst this_obj, int argc,
-                    JSValueConst* argv);
-JSValue JS_InvokeFree(JSContext* ctx, JSValue this_val, JSAtom atom, int argc, JSValueConst* argv);
+JSValue JS_CallFree(
+  JSContext* ctx,
+  JSValue func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv);
+JSValue JS_InvokeFree(
+  JSContext* ctx,
+  JSValue this_val,
+  JSAtom atom,
+  int argc,
+  JSValueConst* argv);
 
 void js_c_function_data_finalizer(JSRuntime* rt, JSValue val);
-void js_c_function_data_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
+void js_c_function_data_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func);
 
-JSValue js_c_function_data_call(JSContext* ctx, JSValueConst func_obj, JSValueConst this_val,
-                                int argc, JSValueConst* argv, int flags);
+JSValue js_c_function_data_call(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int flags);
 
-int js_op_define_class(JSContext* ctx, JSValue* sp, JSAtom class_name, int class_flags,
-                       JSVarRef** cur_var_refs, JSStackFrame* sf, BOOL is_computed_name);
+int js_op_define_class(
+  JSContext* ctx,
+  JSValue* sp,
+  JSAtom class_name,
+  int class_flags,
+  JSVarRef** cur_var_refs,
+  JSStackFrame* sf,
+  BOOL is_computed_name);
 
 #endif

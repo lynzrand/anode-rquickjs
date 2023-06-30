@@ -28,9 +28,12 @@
 
 #include "quickjs/quickjs.h"
 
-JSValue js_compile_regexp(JSContext *ctx, JSValueConst pattern,
-                                 JSValueConst flags);
-JSValue js_regexp_constructor_internal(JSContext *ctx, JSValueConst ctor,
-                                              JSValue pattern, JSValue bc);
+JSValue
+js_compile_regexp(JSContext* ctx, JSValueConst pattern, JSValueConst flags);
+JSValue js_regexp_constructor_internal(
+  JSContext* ctx,
+  JSValueConst ctor,
+  JSValue pattern,
+  JSValue bc);
 
 #endif

@@ -28,17 +28,32 @@
 
 #include "quickjs/quickjs.h"
 
-JSValue js_symbol_constructor(JSContext *ctx, JSValueConst new_target,
-                                     int argc, JSValueConst *argv);
-JSValue js_thisSymbolValue(JSContext *ctx, JSValueConst this_val);
-JSValue js_symbol_toString(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv);
-JSValue js_symbol_valueOf(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv);
-JSValue js_symbol_get_description(JSContext *ctx, JSValueConst this_val);
-JSValue js_symbol_for(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv);
-JSValue js_symbol_keyFor(JSContext *ctx, JSValueConst this_val,
-                                int argc, JSValueConst *argv);
+JSValue js_symbol_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv);
+JSValue js_thisSymbolValue(JSContext* ctx, JSValueConst this_val);
+JSValue js_symbol_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_symbol_valueOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_symbol_get_description(JSContext* ctx, JSValueConst this_val);
+JSValue js_symbol_for(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_symbol_keyFor(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 
 #endif

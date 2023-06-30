@@ -2,6 +2,4 @@
 
 #ifdef DEF
 
-
-
 #endif /* DEF */

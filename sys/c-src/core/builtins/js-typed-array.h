@@ -30,8 +30,21 @@
 #include "quickjs/cutils.h"
 #include "quickjs/quickjs.h"
 
-JSValue js_array_buffer_constructor3(JSContext* ctx, JSValueConst new_target, uint64_t len, JSClassID class_id, uint8_t* buf, JSFreeArrayBufferDataFunc* free_func, void* opaque, BOOL alloc_flag);
-JSValue js_typed_array_constructor(JSContext* ctx, JSValueConst new_target, int argc, JSValueConst* argv, int classid);
+JSValue js_array_buffer_constructor3(
+  JSContext* ctx,
+  JSValueConst new_target,
+  uint64_t len,
+  JSClassID class_id,
+  uint8_t* buf,
+  JSFreeArrayBufferDataFunc* free_func,
+  void* opaque,
+  BOOL alloc_flag);
+JSValue js_typed_array_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv,
+  int classid);
 
 JSArrayBuffer* js_get_array_buffer(JSContext* ctx, JSValueConst obj);
 BOOL typed_array_is_detached(JSContext* ctx, JSObject* p);

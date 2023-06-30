@@ -26,8 +26,8 @@
 #ifndef QUICKJS_STRING_H
 #define QUICKJS_STRING_H
 
-#include "quickjs/quickjs.h"
 #include "quickjs/cutils.h"
+#include "quickjs/quickjs.h"
 #include "types.h"
 
 #define ATOM_GET_STR_BUF_SIZE 64
@@ -60,7 +60,6 @@ static inline JSAtomStruct* atom_set_free(uint32_t v) {
   return (JSAtomStruct*)(((uintptr_t)v << 1) | 1);
 }
 
-
 JSString* js_alloc_string(JSContext* ctx, int max_len, int is_wide_char);
 /* Note: the string contents are uninitialized */
 JSString* js_alloc_string_rt(JSRuntime* rt, int max_len, int is_wide_char);
@@ -72,7 +71,8 @@ void JS_FreeAtomStruct(JSRuntime* rt, JSAtomStruct* p);
 void __JS_FreeAtom(JSRuntime* rt, uint32_t i);
 JSAtom JS_NewAtomInt64(JSContext* ctx, int64_t n);
 /* Should only be used for debug. */
-const char* JS_AtomGetStrRT(JSRuntime* rt, char* buf, int buf_size, JSAtom atom);
+const char*
+JS_AtomGetStrRT(JSRuntime* rt, char* buf, int buf_size, JSAtom atom);
 const char* JS_AtomGetStr(JSContext* ctx, char* buf, int buf_size, JSAtom atom);
 JSValue __JS_AtomToValue(JSContext* ctx, JSAtom atom, BOOL force_string);
 /* val must be a symbol */
@@ -98,7 +98,8 @@ int js_string_memcmp(const JSString* p1, const JSString* p2, int len);
 /* return < 0, 0 or > 0 */
 int js_string_compare(JSContext* ctx, const JSString* p1, const JSString* p2);
 void copy_str16(uint16_t* dst, const JSString* p, int offset, int len);
-JSValue JS_ConcatString1(JSContext* ctx, const JSString* p1, const JSString* p2);
+JSValue
+JS_ConcatString1(JSContext* ctx, const JSString* p1, const JSString* p2);
 
 __maybe_unused void JS_DumpString(JSRuntime* rt, const JSString* p);
 
@@ -180,7 +181,8 @@ static inline BOOL is_num_string(uint32_t* pval, const JSString* p) {
 }
 
 /* XXX: could use faster version ? */
-static inline uint32_t hash_string8(const uint8_t* str, size_t len, uint32_t h) {
+static inline uint32_t
+hash_string8(const uint8_t* str, size_t len, uint32_t h) {
   size_t i;
 
   for (i = 0; i < len; i++)
@@ -188,7 +190,8 @@ static inline uint32_t hash_string8(const uint8_t* str, size_t len, uint32_t h) 
   return h;
 }
 
-static inline uint32_t hash_string16(const uint16_t* str, size_t len, uint32_t h) {
+static inline uint32_t
+hash_string16(const uint16_t* str, size_t len, uint32_t h) {
   size_t i;
 
   for (i = 0; i < len; i++)
@@ -198,7 +201,8 @@ static inline uint32_t hash_string16(const uint16_t* str, size_t len, uint32_t h
 uint32_t hash_string(const JSString* str, uint32_t h);
 int string_buffer_init2(JSContext* ctx, StringBuffer* s, int size, int is_wide);
 
-static inline int string_buffer_init(JSContext* ctx, StringBuffer* s, int size) {
+static inline int
+string_buffer_init(JSContext* ctx, StringBuffer* s, int size) {
   return string_buffer_init2(ctx, s, size, 0);
 }
 void string_buffer_free(StringBuffer* s);
@@ -218,7 +222,11 @@ int string_buffer_write8(StringBuffer* s, const uint8_t* p, int len);
 int string_buffer_write16(StringBuffer* s, const uint16_t* p, int len);
 /* appending an ASCII string */
 int string_buffer_puts8(StringBuffer* s, const char* str);
-int string_buffer_concat(StringBuffer* s, const JSString* p, uint32_t from, uint32_t to);
+int string_buffer_concat(
+  StringBuffer* s,
+  const JSString* p,
+  uint32_t from,
+  uint32_t to);
 int string_buffer_concat_value(StringBuffer* s, JSValueConst v);
 int string_buffer_concat_value_free(StringBuffer* s, JSValue v);
 int string_buffer_fill(StringBuffer* s, int c, int count);
@@ -228,7 +236,11 @@ JSValue js_new_string8(JSContext* ctx, const uint8_t* buf, int len);
 JSValue js_new_string16(JSContext* ctx, const uint16_t* buf, int len);
 JSValue js_new_string_char(JSContext* ctx, uint16_t c);
 JSValue js_sub_string(JSContext* ctx, JSString* p, int start, int end);
-JSValue JS_ConcatString3(JSContext* ctx, const char* str1, JSValue str2, const char* str3);
+JSValue JS_ConcatString3(
+  JSContext* ctx,
+  const char* str1,
+  JSValue str2,
+  const char* str3);
 /* op1 and op2 are converted to strings. For convience, op1 or op2 =
    JS_EXCEPTION are accepted and return JS_EXCEPTION.  */
 JSValue JS_ConcatString(JSContext* ctx, JSValue op1, JSValue op2);
@@ -237,7 +249,8 @@ JSValue JS_ConcatString(JSContext* ctx, JSValue op1, JSValue op2);
 JSAtom js_atom_concat_str(JSContext* ctx, JSAtom name, const char* str1);
 JSAtom js_atom_concat_num(JSContext* ctx, JSAtom name, uint32_t n);
 static inline BOOL JS_IsEmptyString(JSValueConst v) {
-  return JS_VALUE_GET_TAG(v) == JS_TAG_STRING && JS_VALUE_GET_STRING(v)->len == 0;
+  return JS_VALUE_GET_TAG(v) == JS_TAG_STRING
+    && JS_VALUE_GET_STRING(v)->len == 0;
 }
 
 /* return TRUE if 'v' is a symbol with a string description */

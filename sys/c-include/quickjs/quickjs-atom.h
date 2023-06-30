@@ -147,7 +147,9 @@ DEF(new_target, "new.target")
 DEF(this_active_func, "this.active_func")
 DEF(home_object, "<home_object>")
 DEF(computed_field, "<computed_field>")
-DEF(static_computed_field, "<static_computed_field>") /* must come after computed_fields */
+DEF(
+  static_computed_field,
+  "<static_computed_field>") /* must come after computed_fields */
 DEF(class_fields_init, "<class_fields_init>")
 DEF(brand, "<brand>")
 DEF(hash_constructor, "#constructor")
@@ -169,19 +171,19 @@ DEF(groups, "groups")
 DEF(status, "status")
 DEF(reason, "reason")
 DEF(globalThis, "globalThis")
-#ifdef CONFIG_BIGNUM
+  #ifdef CONFIG_BIGNUM
 DEF(bigint, "bigint")
 DEF(bigfloat, "bigfloat")
 DEF(bigdecimal, "bigdecimal")
 DEF(roundingMode, "roundingMode")
 DEF(maximumSignificantDigits, "maximumSignificantDigits")
 DEF(maximumFractionDigits, "maximumFractionDigits")
-#endif
-#ifdef CONFIG_ATOMICS
+  #endif
+  #ifdef CONFIG_ATOMICS
 DEF(not_equal, "not-equal")
 DEF(timed_out, "timed-out")
 DEF(ok, "ok")
-#endif
+  #endif
 DEF(toJSON, "toJSON")
 /* class names */
 DEF(Object, "Object")
@@ -202,28 +204,28 @@ DEF(RegExp, "RegExp")
 DEF(ArrayBuffer, "ArrayBuffer")
 DEF(SharedArrayBuffer, "SharedArrayBuffer")
 /* must keep same order as class IDs for typed arrays */
-DEF(Uint8ClampedArray, "Uint8ClampedArray") 
+DEF(Uint8ClampedArray, "Uint8ClampedArray")
 DEF(Int8Array, "Int8Array")
 DEF(Uint8Array, "Uint8Array")
 DEF(Int16Array, "Int16Array")
 DEF(Uint16Array, "Uint16Array")
 DEF(Int32Array, "Int32Array")
 DEF(Uint32Array, "Uint32Array")
-#ifdef CONFIG_BIGNUM
+  #ifdef CONFIG_BIGNUM
 DEF(BigInt64Array, "BigInt64Array")
 DEF(BigUint64Array, "BigUint64Array")
-#endif
+  #endif
 DEF(Float32Array, "Float32Array")
 DEF(Float64Array, "Float64Array")
 DEF(DataView, "DataView")
-#ifdef CONFIG_BIGNUM
+  #ifdef CONFIG_BIGNUM
 DEF(BigInt, "BigInt")
 DEF(BigFloat, "BigFloat")
 DEF(BigFloatEnv, "BigFloatEnv")
 DEF(BigDecimal, "BigDecimal")
 DEF(OperatorSet, "OperatorSet")
 DEF(Operators, "Operators")
-#endif
+  #endif
 DEF(Map, "Map")
 DEF(Set, "Set") /* Map + 1 */
 DEF(WeakMap, "WeakMap") /* Map + 2 */
@@ -266,8 +268,8 @@ DEF(Symbol_hasInstance, "Symbol.hasInstance")
 DEF(Symbol_species, "Symbol.species")
 DEF(Symbol_unscopables, "Symbol.unscopables")
 DEF(Symbol_asyncIterator, "Symbol.asyncIterator")
-#ifdef CONFIG_BIGNUM
+  #ifdef CONFIG_BIGNUM
 DEF(Symbol_operatorSet, "Symbol.operatorSet")
-#endif
-    
+  #endif
+
 #endif /* DEF */

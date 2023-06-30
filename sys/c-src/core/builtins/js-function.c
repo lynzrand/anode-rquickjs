@@ -24,6 +24,7 @@
  */
 
 #include "js-function.h"
+
 #include "../convertion.h"
 #include "../exception.h"
 #include "../function.h"
@@ -42,7 +43,10 @@ void js_c_function_finalizer(JSRuntime* rt, JSValue val) {
     JS_FreeContext(p->u.cfunc.realm);
 }
 
-void js_c_function_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func) {
+void js_c_function_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func) {
   JSObject* p = JS_VALUE_GET_OBJ(val);
 
   if (p->u.cfunc.realm)
@@ -71,7 +75,10 @@ void js_bytecode_function_finalizer(JSRuntime* rt, JSValue val) {
   }
 }
 
-void js_bytecode_function_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func) {
+void js_bytecode_function_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func) {
   JSObject* p = JS_VALUE_GET_OBJ(val);
   JSVarRef** var_refs = p->u.func.var_refs;
   JSFunctionBytecode* b = p->u.func.function_bytecode;
@@ -108,7 +115,10 @@ void js_bound_function_finalizer(JSRuntime* rt, JSValue val) {
   js_free_rt(rt, bf);
 }
 
-void js_bound_function_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func) {
+void js_bound_function_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func) {
   JSObject* p = JS_VALUE_GET_OBJ(val);
   JSBoundFunction* bf = p->u.bound_function;
   int i;
@@ -127,16 +137,21 @@ void free_arg_list(JSContext* ctx, JSValue* tab, uint32_t len) {
   js_free(ctx, tab);
 }
 
-JSValue js_function_proto(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_function_proto(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return JS_UNDEFINED;
 }
 
 /* XXX: add a specific eval mode so that Function("}), ({") is rejected */
-JSValue js_function_constructor(JSContext* ctx,
-                                       JSValueConst new_target,
-                                       int argc,
-                                       JSValueConst* argv,
-                                       int magic) {
+JSValue js_function_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   JSFunctionKindEnum func_kind = magic;
   int i, n, ret;
   JSValue s, proto, obj = JS_UNDEFINED;
@@ -188,7 +203,8 @@ JSValue js_function_constructor(JSContext* ctx,
       realm = JS_GetFunctionRealm(ctx, new_target);
       if (!realm)
         goto fail1;
-      proto = JS_DupValue(ctx, realm->class_proto[func_kind_to_class_id[func_kind]]);
+      proto =
+        JS_DupValue(ctx, realm->class_proto[func_kind_to_class_id[func_kind]]);
     }
     ret = JS_SetPrototypeInternal(ctx, obj, proto, TRUE);
     JS_FreeValue(ctx, proto);
@@ -204,7 +220,8 @@ fail1:
   return JS_EXCEPTION;
 }
 
-__exception int js_get_length32(JSContext* ctx, uint32_t* pres, JSValueConst obj) {
+__exception int
+js_get_length32(JSContext* ctx, uint32_t* pres, JSValueConst obj) {
   JSValue len_val;
   len_val = JS_GetProperty(ctx, obj, JS_ATOM_length);
   if (JS_IsException(len_val)) {
@@ -214,7 +231,8 @@ __exception int js_get_length32(JSContext* ctx, uint32_t* pres, JSValueConst obj
   return JS_ToUint32Free(ctx, pres, len_val);
 }
 
-__exception int js_get_length64(JSContext* ctx, int64_t* pres, JSValueConst obj) {
+__exception int
+js_get_length64(JSContext* ctx, int64_t* pres, JSValueConst obj) {
   JSValue len_val;
   len_val = JS_GetProperty(ctx, obj, JS_ATOM_length);
   if (JS_IsException(len_val)) {
@@ -225,7 +243,8 @@ __exception int js_get_length64(JSContext* ctx, int64_t* pres, JSValueConst obj)
 }
 
 /* XXX: should use ValueArray */
-JSValue* build_arg_list(JSContext* ctx, uint32_t* plen, JSValueConst array_arg) {
+JSValue*
+build_arg_list(JSContext* ctx, uint32_t* plen, JSValueConst array_arg) {
   uint32_t len, i;
   JSValue *tab, ret;
   JSObject* p;
@@ -245,8 +264,9 @@ JSValue* build_arg_list(JSContext* ctx, uint32_t* plen, JSValueConst array_arg) 
   if (!tab)
     return NULL;
   p = JS_VALUE_GET_OBJ(array_arg);
-  if ((p->class_id == JS_CLASS_ARRAY || p->class_id == JS_CLASS_ARGUMENTS) && p->fast_array &&
-      len == p->u.array.count) {
+  if (
+    (p->class_id == JS_CLASS_ARRAY || p->class_id == JS_CLASS_ARGUMENTS)
+    && p->fast_array && len == p->u.array.count) {
     for (i = 0; i < len; i++) {
       tab[i] = JS_DupValue(ctx, p->u.array.u.values[i]);
     }
@@ -264,15 +284,34 @@ JSValue* build_arg_list(JSContext* ctx, uint32_t* plen, JSValueConst array_arg) 
   return tab;
 }
 
-void js_function_set_properties(JSContext* ctx, JSValueConst func_obj, JSAtom name, int len) {
+void js_function_set_properties(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSAtom name,
+  int len) {
   /* ES6 feature non compatible with ES5.1: length is configurable */
-  JS_DefinePropertyValue(ctx, func_obj, JS_ATOM_length, JS_NewInt32(ctx, len), JS_PROP_CONFIGURABLE);
-  JS_DefinePropertyValue(ctx, func_obj, JS_ATOM_name, JS_AtomToString(ctx, name), JS_PROP_CONFIGURABLE);
+  JS_DefinePropertyValue(
+    ctx,
+    func_obj,
+    JS_ATOM_length,
+    JS_NewInt32(ctx, len),
+    JS_PROP_CONFIGURABLE);
+  JS_DefinePropertyValue(
+    ctx,
+    func_obj,
+    JS_ATOM_name,
+    JS_AtomToString(ctx, name),
+    JS_PROP_CONFIGURABLE);
 }
 
 /* magic value: 0 = normal apply, 1 = apply for constructor, 2 =
    Reflect.apply */
-JSValue js_function_apply(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic) {
+JSValue js_function_apply(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   JSValueConst this_arg, array_arg;
   uint32_t len;
   JSValue *tab, ret;
@@ -281,7 +320,10 @@ JSValue js_function_apply(JSContext* ctx, JSValueConst this_val, int argc, JSVal
     return JS_EXCEPTION;
   this_arg = argv[0];
   array_arg = argv[1];
-  if ((JS_VALUE_GET_TAG(array_arg) == JS_TAG_UNDEFINED || JS_VALUE_GET_TAG(array_arg) == JS_TAG_NULL) && magic != 2) {
+  if (
+    (JS_VALUE_GET_TAG(array_arg) == JS_TAG_UNDEFINED
+     || JS_VALUE_GET_TAG(array_arg) == JS_TAG_NULL)
+    && magic != 2) {
     return JS_Call(ctx, this_val, this_arg, 0, NULL);
   }
   tab = build_arg_list(ctx, &len, array_arg);
@@ -296,7 +338,11 @@ JSValue js_function_apply(JSContext* ctx, JSValueConst this_val, int argc, JSVal
   return ret;
 }
 
-JSValue js_function_call(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_function_call(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   if (argc <= 0) {
     return JS_Call(ctx, this_val, JS_UNDEFINED, 0, NULL);
   } else {
@@ -304,7 +350,11 @@ JSValue js_function_call(JSContext* ctx, JSValueConst this_val, int argc, JSValu
   }
 }
 
-JSValue js_function_bind(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_function_bind(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSBoundFunction* bf;
   JSValue func_obj, name1, len_val;
   JSObject* p;
@@ -313,7 +363,8 @@ JSValue js_function_bind(JSContext* ctx, JSValueConst this_val, int argc, JSValu
   if (check_function(ctx, this_val))
     return JS_EXCEPTION;
 
-  func_obj = JS_NewObjectProtoClass(ctx, ctx->function_proto, JS_CLASS_BOUND_FUNCTION);
+  func_obj =
+    JS_NewObjectProtoClass(ctx, ctx->function_proto, JS_CLASS_BOUND_FUNCTION);
   if (JS_IsException(func_obj))
     return JS_EXCEPTION;
   p = JS_VALUE_GET_OBJ(func_obj);
@@ -365,7 +416,12 @@ JSValue js_function_bind(JSContext* ctx, JSValueConst this_val, int argc, JSValu
       len_val = JS_NewInt32(ctx, 0);
     }
   }
-  JS_DefinePropertyValue(ctx, func_obj, JS_ATOM_length, len_val, JS_PROP_CONFIGURABLE);
+  JS_DefinePropertyValue(
+    ctx,
+    func_obj,
+    JS_ATOM_length,
+    len_val,
+    JS_PROP_CONFIGURABLE);
 
   name1 = JS_GetProperty(ctx, this_val, JS_ATOM_name);
   if (JS_IsException(name1))
@@ -377,14 +433,23 @@ JSValue js_function_bind(JSContext* ctx, JSValueConst this_val, int argc, JSValu
   name1 = JS_ConcatString3(ctx, "bound ", name1, "");
   if (JS_IsException(name1))
     goto exception;
-  JS_DefinePropertyValue(ctx, func_obj, JS_ATOM_name, name1, JS_PROP_CONFIGURABLE);
+  JS_DefinePropertyValue(
+    ctx,
+    func_obj,
+    JS_ATOM_name,
+    name1,
+    JS_PROP_CONFIGURABLE);
   return func_obj;
 exception:
   JS_FreeValue(ctx, func_obj);
   return JS_EXCEPTION;
 }
 
-JSValue js_function_toString(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_function_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSObject* p;
   JSFunctionKindEnum func_kind = JS_FUNC_NORMAL;
 
@@ -426,7 +491,11 @@ JSValue js_function_toString(JSContext* ctx, JSValueConst this_val, int argc, JS
   }
 }
 
-JSValue js_function_hasInstance(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_function_hasInstance(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   int ret;
   ret = JS_OrdinaryIsInstanceOf(ctx, argv[0], this_val);
   if (ret < 0)
@@ -438,7 +507,11 @@ JSValue js_function_hasInstance(JSContext* ctx, JSValueConst this_val, int argc,
 /* XXX: not 100% compatible, but mozilla seems to use a similar
    implementation to ensure that caller in non strict mode does not
    throw (ES5 compatibility) */
-JSValue js_function_proto_caller(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_function_proto_caller(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSFunctionBytecode* b = JS_GetFunctionBytecode(this_val);
   if (!b || (b->js_mode & JS_MODE_STRICT) || !b->has_prototype) {
     return js_throw_type_error(ctx, this_val, 0, NULL);
@@ -462,7 +535,7 @@ JSValue js_function_proto_lineNumber(JSContext* ctx, JSValueConst this_val) {
   return JS_UNDEFINED;
 }
 
-JSValue js_function_proto_columnNumber(JSContext *ctx, JSValueConst this_val) {
+JSValue js_function_proto_columnNumber(JSContext* ctx, JSValueConst this_val) {
   JSFunctionBytecode* b = JS_GetFunctionBytecode(this_val);
   if (b && b->has_debug) {
     return JS_NewInt32(ctx, b->debug.column_num);
@@ -470,23 +543,33 @@ JSValue js_function_proto_columnNumber(JSContext *ctx, JSValueConst this_val) {
   return JS_UNDEFINED;
 }
 
-int js_arguments_define_own_property(JSContext* ctx,
-                                            JSValueConst this_obj,
-                                            JSAtom prop,
-                                            JSValueConst val,
-                                            JSValueConst getter,
-                                            JSValueConst setter,
-                                            int flags) {
+int js_arguments_define_own_property(
+  JSContext* ctx,
+  JSValueConst this_obj,
+  JSAtom prop,
+  JSValueConst val,
+  JSValueConst getter,
+  JSValueConst setter,
+  int flags) {
   JSObject* p;
   uint32_t idx;
   p = JS_VALUE_GET_OBJ(this_obj);
   /* convert to normal array when redefining an existing numeric field */
-  if (p->fast_array && JS_AtomIsArrayIndex(ctx, &idx, prop) && idx < p->u.array.count) {
+  if (
+    p->fast_array && JS_AtomIsArrayIndex(ctx, &idx, prop)
+    && idx < p->u.array.count) {
     if (convert_fast_array_to_array(ctx, p))
       return -1;
   }
   /* run the default define own property */
-  return JS_DefineProperty(ctx, this_obj, prop, val, getter, setter, flags | JS_PROP_NO_EXOTIC);
+  return JS_DefineProperty(
+    ctx,
+    this_obj,
+    prop,
+    val,
+    getter,
+    setter,
+    flags | JS_PROP_NO_EXOTIC);
 }
 
 JSValue js_build_arguments(JSContext* ctx, int argc, JSValueConst* argv) {
@@ -495,13 +578,20 @@ JSValue js_build_arguments(JSContext* ctx, int argc, JSValueConst* argv) {
   JSObject* p;
   int i;
 
-  val = JS_NewObjectProtoClass(ctx, ctx->class_proto[JS_CLASS_OBJECT], JS_CLASS_ARGUMENTS);
+  val = JS_NewObjectProtoClass(
+    ctx,
+    ctx->class_proto[JS_CLASS_OBJECT],
+    JS_CLASS_ARGUMENTS);
   if (JS_IsException(val))
     return val;
   p = JS_VALUE_GET_OBJ(val);
 
   /* add the length field (cannot fail) */
-  pr = add_property(ctx, p, JS_ATOM_length, JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+  pr = add_property(
+    ctx,
+    p,
+    JS_ATOM_length,
+    JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
   pr->u.value = JS_NewInt32(ctx, argc);
 
   /* initialize the fast array part */
@@ -519,32 +609,50 @@ JSValue js_build_arguments(JSContext* ctx, int argc, JSValueConst* argv) {
   p->u.array.u.values = tab;
   p->u.array.count = argc;
 
-  JS_DefinePropertyValue(ctx, val, JS_ATOM_Symbol_iterator, JS_DupValue(ctx, ctx->array_proto_values),
-                         JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE);
+  JS_DefinePropertyValue(
+    ctx,
+    val,
+    JS_ATOM_Symbol_iterator,
+    JS_DupValue(ctx, ctx->array_proto_values),
+    JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE);
   /* add callee property to throw a TypeError in strict mode */
-  JS_DefineProperty(ctx, val, JS_ATOM_callee, JS_UNDEFINED, ctx->throw_type_error, ctx->throw_type_error,
-                    JS_PROP_HAS_GET | JS_PROP_HAS_SET);
+  JS_DefineProperty(
+    ctx,
+    val,
+    JS_ATOM_callee,
+    JS_UNDEFINED,
+    ctx->throw_type_error,
+    ctx->throw_type_error,
+    JS_PROP_HAS_GET | JS_PROP_HAS_SET);
   return val;
 }
 
 /* legacy arguments object: add references to the function arguments */
-JSValue js_build_mapped_arguments(JSContext* ctx,
-                                         int argc,
-                                         JSValueConst* argv,
-                                         JSStackFrame* sf,
-                                         int arg_count) {
+JSValue js_build_mapped_arguments(
+  JSContext* ctx,
+  int argc,
+  JSValueConst* argv,
+  JSStackFrame* sf,
+  int arg_count) {
   JSValue val;
   JSProperty* pr;
   JSObject* p;
   int i;
 
-  val = JS_NewObjectProtoClass(ctx, ctx->class_proto[JS_CLASS_OBJECT], JS_CLASS_MAPPED_ARGUMENTS);
+  val = JS_NewObjectProtoClass(
+    ctx,
+    ctx->class_proto[JS_CLASS_OBJECT],
+    JS_CLASS_MAPPED_ARGUMENTS);
   if (JS_IsException(val))
     return val;
   p = JS_VALUE_GET_OBJ(val);
 
   /* add the length field (cannot fail) */
-  pr = add_property(ctx, p, JS_ATOM_length, JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+  pr = add_property(
+    ctx,
+    p,
+    JS_ATOM_length,
+    JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
   pr->u.value = JS_NewInt32(ctx, argc);
 
   for (i = 0; i < arg_count; i++) {
@@ -552,7 +660,11 @@ JSValue js_build_mapped_arguments(JSContext* ctx,
     var_ref = get_var_ref(ctx, sf, i, TRUE);
     if (!var_ref)
       goto fail;
-    pr = add_property(ctx, p, __JS_AtomFromUInt32(i), JS_PROP_C_W_E | JS_PROP_VARREF);
+    pr = add_property(
+      ctx,
+      p,
+      __JS_AtomFromUInt32(i),
+      JS_PROP_C_W_E | JS_PROP_VARREF);
     if (!pr) {
       free_var_ref(ctx->rt, var_ref);
       goto fail;
@@ -563,26 +675,39 @@ JSValue js_build_mapped_arguments(JSContext* ctx,
   /* the arguments not mapped to the arguments of the function can
      be normal properties */
   for (i = arg_count; i < argc; i++) {
-    if (JS_DefinePropertyValueUint32(ctx, val, i, JS_DupValue(ctx, argv[i]), JS_PROP_C_W_E) < 0)
+    if (
+      JS_DefinePropertyValueUint32(
+        ctx,
+        val,
+        i,
+        JS_DupValue(ctx, argv[i]),
+        JS_PROP_C_W_E)
+      < 0)
       goto fail;
   }
 
-  JS_DefinePropertyValue(ctx, val, JS_ATOM_Symbol_iterator, JS_DupValue(ctx, ctx->array_proto_values),
-                         JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE);
+  JS_DefinePropertyValue(
+    ctx,
+    val,
+    JS_ATOM_Symbol_iterator,
+    JS_DupValue(ctx, ctx->array_proto_values),
+    JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE);
   /* callee returns this function in non strict mode */
-  JS_DefinePropertyValue(ctx, val, JS_ATOM_callee, JS_DupValue(ctx, ctx->rt->current_stack_frame->cur_func),
-                         JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE);
+  JS_DefinePropertyValue(
+    ctx,
+    val,
+    JS_ATOM_callee,
+    JS_DupValue(ctx, ctx->rt->current_stack_frame->cur_func),
+    JS_PROP_CONFIGURABLE | JS_PROP_WRITABLE);
   return val;
 fail:
   JS_FreeValue(ctx, val);
   return JS_EXCEPTION;
 }
 
-
 /* return NULL without exception if not a function or no bytecode */
-JSFunctionBytecode *JS_GetFunctionBytecode(JSValueConst val)
-{
-  JSObject *p;
+JSFunctionBytecode* JS_GetFunctionBytecode(JSValueConst val) {
+  JSObject* p;
   if (JS_VALUE_GET_TAG(val) != JS_TAG_OBJECT)
     return NULL;
   p = JS_VALUE_GET_OBJ(val);
@@ -591,11 +716,12 @@ JSFunctionBytecode *JS_GetFunctionBytecode(JSValueConst val)
   return p->u.func.function_bytecode;
 }
 
-void js_method_set_home_object(JSContext *ctx, JSValueConst func_obj,
-                                      JSValueConst home_obj)
-{
+void js_method_set_home_object(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst home_obj) {
   JSObject *p, *p1;
-  JSFunctionBytecode *b;
+  JSFunctionBytecode* b;
 
   if (JS_VALUE_GET_TAG(func_obj) != JS_TAG_OBJECT)
     return;
@@ -616,8 +742,7 @@ void js_method_set_home_object(JSContext *ctx, JSValueConst func_obj,
   }
 }
 
-JSValue js_get_function_name(JSContext *ctx, JSAtom name)
-{
+JSValue js_get_function_name(JSContext* ctx, JSAtom name) {
   JSValue name_str;
 
   name_str = JS_AtomToString(ctx, name);
@@ -631,9 +756,12 @@ JSValue js_get_function_name(JSContext *ctx, JSAtom name)
    'flags'. 'flags' is a bitmask of JS_PROP_HAS_GET and
    JS_PROP_HAS_SET. Also set the home object of the method.
    Return < 0 if exception. */
-int js_method_set_properties(JSContext *ctx, JSValueConst func_obj,
-                                    JSAtom name, int flags, JSValueConst home_obj)
-{
+int js_method_set_properties(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSAtom name,
+  int flags,
+  JSValueConst home_obj) {
   JSValue name_str;
 
   name_str = js_get_function_name(ctx, name);
@@ -644,8 +772,14 @@ int js_method_set_properties(JSContext *ctx, JSValueConst func_obj,
   }
   if (JS_IsException(name_str))
     return -1;
-  if (JS_DefinePropertyValue(ctx, func_obj, JS_ATOM_name, name_str,
-                             JS_PROP_CONFIGURABLE) < 0)
+  if (
+    JS_DefinePropertyValue(
+      ctx,
+      func_obj,
+      JS_ATOM_name,
+      name_str,
+      JS_PROP_CONFIGURABLE)
+    < 0)
     return -1;
   js_method_set_home_object(ctx, func_obj, home_obj);
   return 0;

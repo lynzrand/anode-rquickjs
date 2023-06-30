@@ -26,15 +26,20 @@
 #ifndef QUICKJS_JS_PROMISE_H
 #define QUICKJS_JS_PROMISE_H
 
-#include "quickjs/quickjs.h"
 #include "../types.h"
+#include "quickjs/quickjs.h"
 
-JSValue js_promise_resolve(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv, int magic);
+JSValue js_promise_resolve(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic);
 
-__exception int perform_promise_then(JSContext *ctx,
-                                            JSValueConst promise,
-                                            JSValueConst *resolve_reject,
-                                            JSValueConst *cap_resolving_funcs);
+__exception int perform_promise_then(
+  JSContext* ctx,
+  JSValueConst promise,
+  JSValueConst* resolve_reject,
+  JSValueConst* cap_resolving_funcs);
 
 #endif

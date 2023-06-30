@@ -23,8 +23,7 @@
  * THE SOFTWARE.
  */
 
-#include "quickjs/libregexp-opcode.h"
-#include "quickjs/libregexp.h"
+#include "js-regexp.h"
 
 #include "../convertion.h"
 #include "../exception.h"
@@ -36,26 +35,25 @@
 #include "js-function.h"
 #include "js-object.h"
 #include "js-operator.h"
-#include "js-regexp.h"
 #include "js-string.h"
+#include "quickjs/libregexp-opcode.h"
+#include "quickjs/libregexp.h"
 
 /* RegExp */
 
-void js_regexp_finalizer(JSRuntime *rt, JSValue val)
-{
-  JSObject *p = JS_VALUE_GET_OBJ(val);
-  JSRegExp *re = &p->u.regexp;
+void js_regexp_finalizer(JSRuntime* rt, JSValue val) {
+  JSObject* p = JS_VALUE_GET_OBJ(val);
+  JSRegExp* re = &p->u.regexp;
   JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_STRING, re->bytecode));
   JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_STRING, re->pattern));
 }
 
 /* create a string containing the RegExp bytecode */
-JSValue js_compile_regexp(JSContext *ctx, JSValueConst pattern,
-                                 JSValueConst flags)
-{
-  const char *str;
+JSValue
+js_compile_regexp(JSContext* ctx, JSValueConst pattern, JSValueConst flags) {
+  const char* str;
   int re_flags, mask;
-  uint8_t *re_bytecode_buf;
+  uint8_t* re_bytecode_buf;
   size_t i, len;
   int re_bytecode_len;
   JSValue ret;
@@ -68,7 +66,7 @@ JSValue js_compile_regexp(JSContext *ctx, JSValueConst pattern,
       return JS_EXCEPTION;
     /* XXX: re_flags = LRE_FLAG_OCTAL unless strict mode? */
     for (i = 0; i < len; i++) {
-      switch(str[i]) {
+      switch (str[i]) {
         case 'g':
           mask = LRE_FLAG_GLOBAL;
           break;
@@ -103,8 +101,14 @@ JSValue js_compile_regexp(JSContext *ctx, JSValueConst pattern,
   str = JS_ToCStringLen2(ctx, &len, pattern, !(re_flags & LRE_FLAG_UTF16));
   if (!str)
     return JS_EXCEPTION;
-  re_bytecode_buf = lre_compile(&re_bytecode_len, error_msg,
-                                sizeof(error_msg), str, len, re_flags, ctx);
+  re_bytecode_buf = lre_compile(
+    &re_bytecode_len,
+    error_msg,
+    sizeof(error_msg),
+    str,
+    len,
+    re_flags,
+    ctx);
   JS_FreeCString(ctx, str);
   if (!re_bytecode_buf) {
     JS_ThrowSyntaxError(ctx, "%s", error_msg);
@@ -118,16 +122,19 @@ JSValue js_compile_regexp(JSContext *ctx, JSValueConst pattern,
 
 /* create a RegExp object from a string containing the RegExp bytecode
    and the source pattern */
-JSValue js_regexp_constructor_internal(JSContext *ctx, JSValueConst ctor,
-                                              JSValue pattern, JSValue bc)
-{
+JSValue js_regexp_constructor_internal(
+  JSContext* ctx,
+  JSValueConst ctor,
+  JSValue pattern,
+  JSValue bc) {
   JSValue obj;
-  JSObject *p;
-  JSRegExp *re;
+  JSObject* p;
+  JSRegExp* re;
 
   /* sanity check */
-  if (JS_VALUE_GET_TAG(bc) != JS_TAG_STRING ||
-      JS_VALUE_GET_TAG(pattern) != JS_TAG_STRING) {
+  if (
+    JS_VALUE_GET_TAG(bc) != JS_TAG_STRING
+    || JS_VALUE_GET_TAG(pattern) != JS_TAG_STRING) {
     JS_ThrowTypeError(ctx, "string expected");
   fail:
     JS_FreeValue(ctx, bc);
@@ -142,15 +149,18 @@ JSValue js_regexp_constructor_internal(JSContext *ctx, JSValueConst ctor,
   re = &p->u.regexp;
   re->pattern = JS_VALUE_GET_STRING(pattern);
   re->bytecode = JS_VALUE_GET_STRING(bc);
-  JS_DefinePropertyValue(ctx, obj, JS_ATOM_lastIndex, JS_NewInt32(ctx, 0),
-                         JS_PROP_WRITABLE);
+  JS_DefinePropertyValue(
+    ctx,
+    obj,
+    JS_ATOM_lastIndex,
+    JS_NewInt32(ctx, 0),
+    JS_PROP_WRITABLE);
   return obj;
 }
 
-JSRegExp *js_get_regexp(JSContext *ctx, JSValueConst obj, BOOL throw_error)
-{
+JSRegExp* js_get_regexp(JSContext* ctx, JSValueConst obj, BOOL throw_error) {
   if (JS_VALUE_GET_TAG(obj) == JS_TAG_OBJECT) {
-    JSObject *p = JS_VALUE_GET_OBJ(obj);
+    JSObject* p = JS_VALUE_GET_OBJ(obj);
     if (p->class_id == JS_CLASS_REGEXP)
       return &p->u.regexp;
   }
@@ -161,8 +171,7 @@ JSRegExp *js_get_regexp(JSContext *ctx, JSValueConst obj, BOOL throw_error)
 }
 
 /* return < 0 if exception or TRUE/FALSE */
-int js_is_regexp(JSContext *ctx, JSValueConst obj)
-{
+int js_is_regexp(JSContext* ctx, JSValueConst obj) {
   JSValue m;
 
   if (!JS_IsObject(obj))
@@ -175,12 +184,14 @@ int js_is_regexp(JSContext *ctx, JSValueConst obj)
   return js_get_regexp(ctx, obj, FALSE) != NULL;
 }
 
-JSValue js_regexp_constructor(JSContext *ctx, JSValueConst new_target,
-                                     int argc, JSValueConst *argv)
-{
+JSValue js_regexp_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   JSValue pattern, flags, bc, val;
   JSValueConst pat, flags1;
-  JSRegExp *re;
+  JSRegExp* re;
   int pat_is_regexp;
 
   pat = argv[0];
@@ -253,9 +264,11 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_regexp_compile(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv)
-{
+JSValue js_regexp_compile(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSRegExp *re1, *re;
   JSValueConst pattern1, flags1;
   JSValue bc, pattern;
@@ -287,8 +300,7 @@ JSValue js_regexp_compile(JSContext *ctx, JSValueConst this_val,
   JS_FreeValue(ctx, JS_MKPTR(JS_TAG_STRING, re->bytecode));
   re->pattern = JS_VALUE_GET_STRING(pattern);
   re->bytecode = JS_VALUE_GET_STRING(bc);
-  if (JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex,
-                     JS_NewInt32(ctx, 0)) < 0)
+  if (JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex, JS_NewInt32(ctx, 0)) < 0)
     return JS_EXCEPTION;
   return JS_DupValue(ctx, this_val);
 fail:
@@ -318,10 +330,9 @@ JSValue js_regexp_get___flags(JSContext *ctx, JSValueConst this_val)
 }
 #endif
 
-JSValue js_regexp_get_source(JSContext *ctx, JSValueConst this_val)
-{
-  JSRegExp *re;
-  JSString *p;
+JSValue js_regexp_get_source(JSContext* ctx, JSValueConst this_val) {
+  JSRegExp* re;
+  JSString* p;
   StringBuffer b_s, *b = &b_s;
   int i, n, c, c2, bra;
 
@@ -384,9 +395,8 @@ JSValue js_regexp_get_source(JSContext *ctx, JSValueConst this_val)
   return string_buffer_end(b);
 }
 
-JSValue js_regexp_get_flag(JSContext *ctx, JSValueConst this_val, int mask)
-{
-  JSRegExp *re;
+JSValue js_regexp_get_flag(JSContext* ctx, JSValueConst this_val, int mask) {
+  JSRegExp* re;
   int flags;
 
   if (JS_VALUE_GET_TAG(this_val) != JS_TAG_OBJECT)
@@ -404,8 +414,7 @@ JSValue js_regexp_get_flag(JSContext *ctx, JSValueConst this_val, int mask)
   return JS_NewBool(ctx, (flags & mask) != 0);
 }
 
-JSValue js_regexp_get_flags(JSContext *ctx, JSValueConst this_val)
-{
+JSValue js_regexp_get_flags(JSContext* ctx, JSValueConst this_val) {
   char str[8], *p = str;
   int res;
 
@@ -448,9 +457,11 @@ exception:
   return JS_EXCEPTION;
 }
 
-JSValue js_regexp_toString(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv)
-{
+JSValue js_regexp_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue pattern, flags;
   StringBuffer b_s, *b = &b_s;
 
@@ -473,31 +484,31 @@ fail:
   return JS_EXCEPTION;
 }
 
-BOOL lre_check_stack_overflow(void *opaque, size_t alloca_size)
-{
-  JSContext *ctx = opaque;
+BOOL lre_check_stack_overflow(void* opaque, size_t alloca_size) {
+  JSContext* ctx = opaque;
   return js_check_stack_overflow(ctx->rt, alloca_size);
 }
 
-void *lre_realloc(void *opaque, void *ptr, size_t size)
-{
-  JSContext *ctx = opaque;
+void* lre_realloc(void* opaque, void* ptr, size_t size) {
+  JSContext* ctx = opaque;
   /* No JS exception is raised here */
   return js_realloc_rt(ctx->rt, ptr, size);
 }
 
-JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
-                              int argc, JSValueConst *argv)
-{
-  JSRegExp *re = js_get_regexp(ctx, this_val, TRUE);
-  JSString *str;
+JSValue js_regexp_exec(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
+  JSRegExp* re = js_get_regexp(ctx, this_val, TRUE);
+  JSString* str;
   JSValue str_val, obj, val, groups = JS_UNDEFINED;
-  uint8_t *re_bytecode;
+  uint8_t* re_bytecode;
   int ret;
   uint8_t **capture, *str_buf;
   int capture_count, shift, i, re_flags;
   int64_t last_index;
-  const char *group_name_ptr;
+  const char* group_name_ptr;
 
   if (!re)
     return JS_EXCEPTION;
@@ -505,8 +516,7 @@ JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
   if (JS_IsException(str_val))
     return str_val;
   val = JS_GetProperty(ctx, this_val, JS_ATOM_lastIndex);
-  if (JS_IsException(val) ||
-      JS_ToLengthFree(ctx, &last_index, val)) {
+  if (JS_IsException(val) || JS_ToLengthFree(ctx, &last_index, val)) {
     JS_FreeValue(ctx, str_val);
     return JS_EXCEPTION;
   }
@@ -530,16 +540,16 @@ JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
   if (last_index > str->len) {
     ret = 2;
   } else {
-    ret = lre_exec(capture, re_bytecode,
-                   str_buf, last_index, str->len,
-                   shift, ctx);
+    ret =
+      lre_exec(capture, re_bytecode, str_buf, last_index, str->len, shift, ctx);
   }
   obj = JS_NULL;
   if (ret != 1) {
     if (ret >= 0) {
       if (ret == 2 || (re_flags & (LRE_FLAG_GLOBAL | LRE_FLAG_STICKY))) {
-        if (JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex,
-                           JS_NewInt32(ctx, 0)) < 0)
+        if (
+          JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex, JS_NewInt32(ctx, 0))
+          < 0)
           goto fail;
       }
     } else {
@@ -550,8 +560,13 @@ JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
   } else {
     int prop_flags;
     if (re_flags & (LRE_FLAG_GLOBAL | LRE_FLAG_STICKY)) {
-      if (JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex,
-                         JS_NewInt32(ctx, (capture[1] - str_buf) >> shift)) < 0)
+      if (
+        JS_SetProperty(
+          ctx,
+          this_val,
+          JS_ATOM_lastIndex,
+          JS_NewInt32(ctx, (capture[1] - str_buf) >> shift))
+        < 0)
         goto fail;
     }
     obj = JS_NewArray(ctx);
@@ -565,11 +580,10 @@ JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
         goto fail;
     }
 
-    for(i = 0; i < capture_count; i++) {
+    for (i = 0; i < capture_count; i++) {
       int start, end;
       JSValue val;
-      if (capture[2 * i] == NULL ||
-          capture[2 * i + 1] == NULL) {
+      if (capture[2 * i] == NULL || capture[2 * i + 1] == NULL) {
         val = JS_UNDEFINED;
       } else {
         start = (capture[2 * i] - str_buf) >> shift;
@@ -580,9 +594,14 @@ JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
       }
       if (group_name_ptr && i > 0) {
         if (*group_name_ptr) {
-          if (JS_DefinePropertyValueStr(ctx, groups, group_name_ptr,
-                                        JS_DupValue(ctx, val),
-                                        prop_flags) < 0) {
+          if (
+            JS_DefinePropertyValueStr(
+              ctx,
+              groups,
+              group_name_ptr,
+              JS_DupValue(ctx, val),
+              prop_flags)
+            < 0) {
             JS_FreeValue(ctx, val);
             goto fail;
           }
@@ -592,13 +611,20 @@ JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val,
       if (JS_DefinePropertyValueUint32(ctx, obj, i, val, prop_flags) < 0)
         goto fail;
     }
-    if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_groups,
-                               groups, prop_flags) < 0)
+    if (
+      JS_DefinePropertyValue(ctx, obj, JS_ATOM_groups, groups, prop_flags) < 0)
       goto fail;
-    if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_index,
-                               JS_NewInt32(ctx, (capture[0] - str_buf) >> shift), prop_flags) < 0)
+    if (
+      JS_DefinePropertyValue(
+        ctx,
+        obj,
+        JS_ATOM_index,
+        JS_NewInt32(ctx, (capture[0] - str_buf) >> shift),
+        prop_flags)
+      < 0)
       goto fail;
-    if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_input, str_val, prop_flags) < 0)
+    if (
+      JS_DefinePropertyValue(ctx, obj, JS_ATOM_input, str_val, prop_flags) < 0)
       goto fail1;
   }
   js_free(ctx, capture);
@@ -613,12 +639,12 @@ fail1:
 }
 
 /* delete portions of a string that match a given regex */
-JSValue JS_RegExpDelete(JSContext *ctx, JSValueConst this_val, JSValueConst arg)
-{
-  JSRegExp *re = js_get_regexp(ctx, this_val, TRUE);
-  JSString *str;
+JSValue
+JS_RegExpDelete(JSContext* ctx, JSValueConst this_val, JSValueConst arg) {
+  JSRegExp* re = js_get_regexp(ctx, this_val, TRUE);
+  JSString* str;
   JSValue str_val, val;
-  uint8_t *re_bytecode;
+  uint8_t* re_bytecode;
   int ret;
   uint8_t **capture, *str_buf;
   int capture_count, shift, re_flags;
@@ -658,13 +684,18 @@ JSValue JS_RegExpDelete(JSContext *ctx, JSValueConst this_val, JSValueConst arg)
     if (last_index > str->len)
       break;
 
-    ret = lre_exec(capture, re_bytecode,
-                   str_buf, last_index, str->len, shift, ctx);
+    ret =
+      lre_exec(capture, re_bytecode, str_buf, last_index, str->len, shift, ctx);
     if (ret != 1) {
       if (ret >= 0) {
         if (ret == 2 || (re_flags & (LRE_FLAG_GLOBAL | LRE_FLAG_STICKY))) {
-          if (JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex,
-                             JS_NewInt32(ctx, 0)) < 0)
+          if (
+            JS_SetProperty(
+              ctx,
+              this_val,
+              JS_ATOM_lastIndex,
+              JS_NewInt32(ctx, 0))
+            < 0)
             goto fail;
         }
       } else {
@@ -682,13 +713,16 @@ JSValue JS_RegExpDelete(JSContext *ctx, JSValueConst this_val, JSValueConst arg)
     }
     next_src_pos = end;
     if (!(re_flags & LRE_FLAG_GLOBAL)) {
-      if (JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex,
-                         JS_NewInt32(ctx, end)) < 0)
+      if (
+        JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex, JS_NewInt32(ctx, end))
+        < 0)
         goto fail;
       break;
     }
     if (end == start) {
-      if (!(re_flags & LRE_FLAG_UTF16) || (unsigned)end >= str->len || !str->is_wide_char) {
+      if (
+        !(re_flags & LRE_FLAG_UTF16) || (unsigned)end >= str->len
+        || !str->is_wide_char) {
         end++;
       } else {
         string_getc(str, &end);
@@ -708,8 +742,7 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue JS_RegExpExec(JSContext *ctx, JSValueConst r, JSValueConst s)
-{
+JSValue JS_RegExpExec(JSContext* ctx, JSValueConst r, JSValueConst s) {
   JSValue method, ret;
 
   method = JS_GetProperty(ctx, r, JS_ATOM_exec);
@@ -721,7 +754,9 @@ JSValue JS_RegExpExec(JSContext *ctx, JSValueConst r, JSValueConst s)
       return ret;
     if (!JS_IsObject(ret) && !JS_IsNull(ret)) {
       JS_FreeValue(ctx, ret);
-      return JS_ThrowTypeError(ctx, "RegExp exec method must return an object or null");
+      return JS_ThrowTypeError(
+        ctx,
+        "RegExp exec method must return an object or null");
     }
     return ret;
   }
@@ -742,9 +777,11 @@ JSValue js_regexp___RegExpDelete(JSContext *ctx, JSValueConst this_val,
 }
 #endif
 
-JSValue js_regexp_test(JSContext *ctx, JSValueConst this_val,
-                              int argc, JSValueConst *argv)
-{
+JSValue js_regexp_test(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val;
   BOOL ret;
 
@@ -756,14 +793,16 @@ JSValue js_regexp_test(JSContext *ctx, JSValueConst this_val,
   return JS_NewBool(ctx, ret);
 }
 
-JSValue js_regexp_Symbol_match(JSContext *ctx, JSValueConst this_val,
-                                      int argc, JSValueConst *argv)
-{
+JSValue js_regexp_Symbol_match(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // [Symbol.match](str)
   JSValueConst rx = this_val;
   JSValue A, S, result, matchStr;
   int global, n, fullUnicode, isEmpty;
-  JSString *p;
+  JSString* p;
 
   if (!JS_IsObject(rx))
     return JS_ThrowTypeErrorNotAnObject(ctx);
@@ -792,7 +831,7 @@ JSValue js_regexp_Symbol_match(JSContext *ctx, JSValueConst this_val,
     if (JS_IsException(A))
       goto exception;
     n = 0;
-    for(;;) {
+    for (;;) {
       JS_FreeValue(ctx, result);
       result = JS_RegExpExec(ctx, rx, S);
       if (JS_IsException(result))
@@ -807,12 +846,22 @@ JSValue js_regexp_Symbol_match(JSContext *ctx, JSValueConst this_val,
         goto exception;
       if (isEmpty) {
         int64_t thisIndex, nextIndex;
-        if (JS_ToLengthFree(ctx, &thisIndex,
-                            JS_GetProperty(ctx, rx, JS_ATOM_lastIndex)) < 0)
+        if (
+          JS_ToLengthFree(
+            ctx,
+            &thisIndex,
+            JS_GetProperty(ctx, rx, JS_ATOM_lastIndex))
+          < 0)
           goto exception;
         p = JS_VALUE_GET_STRING(S);
         nextIndex = string_advance_index(p, thisIndex, fullUnicode);
-        if (JS_SetProperty(ctx, rx, JS_ATOM_lastIndex, JS_NewInt64(ctx, nextIndex)) < 0)
+        if (
+          JS_SetProperty(
+            ctx,
+            rx,
+            JS_ATOM_lastIndex,
+            JS_NewInt64(ctx, nextIndex))
+          < 0)
           goto exception;
       }
     }
@@ -840,10 +889,9 @@ typedef struct JSRegExpStringIteratorData {
   BOOL done;
 } JSRegExpStringIteratorData;
 
-void js_regexp_string_iterator_finalizer(JSRuntime *rt, JSValue val)
-{
-  JSObject *p = JS_VALUE_GET_OBJ(val);
-  JSRegExpStringIteratorData *it = p->u.regexp_string_iterator_data;
+void js_regexp_string_iterator_finalizer(JSRuntime* rt, JSValue val) {
+  JSObject* p = JS_VALUE_GET_OBJ(val);
+  JSRegExpStringIteratorData* it = p->u.regexp_string_iterator_data;
   if (it) {
     JS_FreeValueRT(rt, it->iterating_regexp);
     JS_FreeValueRT(rt, it->iterated_string);
@@ -851,26 +899,29 @@ void js_regexp_string_iterator_finalizer(JSRuntime *rt, JSValue val)
   }
 }
 
-void js_regexp_string_iterator_mark(JSRuntime *rt, JSValueConst val,
-                                           JS_MarkFunc *mark_func)
-{
-  JSObject *p = JS_VALUE_GET_OBJ(val);
-  JSRegExpStringIteratorData *it = p->u.regexp_string_iterator_data;
+void js_regexp_string_iterator_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func) {
+  JSObject* p = JS_VALUE_GET_OBJ(val);
+  JSRegExpStringIteratorData* it = p->u.regexp_string_iterator_data;
   if (it) {
     JS_MarkValue(rt, it->iterating_regexp, mark_func);
     JS_MarkValue(rt, it->iterated_string, mark_func);
   }
 }
 
-JSValue js_regexp_string_iterator_next(JSContext *ctx,
-                                              JSValueConst this_val,
-                                              int argc, JSValueConst *argv,
-                                              BOOL *pdone, int magic)
-{
-  JSRegExpStringIteratorData *it;
+JSValue js_regexp_string_iterator_next(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  BOOL* pdone,
+  int magic) {
+  JSRegExpStringIteratorData* it;
   JSValueConst R, S;
   JSValue matchStr = JS_UNDEFINED, match = JS_UNDEFINED;
-  JSString *sp;
+  JSString* sp;
 
   it = JS_GetOpaque2(ctx, this_val, JS_CLASS_REGEXP_STRING_ITERATOR);
   if (!it)
@@ -894,13 +945,18 @@ JSValue js_regexp_string_iterator_next(JSContext *ctx,
       goto exception;
     if (JS_IsEmptyString(matchStr)) {
       int64_t thisIndex, nextIndex;
-      if (JS_ToLengthFree(ctx, &thisIndex,
-                          JS_GetProperty(ctx, R, JS_ATOM_lastIndex)) < 0)
+      if (
+        JS_ToLengthFree(
+          ctx,
+          &thisIndex,
+          JS_GetProperty(ctx, R, JS_ATOM_lastIndex))
+        < 0)
         goto exception;
       sp = JS_VALUE_GET_STRING(S);
       nextIndex = string_advance_index(sp, thisIndex, it->unicode);
-      if (JS_SetProperty(ctx, R, JS_ATOM_lastIndex,
-                         JS_NewInt64(ctx, nextIndex)) < 0)
+      if (
+        JS_SetProperty(ctx, R, JS_ATOM_lastIndex, JS_NewInt64(ctx, nextIndex))
+        < 0)
         goto exception;
     }
     JS_FreeValue(ctx, matchStr);
@@ -916,16 +972,18 @@ exception:
   return JS_EXCEPTION;
 }
 
-JSValue js_regexp_Symbol_matchAll(JSContext *ctx, JSValueConst this_val,
-                                         int argc, JSValueConst *argv)
-{
+JSValue js_regexp_Symbol_matchAll(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // [Symbol.matchAll](str)
   JSValueConst R = this_val;
   JSValue S, C, flags, matcher, iter;
   JSValueConst args[2];
-  JSString *strp;
+  JSString* strp;
   int64_t lastIndex;
-  JSRegExpStringIteratorData *it;
+  JSRegExpStringIteratorData* it;
 
   if (!JS_IsObject(R))
     return JS_ThrowTypeErrorNotAnObject(ctx);
@@ -949,11 +1007,14 @@ JSValue js_regexp_Symbol_matchAll(JSContext *ctx, JSValueConst this_val,
   matcher = JS_CallConstructor(ctx, C, 2, args);
   if (JS_IsException(matcher))
     goto exception;
-  if (JS_ToLengthFree(ctx, &lastIndex,
-                      JS_GetProperty(ctx, R, JS_ATOM_lastIndex)))
+  if (JS_ToLengthFree(
+        ctx,
+        &lastIndex,
+        JS_GetProperty(ctx, R, JS_ATOM_lastIndex)))
     goto exception;
-  if (JS_SetProperty(ctx, matcher, JS_ATOM_lastIndex,
-                     JS_NewInt64(ctx, lastIndex)) < 0)
+  if (
+    JS_SetProperty(ctx, matcher, JS_ATOM_lastIndex, JS_NewInt64(ctx, lastIndex))
+    < 0)
     goto exception;
 
   iter = JS_NewObjectClass(ctx, JS_CLASS_REGEXP_STRING_ITERATOR);
@@ -983,16 +1044,15 @@ exception:
 }
 
 typedef struct ValueBuffer {
-  JSContext *ctx;
-  JSValue *arr;
+  JSContext* ctx;
+  JSValue* arr;
   JSValue def[4];
   int len;
   int size;
   int error_status;
 } ValueBuffer;
 
-int value_buffer_init(JSContext *ctx, ValueBuffer *b)
-{
+int value_buffer_init(JSContext* ctx, ValueBuffer* b) {
   b->ctx = ctx;
   b->len = 0;
   b->size = 4;
@@ -1001,8 +1061,7 @@ int value_buffer_init(JSContext *ctx, ValueBuffer *b)
   return 0;
 }
 
-void value_buffer_free(ValueBuffer *b)
-{
+void value_buffer_free(ValueBuffer* b) {
   while (b->len > 0)
     JS_FreeValue(b->ctx, b->arr[--b->len]);
   if (b->arr != b->def)
@@ -1011,15 +1070,14 @@ void value_buffer_free(ValueBuffer *b)
   b->size = 4;
 }
 
-int value_buffer_append(ValueBuffer *b, JSValue val)
-{
+int value_buffer_append(ValueBuffer* b, JSValue val) {
   if (b->error_status)
     return -1;
 
   if (b->len >= b->size) {
     int new_size = (b->len + (b->len >> 1) + 31) & ~16;
     size_t slack;
-    JSValue *new_arr;
+    JSValue* new_arr;
 
     if (b->arr == b->def) {
       new_arr = js_realloc2(b->ctx, NULL, sizeof(*b->arr) * new_size, &slack);
@@ -1042,8 +1100,7 @@ int value_buffer_append(ValueBuffer *b, JSValue val)
   return 0;
 }
 
-int js_is_standard_regexp(JSContext *ctx, JSValueConst rx)
-{
+int js_is_standard_regexp(JSContext* ctx, JSValueConst rx) {
   JSValue val;
   int res;
 
@@ -1064,9 +1121,11 @@ int js_is_standard_regexp(JSContext *ctx, JSValueConst rx)
   return res;
 }
 
-JSValue js_regexp_Symbol_replace(JSContext *ctx, JSValueConst this_val,
-                                        int argc, JSValueConst *argv)
-{
+JSValue js_regexp_Symbol_replace(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // [Symbol.replace](str, rep)
   JSValueConst rx = this_val, rep = argv[1];
   JSValueConst args[6];
@@ -1120,7 +1179,7 @@ JSValue js_regexp_Symbol_replace(JSContext *ctx, JSValueConst this_val,
     res = JS_RegExpDelete(ctx, rx, str);
     goto done;
   }
-  for(;;) {
+  for (;;) {
     JSValue result;
     result = JS_RegExpExec(ctx, rx, str);
     if (JS_IsException(result))
@@ -1138,15 +1197,22 @@ JSValue js_regexp_Symbol_replace(JSContext *ctx, JSValueConst this_val,
     if (JS_IsEmptyString(matched)) {
       /* always advance of at least one char */
       int64_t thisIndex, nextIndex;
-      if (JS_ToLengthFree(ctx, &thisIndex, JS_GetProperty(ctx, rx, JS_ATOM_lastIndex)) < 0)
+      if (
+        JS_ToLengthFree(
+          ctx,
+          &thisIndex,
+          JS_GetProperty(ctx, rx, JS_ATOM_lastIndex))
+        < 0)
         goto exception;
       nextIndex = string_advance_index(sp, thisIndex, fullUnicode);
-      if (JS_SetProperty(ctx, rx, JS_ATOM_lastIndex, JS_NewInt64(ctx, nextIndex)) < 0)
+      if (
+        JS_SetProperty(ctx, rx, JS_ATOM_lastIndex, JS_NewInt64(ctx, nextIndex))
+        < 0)
         goto exception;
     }
   }
   nextSourcePosition = 0;
-  for(j = 0; j < results->len; j++) {
+  for (j = 0; j < results->len; j++) {
     JSValueConst result;
     result = results->arr[j];
     if (js_get_length32(ctx, &nCaptures, result) < 0)
@@ -1155,7 +1221,10 @@ JSValue js_regexp_Symbol_replace(JSContext *ctx, JSValueConst this_val,
     matched = JS_ToStringFree(ctx, JS_GetPropertyInt64(ctx, result, 0));
     if (JS_IsException(matched))
       goto exception;
-    if (JS_ToLengthFree(ctx, &position, JS_GetProperty(ctx, result, JS_ATOM_index)))
+    if (JS_ToLengthFree(
+          ctx,
+          &position,
+          JS_GetProperty(ctx, result, JS_ATOM_index)))
       goto exception;
     if (position > sp->len)
       position = sp->len;
@@ -1167,10 +1236,16 @@ JSValue js_regexp_Symbol_replace(JSContext *ctx, JSValueConst this_val,
     tab = JS_NewArray(ctx);
     if (JS_IsException(tab))
       goto exception;
-    if (JS_DefinePropertyValueInt64(ctx, tab, 0, JS_DupValue(ctx, matched),
-                                    JS_PROP_C_W_E | JS_PROP_THROW) < 0)
+    if (
+      JS_DefinePropertyValueInt64(
+        ctx,
+        tab,
+        0,
+        JS_DupValue(ctx, matched),
+        JS_PROP_C_W_E | JS_PROP_THROW)
+      < 0)
       goto exception;
-    for(n = 1; n < nCaptures; n++) {
+    for (n = 1; n < nCaptures; n++) {
       JSValue capN;
       capN = JS_GetPropertyInt64(ctx, result, n);
       if (JS_IsException(capN))
@@ -1180,8 +1255,14 @@ JSValue js_regexp_Symbol_replace(JSContext *ctx, JSValueConst this_val,
         if (JS_IsException(capN))
           goto exception;
       }
-      if (JS_DefinePropertyValueInt64(ctx, tab, n, capN,
-                                      JS_PROP_C_W_E | JS_PROP_THROW) < 0)
+      if (
+        JS_DefinePropertyValueInt64(
+          ctx,
+          tab,
+          n,
+          capN,
+          JS_PROP_C_W_E | JS_PROP_THROW)
+        < 0)
         goto exception;
     }
     JS_FreeValue(ctx, namedCaptures);
@@ -1189,12 +1270,33 @@ JSValue js_regexp_Symbol_replace(JSContext *ctx, JSValueConst this_val,
     if (JS_IsException(namedCaptures))
       goto exception;
     if (functionalReplace) {
-      if (JS_DefinePropertyValueInt64(ctx, tab, n++, JS_NewInt32(ctx, position), JS_PROP_C_W_E | JS_PROP_THROW) < 0)
+      if (
+        JS_DefinePropertyValueInt64(
+          ctx,
+          tab,
+          n++,
+          JS_NewInt32(ctx, position),
+          JS_PROP_C_W_E | JS_PROP_THROW)
+        < 0)
         goto exception;
-      if (JS_DefinePropertyValueInt64(ctx, tab, n++, JS_DupValue(ctx, str), JS_PROP_C_W_E | JS_PROP_THROW) < 0)
+      if (
+        JS_DefinePropertyValueInt64(
+          ctx,
+          tab,
+          n++,
+          JS_DupValue(ctx, str),
+          JS_PROP_C_W_E | JS_PROP_THROW)
+        < 0)
         goto exception;
       if (!JS_IsUndefined(namedCaptures)) {
-        if (JS_DefinePropertyValueInt64(ctx, tab, n++, JS_DupValue(ctx, namedCaptures), JS_PROP_C_W_E | JS_PROP_THROW) < 0)
+        if (
+          JS_DefinePropertyValueInt64(
+            ctx,
+            tab,
+            n++,
+            JS_DupValue(ctx, namedCaptures),
+            JS_PROP_C_W_E | JS_PROP_THROW)
+          < 0)
           goto exception;
       }
       args[0] = JS_UNDEFINED;
@@ -1247,9 +1349,11 @@ done1:
   return res;
 }
 
-JSValue js_regexp_Symbol_search(JSContext *ctx, JSValueConst this_val,
-                                       int argc, JSValueConst *argv)
-{
+JSValue js_regexp_Symbol_search(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValueConst rx = this_val;
   JSValue str, previousLastIndex, currentLastIndex, result, index;
 
@@ -1305,14 +1409,16 @@ exception:
   return JS_EXCEPTION;
 }
 
-JSValue js_regexp_Symbol_split(JSContext *ctx, JSValueConst this_val,
-                                      int argc, JSValueConst *argv)
-{
+JSValue js_regexp_Symbol_split(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // [Symbol.split](str, limit)
   JSValueConst rx = this_val;
   JSValueConst args[2];
   JSValue str, ctor, splitter, A, flags, z, sub;
-  JSString *strp;
+  JSString* strp;
   uint32_t lim, size, p, q;
   int unicodeMatching;
   int64_t lengthA, e, numberOfCaptures, i;
@@ -1370,7 +1476,8 @@ JSValue js_regexp_Symbol_split(JSContext *ctx, JSValueConst this_val,
     goto done;
   }
   while (q < size) {
-    if (JS_SetProperty(ctx, splitter, JS_ATOM_lastIndex, JS_NewInt32(ctx, q)) < 0)
+    if (
+      JS_SetProperty(ctx, splitter, JS_ATOM_lastIndex, JS_NewInt32(ctx, q)) < 0)
       goto exception;
     JS_FreeValue(ctx, z);
     z = JS_RegExpExec(ctx, splitter, str);
@@ -1379,7 +1486,10 @@ JSValue js_regexp_Symbol_split(JSContext *ctx, JSValueConst this_val,
     if (JS_IsNull(z)) {
       q = string_advance_index(strp, q, unicodeMatching);
     } else {
-      if (JS_ToLengthFree(ctx, &e, JS_GetProperty(ctx, splitter, JS_ATOM_lastIndex)))
+      if (JS_ToLengthFree(
+            ctx,
+            &e,
+            JS_GetProperty(ctx, splitter, JS_ATOM_lastIndex)))
         goto exception;
       if (e > size)
         e = size;
@@ -1389,19 +1499,32 @@ JSValue js_regexp_Symbol_split(JSContext *ctx, JSValueConst this_val,
         sub = js_sub_string(ctx, strp, p, q);
         if (JS_IsException(sub))
           goto exception;
-        if (JS_DefinePropertyValueInt64(ctx, A, lengthA++, sub,
-                                        JS_PROP_C_W_E | JS_PROP_THROW) < 0)
+        if (
+          JS_DefinePropertyValueInt64(
+            ctx,
+            A,
+            lengthA++,
+            sub,
+            JS_PROP_C_W_E | JS_PROP_THROW)
+          < 0)
           goto exception;
         if (lengthA == lim)
           goto done;
         p = e;
         if (js_get_length64(ctx, &numberOfCaptures, z))
           goto exception;
-        for(i = 1; i < numberOfCaptures; i++) {
+        for (i = 1; i < numberOfCaptures; i++) {
           sub = JS_ToStringFree(ctx, JS_GetPropertyInt64(ctx, z, i));
           if (JS_IsException(sub))
             goto exception;
-          if (JS_DefinePropertyValueInt64(ctx, A, lengthA++, sub, JS_PROP_C_W_E | JS_PROP_THROW) < 0)
+          if (
+            JS_DefinePropertyValueInt64(
+              ctx,
+              A,
+              lengthA++,
+              sub,
+              JS_PROP_C_W_E | JS_PROP_THROW)
+            < 0)
             goto exception;
           if (lengthA == lim)
             goto done;
@@ -1416,7 +1539,14 @@ add_tail:
   sub = js_sub_string(ctx, strp, p, size);
   if (JS_IsException(sub))
     goto exception;
-  if (JS_DefinePropertyValueInt64(ctx, A, lengthA++, sub, JS_PROP_C_W_E | JS_PROP_THROW) < 0)
+  if (
+    JS_DefinePropertyValueInt64(
+      ctx,
+      A,
+      lengthA++,
+      sub,
+      JS_PROP_C_W_E | JS_PROP_THROW)
+    < 0)
     goto exception;
   goto done;
 exception:
@@ -1432,60 +1562,74 @@ done:
 }
 
 const JSCFunctionListEntry js_regexp_funcs[] = {
-    JS_CGETSET_DEF("[Symbol.species]", js_get_this, NULL ),
-    //JS_CFUNC_DEF("__RegExpExec", 2, js_regexp___RegExpExec ),
-    //JS_CFUNC_DEF("__RegExpDelete", 2, js_regexp___RegExpDelete ),
+  JS_CGETSET_DEF("[Symbol.species]", js_get_this, NULL),
+  //JS_CFUNC_DEF("__RegExpExec", 2, js_regexp___RegExpExec ),
+  //JS_CFUNC_DEF("__RegExpDelete", 2, js_regexp___RegExpDelete ),
 };
 
 const JSCFunctionListEntry js_regexp_proto_funcs[] = {
-    JS_CGETSET_DEF("flags", js_regexp_get_flags, NULL ),
-    JS_CGETSET_DEF("source", js_regexp_get_source, NULL ),
-    JS_CGETSET_MAGIC_DEF("global", js_regexp_get_flag, NULL, 1 ),
-    JS_CGETSET_MAGIC_DEF("ignoreCase", js_regexp_get_flag, NULL, 2 ),
-    JS_CGETSET_MAGIC_DEF("multiline", js_regexp_get_flag, NULL, 4 ),
-    JS_CGETSET_MAGIC_DEF("dotAll", js_regexp_get_flag, NULL, 8 ),
-    JS_CGETSET_MAGIC_DEF("unicode", js_regexp_get_flag, NULL, 16 ),
-    JS_CGETSET_MAGIC_DEF("sticky", js_regexp_get_flag, NULL, 32 ),
-    JS_CFUNC_DEF("exec", 1, js_regexp_exec ),
-    JS_CFUNC_DEF("compile", 2, js_regexp_compile ),
-    JS_CFUNC_DEF("test", 1, js_regexp_test ),
-    JS_CFUNC_DEF("toString", 0, js_regexp_toString ),
-    JS_CFUNC_DEF("[Symbol.replace]", 2, js_regexp_Symbol_replace ),
-    JS_CFUNC_DEF("[Symbol.match]", 1, js_regexp_Symbol_match ),
-    JS_CFUNC_DEF("[Symbol.matchAll]", 1, js_regexp_Symbol_matchAll ),
-    JS_CFUNC_DEF("[Symbol.search]", 1, js_regexp_Symbol_search ),
-    JS_CFUNC_DEF("[Symbol.split]", 2, js_regexp_Symbol_split ),
-    //JS_CGETSET_DEF("__source", js_regexp_get___source, NULL ),
-    //JS_CGETSET_DEF("__flags", js_regexp_get___flags, NULL ),
+  JS_CGETSET_DEF("flags", js_regexp_get_flags, NULL),
+  JS_CGETSET_DEF("source", js_regexp_get_source, NULL),
+  JS_CGETSET_MAGIC_DEF("global", js_regexp_get_flag, NULL, 1),
+  JS_CGETSET_MAGIC_DEF("ignoreCase", js_regexp_get_flag, NULL, 2),
+  JS_CGETSET_MAGIC_DEF("multiline", js_regexp_get_flag, NULL, 4),
+  JS_CGETSET_MAGIC_DEF("dotAll", js_regexp_get_flag, NULL, 8),
+  JS_CGETSET_MAGIC_DEF("unicode", js_regexp_get_flag, NULL, 16),
+  JS_CGETSET_MAGIC_DEF("sticky", js_regexp_get_flag, NULL, 32),
+  JS_CFUNC_DEF("exec", 1, js_regexp_exec),
+  JS_CFUNC_DEF("compile", 2, js_regexp_compile),
+  JS_CFUNC_DEF("test", 1, js_regexp_test),
+  JS_CFUNC_DEF("toString", 0, js_regexp_toString),
+  JS_CFUNC_DEF("[Symbol.replace]", 2, js_regexp_Symbol_replace),
+  JS_CFUNC_DEF("[Symbol.match]", 1, js_regexp_Symbol_match),
+  JS_CFUNC_DEF("[Symbol.matchAll]", 1, js_regexp_Symbol_matchAll),
+  JS_CFUNC_DEF("[Symbol.search]", 1, js_regexp_Symbol_search),
+  JS_CFUNC_DEF("[Symbol.split]", 2, js_regexp_Symbol_split),
+  //JS_CGETSET_DEF("__source", js_regexp_get___source, NULL ),
+  //JS_CGETSET_DEF("__flags", js_regexp_get___flags, NULL ),
 };
 
 const JSCFunctionListEntry js_regexp_string_iterator_proto_funcs[] = {
-    JS_ITERATOR_NEXT_DEF("next", 0, js_regexp_string_iterator_next, 0 ),
-    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "RegExp String Iterator", JS_PROP_CONFIGURABLE ),
+  JS_ITERATOR_NEXT_DEF("next", 0, js_regexp_string_iterator_next, 0),
+  JS_PROP_STRING_DEF(
+    "[Symbol.toStringTag]",
+    "RegExp String Iterator",
+    JS_PROP_CONFIGURABLE),
 };
 
-void JS_AddIntrinsicRegExpCompiler(JSContext *ctx)
-{
+void JS_AddIntrinsicRegExpCompiler(JSContext* ctx) {
   ctx->compile_regexp = js_compile_regexp;
 }
 
-void JS_AddIntrinsicRegExp(JSContext *ctx)
-{
+void JS_AddIntrinsicRegExp(JSContext* ctx) {
   JSValueConst obj;
 
   JS_AddIntrinsicRegExpCompiler(ctx);
 
   ctx->class_proto[JS_CLASS_REGEXP] = JS_NewObject(ctx);
-  JS_SetPropertyFunctionList(ctx, ctx->class_proto[JS_CLASS_REGEXP], js_regexp_proto_funcs,
-                             countof(js_regexp_proto_funcs));
-  obj = JS_NewGlobalCConstructor(ctx, "RegExp", js_regexp_constructor, 2,
-                                 ctx->class_proto[JS_CLASS_REGEXP]);
+  JS_SetPropertyFunctionList(
+    ctx,
+    ctx->class_proto[JS_CLASS_REGEXP],
+    js_regexp_proto_funcs,
+    countof(js_regexp_proto_funcs));
+  obj = JS_NewGlobalCConstructor(
+    ctx,
+    "RegExp",
+    js_regexp_constructor,
+    2,
+    ctx->class_proto[JS_CLASS_REGEXP]);
   ctx->regexp_ctor = JS_DupValue(ctx, obj);
-  JS_SetPropertyFunctionList(ctx, obj, js_regexp_funcs, countof(js_regexp_funcs));
+  JS_SetPropertyFunctionList(
+    ctx,
+    obj,
+    js_regexp_funcs,
+    countof(js_regexp_funcs));
 
   ctx->class_proto[JS_CLASS_REGEXP_STRING_ITERATOR] =
-      JS_NewObjectProto(ctx, ctx->iterator_proto);
-  JS_SetPropertyFunctionList(ctx, ctx->class_proto[JS_CLASS_REGEXP_STRING_ITERATOR],
-                             js_regexp_string_iterator_proto_funcs,
-                             countof(js_regexp_string_iterator_proto_funcs));
+    JS_NewObjectProto(ctx, ctx->iterator_proto);
+  JS_SetPropertyFunctionList(
+    ctx,
+    ctx->class_proto[JS_CLASS_REGEXP_STRING_ITERATOR],
+    js_regexp_string_iterator_proto_funcs,
+    countof(js_regexp_string_iterator_proto_funcs));
 }

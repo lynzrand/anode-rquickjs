@@ -24,6 +24,7 @@
  */
 
 #include "gc.h"
+
 #include "builtins/js-async-function.h"
 #include "builtins/js-map.h"
 #include "builtins/js-proxy.h"
@@ -37,7 +38,14 @@
 #include "string.h"
 
 __maybe_unused void JS_DumpObjectHeader(JSRuntime* rt) {
-  printf("%14s %4s %4s %14s %10s %s\n", "ADDRESS", "REFS", "SHRF", "PROTO", "CLASS", "PROPS");
+  printf(
+    "%14s %4s %4s %14s %10s %s\n",
+    "ADDRESS",
+    "REFS",
+    "SHRF",
+    "PROTO",
+    "CLASS",
+    "PROPS");
 }
 
 /* for debug only: dump an object without side effect */
@@ -53,11 +61,21 @@ __maybe_unused void JS_DumpObject(JSRuntime* rt, JSObject* p) {
   sh = p->shape; /* the shape can be NULL while freeing an object */
   printf("%14p %4d ", (void*)p, p->header.ref_count);
   if (sh) {
-    printf("%3d%c %14p ", sh->header.ref_count, " *"[sh->is_hashed], (void*)sh -> proto);
+    printf(
+      "%3d%c %14p ",
+      sh->header.ref_count,
+      " *"[sh->is_hashed],
+      (void*)sh -> proto);
   } else {
     printf("%3s  %14s ", "-", "-");
   }
-  printf("%10s ", JS_AtomGetStrRT(rt, atom_buf, sizeof(atom_buf), rt->class_array[p->class_id].class_name));
+  printf(
+    "%10s ",
+    JS_AtomGetStrRT(
+      rt,
+      atom_buf,
+      sizeof(atom_buf),
+      rt->class_array[p->class_id].class_name));
   if (p->is_exotic && p->fast_array) {
     printf("[ ");
     for (i = 0; i < p->u.array.count; i++) {
@@ -98,14 +116,22 @@ __maybe_unused void JS_DumpObject(JSRuntime* rt, JSObject* p) {
         pr = &p->prop[i];
         if (!is_first)
           printf(", ");
-        printf("%s: ", JS_AtomGetStrRT(rt, atom_buf, sizeof(atom_buf), prs->atom));
+        printf(
+          "%s: ",
+          JS_AtomGetStrRT(rt, atom_buf, sizeof(atom_buf), prs->atom));
         if ((prs->flags & JS_PROP_TMASK) == JS_PROP_GETSET) {
-          printf("[getset %p %p]", (void*)pr->u.getset.getter, (void*)pr->u.getset.setter);
+          printf(
+            "[getset %p %p]",
+            (void*)pr->u.getset.getter,
+            (void*)pr->u.getset.setter);
         } else if ((prs->flags & JS_PROP_TMASK) == JS_PROP_VARREF) {
           printf("[varref %p]", (void*)pr->u.var_ref);
         } else if ((prs->flags & JS_PROP_TMASK) == JS_PROP_AUTOINIT) {
-          printf("[autoinit %p %d %p]", (void*)js_autoinit_get_realm(pr), js_autoinit_get_id(pr),
-                 (void*)pr->u.init.opaque);
+          printf(
+            "[autoinit %p %d %p]",
+            (void*)js_autoinit_get_realm(pr),
+            js_autoinit_get_id(pr),
+            (void*)pr->u.init.opaque);
         } else {
           JS_DumpValueShort(rt, pr->u.value);
         }
@@ -219,14 +245,20 @@ __maybe_unused void JS_DumpValueShort(JSRuntime* rt, JSValueConst val) {
     case JS_TAG_BIG_FLOAT: {
       JSBigFloat* p = JS_VALUE_GET_PTR(val);
       char* str;
-      str = bf_ftoa(NULL, &p->num, 16, BF_PREC_INF, BF_RNDZ | BF_FTOA_FORMAT_FREE | BF_FTOA_ADD_PREFIX);
+      str = bf_ftoa(
+        NULL,
+        &p->num,
+        16,
+        BF_PREC_INF,
+        BF_RNDZ | BF_FTOA_FORMAT_FREE | BF_FTOA_ADD_PREFIX);
       printf("%sl", str);
       bf_free(&rt->bf_ctx, str);
     } break;
     case JS_TAG_BIG_DECIMAL: {
       JSBigDecimal* p = JS_VALUE_GET_PTR(val);
       char* str;
-      str = bfdec_ftoa(NULL, &p->num, BF_PREC_INF, BF_RNDZ | BF_FTOA_FORMAT_FREE);
+      str =
+        bfdec_ftoa(NULL, &p->num, BF_PREC_INF, BF_RNDZ | BF_FTOA_FORMAT_FREE);
       printf("%sm", str);
       bf_free(&rt->bf_ctx, str);
     } break;
@@ -239,18 +271,29 @@ __maybe_unused void JS_DumpValueShort(JSRuntime* rt, JSValueConst val) {
     case JS_TAG_FUNCTION_BYTECODE: {
       JSFunctionBytecode* b = JS_VALUE_GET_PTR(val);
       char buf[ATOM_GET_STR_BUF_SIZE];
-      printf("[bytecode %s]", JS_AtomGetStrRT(rt, buf, sizeof(buf), b->func_name));
+      printf(
+        "[bytecode %s]",
+        JS_AtomGetStrRT(rt, buf, sizeof(buf), b->func_name));
     } break;
     case JS_TAG_OBJECT: {
       JSObject* p = JS_VALUE_GET_OBJ(val);
       JSAtom atom = rt->class_array[p->class_id].class_name;
       char atom_buf[ATOM_GET_STR_BUF_SIZE];
-      printf("[%s %p]", JS_AtomGetStrRT(rt, atom_buf, sizeof(atom_buf), atom), (void*)p);
+      printf(
+        "[%s %p]",
+        JS_AtomGetStrRT(rt, atom_buf, sizeof(atom_buf), atom),
+        (void*)p);
     } break;
     case JS_TAG_SYMBOL: {
       JSAtomStruct* p = JS_VALUE_GET_PTR(val);
       char atom_buf[ATOM_GET_STR_BUF_SIZE];
-      printf("Symbol(%s)", JS_AtomGetStrRT(rt, atom_buf, sizeof(atom_buf), js_get_atom_index(rt, p)));
+      printf(
+        "Symbol(%s)",
+        JS_AtomGetStrRT(
+          rt,
+          atom_buf,
+          sizeof(atom_buf),
+          js_get_atom_index(rt, p)));
     } break;
     case JS_TAG_MODULE:
       printf("[module]");
@@ -265,7 +308,8 @@ __maybe_unused void JS_DumpValue(JSContext* ctx, JSValueConst val) {
   JS_DumpValueShort(ctx->rt, val);
 }
 
-__maybe_unused void JS_PrintValue(JSContext* ctx, const char* str, JSValueConst val) {
+__maybe_unused void
+JS_PrintValue(JSContext* ctx, const char* str, JSValueConst val) {
   printf("%s=", str);
   JS_DumpValueShort(ctx->rt, val);
   printf("\n");
@@ -279,7 +323,10 @@ uint32_t js_object_list_get_hash(JSObject* p, uint32_t hash_size) {
   return ((uintptr_t)p * 3163) & (hash_size - 1);
 }
 
-int js_object_list_resize_hash(JSContext* ctx, JSObjectList* s, uint32_t new_hash_size) {
+int js_object_list_resize_hash(
+  JSContext* ctx,
+  JSObjectList* s,
+  uint32_t new_hash_size) {
   JSObjectListEntry* e;
   uint32_t i, h, *new_hash_table;
 
@@ -308,7 +355,12 @@ int js_object_list_add(JSContext* ctx, JSObjectList* s, JSObject* obj) {
   JSObjectListEntry* e;
   uint32_t h, new_hash_size;
 
-  if (js_resize_array(ctx, (void*)&s->object_tab, sizeof(s->object_tab[0]), &s->object_size, s->object_count + 1))
+  if (js_resize_array(
+        ctx,
+        (void*)&s->object_tab,
+        sizeof(s->object_tab[0]),
+        &s->object_size,
+        s->object_count + 1))
     return -1;
   if (unlikely((s->object_count + 1) >= s->hash_size)) {
     new_hash_size = max_uint32(s->hash_size, 4);
@@ -517,7 +569,10 @@ void __JS_FreeValue(JSContext* ctx, JSValue v) {
 
 /* garbage collection */
 
-void add_gc_object(JSRuntime* rt, JSGCObjectHeader* h, JSGCObjectTypeEnum type) {
+void add_gc_object(
+  JSRuntime* rt,
+  JSGCObjectHeader* h,
+  JSGCObjectTypeEnum type) {
   h->mark = 0;
   h->gc_obj_type = type;
   list_add_tail(&h->link, &rt->gc_obj_list);
@@ -541,8 +596,10 @@ void js_free_modules(JSContext* ctx, JSFreeModuleEnum flag) {
   struct list_head *el, *el1;
   list_for_each_safe(el, el1, &ctx->loaded_modules) {
     JSModuleDef* m = list_entry(el, JSModuleDef, link);
-    if (flag == JS_FREE_MODULE_ALL || (flag == JS_FREE_MODULE_NOT_RESOLVED && !m->resolved) ||
-        (flag == JS_FREE_MODULE_NOT_EVALUATED && !m->evaluated)) {
+    if (
+      flag == JS_FREE_MODULE_ALL
+      || (flag == JS_FREE_MODULE_NOT_RESOLVED && !m->resolved)
+      || (flag == JS_FREE_MODULE_NOT_EVALUATED && !m->evaluated)) {
       js_free_module_def(ctx, m);
     }
   }
@@ -590,7 +647,10 @@ void JS_MarkContext(JSRuntime* rt, JSContext* ctx, JS_MarkFunc* mark_func) {
     mark_func(rt, &ctx->array_shape->header);
 }
 
-void mark_children(JSRuntime* rt, JSGCObjectHeader* gp, JS_MarkFunc* mark_func) {
+void mark_children(
+  JSRuntime* rt,
+  JSGCObjectHeader* gp,
+  JS_MarkFunc* mark_func) {
   switch (gp->gc_obj_type) {
     case JS_GC_OBJ_TYPE_JS_OBJECT: {
       JSObject* p = (JSObject*)gp;
@@ -791,7 +851,9 @@ void gc_free_cycles(JSRuntime* rt) {
 
   list_for_each_safe(el, el1, &rt->gc_zero_ref_count_list) {
     p = list_entry(el, JSGCObjectHeader, link);
-    assert(p->gc_obj_type == JS_GC_OBJ_TYPE_JS_OBJECT || p->gc_obj_type == JS_GC_OBJ_TYPE_FUNCTION_BYTECODE);
+    assert(
+      p->gc_obj_type == JS_GC_OBJ_TYPE_JS_OBJECT
+      || p->gc_obj_type == JS_GC_OBJ_TYPE_FUNCTION_BYTECODE);
     js_free_rt(rt, p);
   }
 

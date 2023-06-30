@@ -24,20 +24,25 @@
  */
 
 #include "js-string.h"
+
 #include "../convertion.h"
 #include "../exception.h"
 #include "../function.h"
 #include "../object.h"
 #include "../string.h"
 #include "../types.h"
+#include "js-array.h"
 #include "js-function.h"
 #include "js-object.h"
-#include "js-array.h"
 #include "quickjs/libregexp.h"
 
 /* String */
 
-int js_string_get_own_property(JSContext* ctx, JSPropertyDescriptor* desc, JSValueConst obj, JSAtom prop) {
+int js_string_get_own_property(
+  JSContext* ctx,
+  JSPropertyDescriptor* desc,
+  JSValueConst obj,
+  JSAtom prop) {
   JSObject* p;
   JSString* p1;
   uint32_t idx, ch;
@@ -66,7 +71,14 @@ int js_string_get_own_property(JSContext* ctx, JSPropertyDescriptor* desc, JSVal
   return FALSE;
 }
 
-int js_string_define_own_property(JSContext* ctx, JSValueConst this_obj, JSAtom prop, JSValueConst val, JSValueConst getter, JSValueConst setter, int flags) {
+int js_string_define_own_property(
+  JSContext* ctx,
+  JSValueConst this_obj,
+  JSAtom prop,
+  JSValueConst val,
+  JSValueConst getter,
+  JSValueConst setter,
+  int flags) {
   uint32_t idx;
   JSObject* p;
   JSString *p1, *p2;
@@ -90,13 +102,23 @@ int js_string_define_own_property(JSContext* ctx, JSValueConst this_obj, JSAtom 
         goto fail;
       if (string_get(p1, idx) != string_get(p2, 0)) {
       fail:
-        return JS_ThrowTypeErrorOrFalse(ctx, flags, "property is not configurable");
+        return JS_ThrowTypeErrorOrFalse(
+          ctx,
+          flags,
+          "property is not configurable");
       }
     }
     return TRUE;
   } else {
   def:
-    return JS_DefineProperty(ctx, this_obj, prop, val, getter, setter, flags | JS_PROP_NO_EXOTIC);
+    return JS_DefineProperty(
+      ctx,
+      this_obj,
+      prop,
+      val,
+      getter,
+      setter,
+      flags | JS_PROP_NO_EXOTIC);
   }
 }
 
@@ -113,19 +135,27 @@ int js_string_delete_property(JSContext* ctx, JSValueConst obj, JSAtom prop) {
 }
 
 static const JSClassExoticMethods js_string_exotic_methods = {
-    .get_own_property = js_string_get_own_property,
-    .define_own_property = js_string_define_own_property,
-    .delete_property = js_string_delete_property,
+  .get_own_property = js_string_get_own_property,
+  .define_own_property = js_string_define_own_property,
+  .delete_property = js_string_delete_property,
 };
 
-JSValue js_string_constructor(JSContext* ctx, JSValueConst new_target, int argc, JSValueConst* argv) {
+JSValue js_string_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, obj;
   if (argc == 0) {
     val = JS_AtomToString(ctx, JS_ATOM_empty_string);
   } else {
     if (JS_IsUndefined(new_target) && JS_IsSymbol(argv[0])) {
       JSAtomStruct* p = JS_VALUE_GET_PTR(argv[0]);
-      val = JS_ConcatString3(ctx, "Symbol(", JS_AtomToString(ctx, js_get_atom_index(ctx->rt, p)), ")");
+      val = JS_ConcatString3(
+        ctx,
+        "Symbol(",
+        JS_AtomToString(ctx, js_get_atom_index(ctx->rt, p)),
+        ")");
     } else {
       val = JS_ToString(ctx, argv[0]);
     }
@@ -138,7 +168,12 @@ JSValue js_string_constructor(JSContext* ctx, JSValueConst new_target, int argc,
     obj = js_create_from_ctor(ctx, new_target, JS_CLASS_STRING);
     if (!JS_IsException(obj)) {
       JS_SetObjectData(ctx, obj, val);
-      JS_DefinePropertyValue(ctx, obj, JS_ATOM_length, JS_NewInt32(ctx, p1->len), 0);
+      JS_DefinePropertyValue(
+        ctx,
+        obj,
+        JS_ATOM_length,
+        JS_NewInt32(ctx, p1->len),
+        0);
     }
     return obj;
   } else {
@@ -160,7 +195,11 @@ JSValue js_thisStringValue(JSContext* ctx, JSValueConst this_val) {
   return JS_ThrowTypeError(ctx, "not a string");
 }
 
-JSValue js_string_fromCharCode(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_fromCharCode(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   int i;
   StringBuffer b_s, *b = &b_s;
 
@@ -176,7 +215,11 @@ JSValue js_string_fromCharCode(JSContext* ctx, JSValueConst this_val, int argc, 
   return string_buffer_end(b);
 }
 
-JSValue js_string_fromCodePoint(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_fromCodePoint(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   double d;
   int i, c;
   StringBuffer b_s, *b = &b_s;
@@ -208,7 +251,11 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_string_raw(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_raw(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // raw(temp,...a)
   JSValue cooked, val, raw;
   StringBuffer b_s, *b = &b_s;
@@ -247,7 +294,11 @@ exception:
 }
 
 /* only used in test262 */
-JSValue js_string_codePointRange(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_codePointRange(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   uint32_t start, end, i, n;
   StringBuffer b_s, *b = &b_s;
 
@@ -281,7 +332,11 @@ JSValue js_string___isSpace(JSContext *ctx, JSValueConst this_val,
 }
 #endif
 
-JSValue js_string_charCodeAt(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_charCodeAt(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, ret;
   JSString* p;
   int idx, c;
@@ -307,7 +362,11 @@ JSValue js_string_charCodeAt(JSContext* ctx, JSValueConst this_val, int argc, JS
   return ret;
 }
 
-JSValue js_string_charAt(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_charAt(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, ret;
   JSString* p;
   int idx, c;
@@ -333,7 +392,11 @@ JSValue js_string_charAt(JSContext* ctx, JSValueConst this_val, int argc, JSValu
   return ret;
 }
 
-JSValue js_string_codePointAt(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_codePointAt(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, ret;
   JSString* p;
   int idx, c;
@@ -356,7 +419,11 @@ JSValue js_string_codePointAt(JSContext* ctx, JSValueConst this_val, int argc, J
   return ret;
 }
 
-JSValue js_string_concat(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_concat(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue r;
   int i;
 
@@ -426,7 +493,12 @@ int64_t string_advance_index(JSString* p, int64_t index, BOOL unicode) {
   return index;
 }
 
-JSValue js_string_indexOf(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int lastIndexOf) {
+JSValue js_string_indexOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int lastIndexOf) {
   JSValue str, v;
   int i, len, v_len, pos, start, stop, ret, inc;
   JSString* p;
@@ -492,7 +564,12 @@ fail:
 /* return < 0 if exception or TRUE/FALSE */
 int js_is_regexp(JSContext* ctx, JSValueConst obj);
 
-JSValue js_string_includes(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic) {
+JSValue js_string_includes(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   JSValue str, v = JS_UNDEFINED;
   int i, len, v_len, pos, start, stop, ret;
   JSString* p;
@@ -582,7 +659,12 @@ int check_regexp_g_flag(JSContext* ctx, JSValueConst regexp) {
   return 0;
 }
 
-JSValue js_string_match(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int atom) {
+JSValue js_string_match(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int atom) {
   // match(rx), search(rx), matchAll(rx)
   // atom is JS_ATOM_Symbol_match, JS_ATOM_Symbol_search, or JS_ATOM_Symbol_matchAll
   JSValueConst O = this_val, regexp = argv[0], args[2];
@@ -630,7 +712,11 @@ JSValue js_string_match(JSContext* ctx, JSValueConst this_val, int argc, JSValue
   return result;
 }
 
-JSValue js_string___GetSubstitution(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string___GetSubstitution(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // GetSubstitution(matched, str, position, captures, namedCaptures, rep)
   JSValueConst matched, str, captures, namedCaptures, rep;
   JSValue capture, name, s;
@@ -736,7 +822,12 @@ exception:
   return JS_EXCEPTION;
 }
 
-JSValue js_string_replace(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int is_replaceAll) {
+JSValue js_string_replace(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int is_replaceAll) {
   // replace(rx, rep)
   JSValueConst O = this_val, searchValue = argv[0], replaceValue = argv[1];
   JSValueConst args[6];
@@ -812,7 +903,8 @@ JSValue js_string_replace(JSContext* ctx, JSValueConst this_val, int argc, JSVal
       args[0] = search_str;
       args[1] = JS_NewInt32(ctx, pos);
       args[2] = str;
-      repl_str = JS_ToStringFree(ctx, JS_Call(ctx, replaceValue, JS_UNDEFINED, 3, args));
+      repl_str =
+        JS_ToStringFree(ctx, JS_Call(ctx, replaceValue, JS_UNDEFINED, 3, args));
     } else {
       args[0] = search_str;
       args[1] = str;
@@ -846,7 +938,11 @@ exception:
   return JS_EXCEPTION;
 }
 
-JSValue js_string_split(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_split(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // split(sep, limit)
   JSValueConst O = this_val, separator = argv[0], limit = argv[1];
   JSValueConst args[2];
@@ -934,7 +1030,11 @@ exception:
   return JS_EXCEPTION;
 }
 
-JSValue js_string_substring(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_substring(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue str, ret;
   int a, b, start, end;
   JSString* p;
@@ -966,7 +1066,11 @@ JSValue js_string_substring(JSContext* ctx, JSValueConst this_val, int argc, JSV
   return ret;
 }
 
-JSValue js_string_substr(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_substr(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue str, ret;
   int a, len, n;
   JSString* p;
@@ -992,7 +1096,11 @@ JSValue js_string_substr(JSContext* ctx, JSValueConst this_val, int argc, JSValu
   return ret;
 }
 
-JSValue js_string_slice(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_slice(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue str, ret;
   int len, start, end;
   JSString* p;
@@ -1018,7 +1126,12 @@ JSValue js_string_slice(JSContext* ctx, JSValueConst this_val, int argc, JSValue
   return ret;
 }
 
-JSValue js_string_pad(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int padEnd) {
+JSValue js_string_pad(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int padEnd) {
   JSValue str, v = JS_UNDEFINED;
   StringBuffer b_s, *b = &b_s;
   JSString *p, *p1 = NULL;
@@ -1087,7 +1200,11 @@ fail1:
   return JS_EXCEPTION;
 }
 
-JSValue js_string_repeat(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_repeat(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue str;
   StringBuffer b_s, *b = &b_s;
   JSString* p;
@@ -1129,7 +1246,12 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_string_trim(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic) {
+JSValue js_string_trim(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   JSValue str, ret;
   int a, b, len;
   JSString* p;
@@ -1153,7 +1275,11 @@ JSValue js_string_trim(JSContext* ctx, JSValueConst this_val, int argc, JSValueC
   return ret;
 }
 
-JSValue js_string___quote(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string___quote(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return JS_ToQuotedString(ctx, this_val);
 }
 
@@ -1208,7 +1334,11 @@ BOOL test_final_sigma(JSString* p, int sigma_pos) {
   return !lre_is_cased(c1);
 }
 
-JSValue js_string_localeCompare(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_localeCompare(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue a, b;
   int cmp;
 
@@ -1226,7 +1356,12 @@ JSValue js_string_localeCompare(JSContext* ctx, JSValueConst this_val, int argc,
   return JS_NewInt32(ctx, cmp);
 }
 
-JSValue js_string_toLowerCase(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int to_lower) {
+JSValue js_string_toLowerCase(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int to_lower) {
   JSValue val;
   StringBuffer b_s, *b = &b_s;
   JSString* p;
@@ -1307,7 +1442,11 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_string_normalize(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_normalize(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   const char *form, *p;
   size_t form_len;
   int is_compat, buf_len, out_len;
@@ -1353,7 +1492,13 @@ JSValue js_string_normalize(JSContext* ctx, JSValueConst this_val, int argc, JSV
     JS_FreeCString(ctx, form);
   }
 
-  out_len = unicode_normalize(&out_buf, buf, buf_len, n_type, ctx->rt, (DynBufReallocFunc*)js_realloc_rt);
+  out_len = unicode_normalize(
+    &out_buf,
+    buf,
+    buf_len,
+    n_type,
+    ctx->rt,
+    (DynBufReallocFunc*)js_realloc_rt);
   js_free(ctx, buf);
   if (out_len < 0)
     return JS_EXCEPTION;
@@ -1364,7 +1509,11 @@ JSValue js_string_normalize(JSContext* ctx, JSValueConst this_val, int argc, JSV
 #endif /* CONFIG_ALL_UNICODE */
 
 /* also used for String.prototype.valueOf */
-JSValue js_string_toString(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_string_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return js_thisStringValue(ctx, this_val);
 }
 
@@ -1411,7 +1560,13 @@ JSValue js_string___advanceStringIndex(JSContext *ctx, JSValueConst
 
 /* String Iterator */
 
-JSValue js_string_iterator_next(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, BOOL* pdone, int magic) {
+JSValue js_string_iterator_next(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  BOOL* pdone,
+  int magic) {
   JSArrayIteratorData* it;
   uint32_t idx, c, start;
   JSString* p;
@@ -1444,15 +1599,31 @@ JSValue js_string_iterator_next(JSContext* ctx, JSValueConst this_val, int argc,
   }
 }
 
-JSValue js_string_CreateHTML(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic) {
+JSValue js_string_CreateHTML(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   JSValue str;
   const JSString* p;
   StringBuffer b_s, *b = &b_s;
   struct {
     const char *tag, *attr;
   } const defs[] = {
-      {"a", "name"}, {"big", NULL}, {"blink", NULL}, {"b", NULL},      {"tt", NULL},  {"font", "color"}, {"font", "size"},
-      {"i", NULL},   {"a", "href"}, {"small", NULL}, {"strike", NULL}, {"sub", NULL}, {"sup", NULL},
+    {"a", "name"},
+    {"big", NULL},
+    {"blink", NULL},
+    {"b", NULL},
+    {"tt", NULL},
+    {"font", "color"},
+    {"font", "size"},
+    {"i", NULL},
+    {"a", "href"},
+    {"small", NULL},
+    {"strike", NULL},
+    {"sub", NULL},
+    {"sup", NULL},
   };
 
   str = JS_ToStringCheckObject(ctx, this_val);

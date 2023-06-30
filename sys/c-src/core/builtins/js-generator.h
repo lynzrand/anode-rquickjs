@@ -26,14 +26,14 @@
 #ifndef QUICKJS_JS_GENERATOR_H
 #define QUICKJS_JS_GENERATOR_H
 
-#include "quickjs/quickjs.h"
-#include "quickjs/cutils.h"
 #include "../types.h"
+#include "quickjs/cutils.h"
+#include "quickjs/quickjs.h"
 
 /* XXX: use enum */
-#define GEN_MAGIC_NEXT   0
+#define GEN_MAGIC_NEXT 0
 #define GEN_MAGIC_RETURN 1
-#define GEN_MAGIC_THROW  2
+#define GEN_MAGIC_THROW 2
 
 typedef enum JSGeneratorStateEnum {
   JS_GENERATOR_STATE_SUSPENDED_START,
@@ -48,19 +48,24 @@ typedef struct JSGeneratorData {
   JSAsyncFunctionState func_state;
 } JSGeneratorData;
 
-void free_generator_stack_rt(JSRuntime *rt, JSGeneratorData *s);
-void js_generator_finalizer(JSRuntime *rt, JSValue obj);
-void free_generator_stack(JSContext *ctx, JSGeneratorData *s);
-void js_generator_mark(JSRuntime *rt, JSValueConst val,
-                              JS_MarkFunc *mark_func);
+void free_generator_stack_rt(JSRuntime* rt, JSGeneratorData* s);
+void js_generator_finalizer(JSRuntime* rt, JSValue obj);
+void free_generator_stack(JSContext* ctx, JSGeneratorData* s);
+void js_generator_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func);
 
-JSValue js_generator_next(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv,
-                                 BOOL *pdone, int magic);
-JSValue js_generator_function_call(JSContext *ctx, JSValueConst func_obj,
-                                          JSValueConst this_obj,
-                                          int argc, JSValueConst *argv,
-                                          int flags);
-
+JSValue js_generator_next(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  BOOL* pdone,
+  int magic);
+JSValue js_generator_function_call(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags);
 
 #endif

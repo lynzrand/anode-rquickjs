@@ -26,8 +26,8 @@
 #ifndef QUICKJS_CONVERTION_H
 #define QUICKJS_CONVERTION_H
 
-#include "quickjs/quickjs.h"
 #include "quickjs/cutils.h"
+#include "quickjs/quickjs.h"
 #include "types.h"
 
 #define HINT_STRING 0
@@ -60,7 +60,11 @@ int skip_spaces(const char* pc);
 JSValue JS_ToPrimitiveFree(JSContext* ctx, JSValue val, int hint);
 JSValue JS_ToPrimitive(JSContext* ctx, JSValueConst val, int hint);
 
-__exception int JS_ToArrayLengthFree(JSContext* ctx, uint32_t* plen, JSValue val, BOOL is_array_ctor);
+__exception int JS_ToArrayLengthFree(
+  JSContext* ctx,
+  uint32_t* plen,
+  JSValue val,
+  BOOL is_array_ctor);
 
 JSValue JS_ToNumberFree(JSContext* ctx, JSValue val);
 JSValue JS_ToNumericFree(JSContext* ctx, JSValue val);
@@ -71,10 +75,22 @@ __maybe_unused JSValue JS_ToIntegerFree(JSContext* ctx, JSValue val);
 /* Note: the integer value is satured to 32 bits */
 int JS_ToInt32SatFree(JSContext* ctx, int* pres, JSValue val);
 int JS_ToInt32Sat(JSContext* ctx, int* pres, JSValueConst val);
-int JS_ToInt32Clamp(JSContext* ctx, int* pres, JSValueConst val, int min, int max, int min_offset);
+int JS_ToInt32Clamp(
+  JSContext* ctx,
+  int* pres,
+  JSValueConst val,
+  int min,
+  int max,
+  int min_offset);
 int JS_ToInt64SatFree(JSContext* ctx, int64_t* pres, JSValue val);
 int JS_ToInt64Sat(JSContext* ctx, int64_t* pres, JSValueConst val);
-int JS_ToInt64Clamp(JSContext* ctx, int64_t* pres, JSValueConst val, int64_t min, int64_t max, int64_t neg_offset);
+int JS_ToInt64Clamp(
+  JSContext* ctx,
+  int64_t* pres,
+  JSValueConst val,
+  int64_t min,
+  int64_t max,
+  int64_t neg_offset);
 /* Same as JS_ToInt32Free() but with a 64 bit result. Return (<0, 0)
    in case of exception */
 int JS_ToInt64Free(JSContext* ctx, int64_t* pres, JSValue val);
@@ -117,13 +133,36 @@ static inline int to_digit(int c) {
 double js_strtod(const char* p, int radix, BOOL is_float);
 
 #ifdef CONFIG_BIGNUM
-JSValue js_string_to_bigint(JSContext* ctx, const char* buf, int radix, int flags, slimb_t* pexponent);
-JSValue js_string_to_bigfloat(JSContext* ctx, const char* buf, int radix, int flags, slimb_t* pexponent);
-JSValue js_string_to_bigdecimal(JSContext* ctx, const char* buf, int radix, int flags, slimb_t* pexponent);
-JSValue js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int flags);
-JSValue js_atof2(JSContext* ctx, const char* str, const char** pp, int radix, int flags, slimb_t* pexponent);
+JSValue js_string_to_bigint(
+  JSContext* ctx,
+  const char* buf,
+  int radix,
+  int flags,
+  slimb_t* pexponent);
+JSValue js_string_to_bigfloat(
+  JSContext* ctx,
+  const char* buf,
+  int radix,
+  int flags,
+  slimb_t* pexponent);
+JSValue js_string_to_bigdecimal(
+  JSContext* ctx,
+  const char* buf,
+  int radix,
+  int flags,
+  slimb_t* pexponent);
+JSValue
+js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int flags);
+JSValue js_atof2(
+  JSContext* ctx,
+  const char* str,
+  const char** pp,
+  int radix,
+  int flags,
+  slimb_t* pexponent);
 #else
-JSValue js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int flags);
+JSValue
+js_atof(JSContext* ctx, const char* str, const char** pp, int radix, int flags);
 #endif
 
 BOOL is_safe_integer(double d);
@@ -137,21 +176,49 @@ BOOL JS_NumberIsNegativeOrMinusZero(JSContext* ctx, JSValueConst val);
 #ifdef CONFIG_BIGNUM
 JSValue js_bigint_to_string1(JSContext* ctx, JSValueConst val, int radix);
 JSValue js_bigint_to_string(JSContext* ctx, JSValueConst val);
-JSValue js_ftoa(JSContext* ctx, JSValueConst val1, int radix, limb_t prec, bf_flags_t flags);
+JSValue js_ftoa(
+  JSContext* ctx,
+  JSValueConst val1,
+  int radix,
+  limb_t prec,
+  bf_flags_t flags);
 JSValue js_bigfloat_to_string(JSContext* ctx, JSValueConst val);
-JSValue js_bigdecimal_to_string1(JSContext* ctx, JSValueConst val, limb_t prec, int flags);
+JSValue js_bigdecimal_to_string1(
+  JSContext* ctx,
+  JSValueConst val,
+  limb_t prec,
+  int flags);
 JSValue js_bigdecimal_to_string(JSContext* ctx, JSValueConst val);
 #endif
 
 /* 2 <= base <= 36 */
 char* i64toa(char* buf_end, int64_t n, unsigned int base);
 /* buf1 contains the printf result */
-void js_ecvt1(double d, int n_digits, int* decpt, int* sign, char* buf, int rounding_mode, char* buf1, int buf1_size);
+void js_ecvt1(
+  double d,
+  int n_digits,
+  int* decpt,
+  int* sign,
+  char* buf,
+  int rounding_mode,
+  char* buf1,
+  int buf1_size);
 
 /* needed because ecvt usually limits the number of digits to
    17. Return the number of digits. */
-int js_ecvt(double d, int n_digits, int* decpt, int* sign, char* buf, BOOL is_fixed);
-int js_fcvt1(char* buf, int buf_size, double d, int n_digits, int rounding_mode);
+int js_ecvt(
+  double d,
+  int n_digits,
+  int* decpt,
+  int* sign,
+  char* buf,
+  BOOL is_fixed);
+int js_fcvt1(
+  char* buf,
+  int buf_size,
+  double d,
+  int n_digits,
+  int rounding_mode);
 void js_fcvt(char* buf, int buf_size, double d, int n_digits);
 
 /* XXX: slow and maybe not fully correct. Use libbf when it is fast enough.
@@ -159,7 +226,8 @@ void js_fcvt(char* buf, int buf_size, double d, int n_digits);
 */
 void js_dtoa1(char* buf, double d, int radix, int n_digits, int flags);
 JSValue js_dtoa(JSContext* ctx, double d, int radix, int n_digits, int flags);
-JSValue JS_ToStringInternal(JSContext* ctx, JSValueConst val, BOOL is_ToPropertyKey);
+JSValue
+JS_ToStringInternal(JSContext* ctx, JSValueConst val, BOOL is_ToPropertyKey);
 
 JSValue JS_ToLocaleStringFree(JSContext* ctx, JSValue val);
 JSValue JS_ToStringCheckObject(JSContext* ctx, JSValueConst val);

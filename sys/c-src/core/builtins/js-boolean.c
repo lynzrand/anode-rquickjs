@@ -24,11 +24,16 @@
  */
 
 #include "js-boolean.h"
+
 #include "../exception.h"
 #include "../object.h"
 
 /* Boolean */
-JSValue js_boolean_constructor(JSContext* ctx, JSValueConst new_target, int argc, JSValueConst* argv) {
+JSValue js_boolean_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, obj;
   val = JS_NewBool(ctx, JS_ToBool(ctx, argv[0]));
   if (!JS_IsUndefined(new_target)) {
@@ -55,13 +60,23 @@ JSValue js_thisBooleanValue(JSContext* ctx, JSValueConst this_val) {
   return JS_ThrowTypeError(ctx, "not a boolean");
 }
 
-JSValue js_boolean_toString(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_boolean_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val = js_thisBooleanValue(ctx, this_val);
   if (JS_IsException(val))
     return val;
-  return JS_AtomToString(ctx, JS_VALUE_GET_BOOL(val) ? JS_ATOM_true : JS_ATOM_false);
+  return JS_AtomToString(
+    ctx,
+    JS_VALUE_GET_BOOL(val) ? JS_ATOM_true : JS_ATOM_false);
 }
 
-JSValue js_boolean_valueOf(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_boolean_valueOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return js_thisBooleanValue(ctx, this_val);
 }

@@ -26,7 +26,7 @@
 #ifndef QUICKJS_MEMORY_H
 #define QUICKJS_MEMORY_H
 
-#include "quickjs/quickjs.h"
 #include "quickjs/cutils.h"
+#include "quickjs/quickjs.h"
 
 #endif

@@ -24,6 +24,7 @@
  */
 
 #include "js-date.h"
+
 #include "../convertion.h"
 #include "../exception.h"
 #include "../function.h"
@@ -33,81 +34,80 @@
 #include "js-object.h"
 
 #if defined(_WIN32)
-int gettimeofday(struct timeval * tp, struct timezone * tzp) {
-	static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
+int gettimeofday(struct timeval* tp, struct timezone* tzp) {
+  static const uint64_t EPOCH = ((uint64_t)116444736000000000ULL);
 
+  SYSTEMTIME system_time;
+  FILETIME file_time;
+  uint64_t time;
 
-	SYSTEMTIME  system_time;
-	FILETIME    file_time;
-	uint64_t    time;
+  GetSystemTime(&system_time);
+  SystemTimeToFileTime(&system_time, &file_time);
+  time = ((uint64_t)file_time.dwLowDateTime);
+  time += ((uint64_t)file_time.dwHighDateTime) << 32;
 
-	GetSystemTime(&system_time);
-	SystemTimeToFileTime(&system_time, &file_time);
-	time = ((uint64_t)file_time.dwLowDateTime);
-	time += ((uint64_t)file_time.dwHighDateTime) << 32;
+  tp->tv_sec = (long)((time - EPOCH) / 10000000L);
+  tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
 
-	tp->tv_sec = (long)((time - EPOCH) / 10000000L);
-	tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
-
-	return 0;
+  return 0;
 }
 
-LARGE_INTEGER getFILETIMEoffset()
-{
-    SYSTEMTIME s;
-    FILETIME f;
-    LARGE_INTEGER t;
+LARGE_INTEGER getFILETIMEoffset() {
+  SYSTEMTIME s;
+  FILETIME f;
+  LARGE_INTEGER t;
 
-    s.wYear = 1970;
-    s.wMonth = 1;
-    s.wDay = 1;
-    s.wHour = 0;
-    s.wMinute = 0;
-    s.wSecond = 0;
-    s.wMilliseconds = 0;
-    SystemTimeToFileTime(&s, &f);
+  s.wYear = 1970;
+  s.wMonth = 1;
+  s.wDay = 1;
+  s.wHour = 0;
+  s.wMinute = 0;
+  s.wSecond = 0;
+  s.wMilliseconds = 0;
+  SystemTimeToFileTime(&s, &f);
+  t.QuadPart = f.dwHighDateTime;
+  t.QuadPart <<= 32;
+  t.QuadPart |= f.dwLowDateTime;
+  return (t);
+}
+
+int clock_gettime(int X, struct timeval* tv) {
+  LARGE_INTEGER t;
+  FILETIME f;
+  double microseconds;
+  static LARGE_INTEGER offset;
+  static double frequencyToMicroseconds;
+  static int initialized = 0;
+  static BOOL usePerformanceCounter = 0;
+
+  if (!initialized) {
+    LARGE_INTEGER performanceFrequency;
+    initialized = 1;
+    usePerformanceCounter = QueryPerformanceFrequency(&performanceFrequency);
+    if (usePerformanceCounter) {
+      QueryPerformanceCounter(&offset);
+      frequencyToMicroseconds =
+        (double)performanceFrequency.QuadPart / 1000000.;
+    } else {
+      offset = getFILETIMEoffset();
+      frequencyToMicroseconds = 10.;
+    }
+  }
+  if (usePerformanceCounter)
+    QueryPerformanceCounter(&t);
+  else {
+    GetSystemTimeAsFileTime(&f);
     t.QuadPart = f.dwHighDateTime;
     t.QuadPart <<= 32;
     t.QuadPart |= f.dwLowDateTime;
-    return (t);
-}
+  }
 
-int clock_gettime(int X, struct timeval *tv)
-{
-    LARGE_INTEGER           t;
-    FILETIME            f;
-    double                  microseconds;
-    static LARGE_INTEGER    offset;
-    static double           frequencyToMicroseconds;
-    static int              initialized = 0;
-    static BOOL             usePerformanceCounter = 0;
-
-    if (!initialized) {
-        LARGE_INTEGER performanceFrequency;
-        initialized = 1;
-        usePerformanceCounter = QueryPerformanceFrequency(&performanceFrequency);
-        if (usePerformanceCounter) {
-            QueryPerformanceCounter(&offset);
-            frequencyToMicroseconds = (double)performanceFrequency.QuadPart / 1000000.;
-        } else {
-            offset = getFILETIMEoffset();
-            frequencyToMicroseconds = 10.;
-        }
-    }
-    if (usePerformanceCounter) QueryPerformanceCounter(&t);
-    else {
-        GetSystemTimeAsFileTime(&f);
-        t.QuadPart = f.dwHighDateTime;
-        t.QuadPart <<= 32;
-        t.QuadPart |= f.dwLowDateTime;
-    }
-
-    t.QuadPart -= offset.QuadPart;
-    microseconds = (double)t.QuadPart / frequencyToMicroseconds;
-    t.QuadPart = microseconds;
-    tv->tv_sec = t.QuadPart / 1000000;
-    tv->tv_usec = t.QuadPart % 1000000;
-    return (0);
+  t.QuadPart -= offset.QuadPart;
+  microseconds = (double)t.QuadPart / frequencyToMicroseconds;
+  t.QuadPart = microseconds;
+  tv->tv_sec = t.QuadPart / 1000000;
+  tv->tv_usec = t.QuadPart % 1000000;
+  return (0);
 }
 #endif
 
@@ -176,7 +176,11 @@ int getTimezoneOffset(int64_t time) {
 }
 
 /* OS dependent: return the UTC time in microseconds since 1970. */
-JSValue js___date_clock(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js___date_clock(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   int64_t d;
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -184,7 +188,8 @@ JSValue js___date_clock(JSContext* ctx, JSValueConst this_val, int argc, JSValue
   return JS_NewInt64(ctx, d);
 }
 
-__exception int JS_ThisTimeValue(JSContext* ctx, double* valp, JSValueConst this_val) {
+__exception int
+JS_ThisTimeValue(JSContext* ctx, double* valp, JSValueConst this_val) {
   if (JS_VALUE_GET_TAG(this_val) == JS_TAG_OBJECT) {
     JSObject* p = JS_VALUE_GET_OBJ(this_val);
     if (p->class_id == JS_CLASS_DATE && JS_IsNumber(p->u.object_data))
@@ -207,7 +212,8 @@ JSValue JS_SetThisTimeValue(JSContext* ctx, JSValueConst this_val, double v) {
 }
 
 int64_t days_from_year(int64_t y) {
-  return 365 * (y - 1970) + floor_div(y - 1969, 4) - floor_div(y - 1901, 100) + floor_div(y - 1601, 400);
+  return 365 * (y - 1970) + floor_div(y - 1969, 4) - floor_div(y - 1901, 100)
+    + floor_div(y - 1601, 400);
 }
 
 int64_t days_in_year(int64_t y) {
@@ -241,7 +247,12 @@ int const month_days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 char const month_names[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
 char const day_names[] = "SunMonTueWedThuFriSat";
 
-__exception int get_date_fields(JSContext* ctx, JSValueConst obj, double fields[9], int is_local, int force) {
+__exception int get_date_fields(
+  JSContext* ctx,
+  JSValueConst obj,
+  double fields[9],
+  int is_local,
+  int force) {
   double dval;
   int64_t d, days, wd, y, i, md, h, m, s, ms, tz = 0;
 
@@ -251,7 +262,7 @@ __exception int get_date_fields(JSContext* ctx, JSValueConst obj, double fields[
   if (isnan(dval)) {
     if (!force)
       return FALSE; /* NaN */
-    d = 0;          /* initialize all fields to 0 */
+    d = 0; /* initialize all fields to 0 */
   } else {
     d = dval;
     if (is_local) {
@@ -327,7 +338,12 @@ double set_date_fields(double fields[], int is_local) {
   return time_clip(d);
 }
 
-JSValue get_date_field(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic) {
+JSValue get_date_field(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   // get_date_field(obj, n, is_local)
   double fields[9];
   int res, n, is_local;
@@ -346,7 +362,12 @@ JSValue get_date_field(JSContext* ctx, JSValueConst this_val, int argc, JSValueC
   return JS_NewFloat64(ctx, fields[n]);
 }
 
-JSValue set_date_field(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic) {
+JSValue set_date_field(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   // _field(obj, first_field, end_field, args, is_local)
   double fields[9];
   int res, first_field, end_field, is_local, i, n;
@@ -385,7 +406,12 @@ done:
    part: 1=date, 2=time 3=all
    XXX: should use a variant of strftime().
  */
-JSValue get_date_string(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv, int magic) {
+JSValue get_date_string(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   // _string(obj, fmt, part)
   char buf[64];
   double fields[9];
@@ -420,10 +446,26 @@ JSValue get_date_string(JSContext* ctx, JSValueConst this_val, int argc, JSValue
   if (part & 1) { /* date part */
     switch (fmt) {
       case 0:
-        pos += snprintf(buf + pos, sizeof(buf) - pos, "%.3s, %02d %.3s %0*d ", day_names + wd * 3, d, month_names + mon * 3, 4 + (y < 0), y);
+        pos += snprintf(
+          buf + pos,
+          sizeof(buf) - pos,
+          "%.3s, %02d %.3s %0*d ",
+          day_names + wd * 3,
+          d,
+          month_names + mon * 3,
+          4 + (y < 0),
+          y);
         break;
       case 1:
-        pos += snprintf(buf + pos, sizeof(buf) - pos, "%.3s %.3s %02d %0*d", day_names + wd * 3, month_names + mon * 3, d, 4 + (y < 0), y);
+        pos += snprintf(
+          buf + pos,
+          sizeof(buf) - pos,
+          "%.3s %.3s %02d %0*d",
+          day_names + wd * 3,
+          month_names + mon * 3,
+          d,
+          4 + (y < 0),
+          y);
         if (part == 3) {
           buf[pos++] = ' ';
         }
@@ -434,10 +476,18 @@ JSValue get_date_string(JSContext* ctx, JSValueConst this_val, int argc, JSValue
         } else {
           pos += snprintf(buf + pos, sizeof(buf) - pos, "%+07d", y);
         }
-        pos += snprintf(buf + pos, sizeof(buf) - pos, "-%02d-%02dT", mon + 1, d);
+        pos +=
+          snprintf(buf + pos, sizeof(buf) - pos, "-%02d-%02dT", mon + 1, d);
         break;
       case 3:
-        pos += snprintf(buf + pos, sizeof(buf) - pos, "%02d/%02d/%0*d", mon + 1, d, 4 + (y < 0), y);
+        pos += snprintf(
+          buf + pos,
+          sizeof(buf) - pos,
+          "%02d/%02d/%0*d",
+          mon + 1,
+          d,
+          4 + (y < 0),
+          y);
         if (part == 3) {
           buf[pos++] = ',';
           buf[pos++] = ' ';
@@ -448,10 +498,12 @@ JSValue get_date_string(JSContext* ctx, JSValueConst this_val, int argc, JSValue
   if (part & 2) { /* time part */
     switch (fmt) {
       case 0:
-        pos += snprintf(buf + pos, sizeof(buf) - pos, "%02d:%02d:%02d GMT", h, m, s);
+        pos +=
+          snprintf(buf + pos, sizeof(buf) - pos, "%02d:%02d:%02d GMT", h, m, s);
         break;
       case 1:
-        pos += snprintf(buf + pos, sizeof(buf) - pos, "%02d:%02d:%02d GMT", h, m, s);
+        pos +=
+          snprintf(buf + pos, sizeof(buf) - pos, "%02d:%02d:%02d GMT", h, m, s);
         if (tz < 0) {
           buf[pos++] = '-';
           tz = -tz;
@@ -459,14 +511,29 @@ JSValue get_date_string(JSContext* ctx, JSValueConst this_val, int argc, JSValue
           buf[pos++] = '+';
         }
         /* tz is >= 0, can use % */
-        pos += snprintf(buf + pos, sizeof(buf) - pos, "%02d%02d", tz / 60, tz % 60);
+        pos +=
+          snprintf(buf + pos, sizeof(buf) - pos, "%02d%02d", tz / 60, tz % 60);
         /* XXX: tack the time zone code? */
         break;
       case 2:
-        pos += snprintf(buf + pos, sizeof(buf) - pos, "%02d:%02d:%02d.%03dZ", h, m, s, ms);
+        pos += snprintf(
+          buf + pos,
+          sizeof(buf) - pos,
+          "%02d:%02d:%02d.%03dZ",
+          h,
+          m,
+          s,
+          ms);
         break;
       case 3:
-        pos += snprintf(buf + pos, sizeof(buf) - pos, "%02d:%02d:%02d %cM", (h + 1) % 12 - 1, m, s, (h < 12) ? 'A' : 'P');
+        pos += snprintf(
+          buf + pos,
+          sizeof(buf) - pos,
+          "%02d:%02d:%02d %cM",
+          (h + 1) % 12 - 1,
+          m,
+          s,
+          (h < 12) ? 'A' : 'P');
         break;
     }
   }
@@ -480,7 +547,11 @@ int64_t date_now(void) {
   return (int64_t)tv.tv_sec * 1000 + (tv.tv_usec / 1000);
 }
 
-JSValue js_date_constructor(JSContext* ctx, JSValueConst new_target, int argc, JSValueConst* argv) {
+JSValue js_date_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   // Date(y, mon, d, h, m, s, ms)
   JSValue rv;
   int i, n;
@@ -554,7 +625,11 @@ has_val:
   return rv;
 }
 
-JSValue js_Date_UTC(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_Date_UTC(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // UTC(y, mon, d, h, m, s, ms)
   double fields[] = {0, 0, 1, 0, 0, 0, 0};
   int i, n;
@@ -701,7 +776,11 @@ int string_get_month(JSString* sp, int* pp, int64_t* pval) {
   return 0;
 }
 
-JSValue js_Date_parse(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_Date_parse(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // parse(s)
   JSValue s, rv;
   int64_t fields[] = {0, 1, 1, 0, 0, 0, 0};
@@ -720,7 +799,9 @@ JSValue js_Date_parse(JSContext* ctx, JSValueConst this_val, int argc, JSValueCo
 
   sp = JS_VALUE_GET_STRING(s);
   p = 0;
-  if (p < sp->len && (((c = string_get(sp, p)) >= '0' && c <= '9') || c == '+' || c == '-')) {
+  if (
+    p < sp->len
+    && (((c = string_get(sp, p)) >= '0' && c <= '9') || c == '+' || c == '-')) {
     /* ISO format */
     /* year field can be negative */
     if (string_get_signed_digits(sp, &p, &fields[0]))
@@ -862,12 +943,20 @@ done:
   return rv;
 }
 
-JSValue js_Date_now(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_Date_now(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // now()
   return JS_NewInt64(ctx, date_now());
 }
 
-JSValue js_date_Symbol_toPrimitive(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_date_Symbol_toPrimitive(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // Symbol_toPrimitive(hint)
   JSValueConst obj = this_val;
   JSAtom hint = JS_ATOM_NULL;
@@ -899,7 +988,11 @@ JSValue js_date_Symbol_toPrimitive(JSContext* ctx, JSValueConst this_val, int ar
   return JS_ToPrimitive(ctx, obj, hint_num | HINT_FORCE_ORDINARY);
 }
 
-JSValue js_date_getTimezoneOffset(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_date_getTimezoneOffset(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // getTimezoneOffset()
   double v;
 
@@ -911,7 +1004,11 @@ JSValue js_date_getTimezoneOffset(JSContext* ctx, JSValueConst this_val, int arg
     return JS_NewInt64(ctx, getTimezoneOffset((int64_t)trunc(v)));
 }
 
-JSValue js_date_getTime(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_date_getTime(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // getTime()
   double v;
 
@@ -920,7 +1017,11 @@ JSValue js_date_getTime(JSContext* ctx, JSValueConst this_val, int argc, JSValue
   return JS_NewFloat64(ctx, v);
 }
 
-JSValue js_date_setTime(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_date_setTime(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // setTime(v)
   double v;
 
@@ -929,7 +1030,11 @@ JSValue js_date_setTime(JSContext* ctx, JSValueConst this_val, int argc, JSValue
   return JS_SetThisTimeValue(ctx, this_val, time_clip(v));
 }
 
-JSValue js_date_setYear(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_date_setYear(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // setYear(y)
   double y;
   JSValueConst args[1];
@@ -946,7 +1051,11 @@ JSValue js_date_setYear(JSContext* ctx, JSValueConst this_val, int argc, JSValue
   return set_date_field(ctx, this_val, 1, args, 0x011);
 }
 
-JSValue js_date_toJSON(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_date_toJSON(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   // toJSON(key)
   JSValue obj, tv, method, rv;
   double d;
@@ -983,59 +1092,59 @@ done:
 }
 
 const JSCFunctionListEntry js_date_funcs[] = {
-    JS_CFUNC_DEF("now", 0, js_Date_now),
-    JS_CFUNC_DEF("parse", 1, js_Date_parse),
-    JS_CFUNC_DEF("UTC", 7, js_Date_UTC),
+  JS_CFUNC_DEF("now", 0, js_Date_now),
+  JS_CFUNC_DEF("parse", 1, js_Date_parse),
+  JS_CFUNC_DEF("UTC", 7, js_Date_UTC),
 };
 
 const JSCFunctionListEntry js_date_proto_funcs[] = {
-    JS_CFUNC_DEF("valueOf", 0, js_date_getTime),
-    JS_CFUNC_MAGIC_DEF("toString", 0, get_date_string, 0x13),
-    JS_CFUNC_DEF("[Symbol.toPrimitive]", 1, js_date_Symbol_toPrimitive),
-    JS_CFUNC_MAGIC_DEF("toUTCString", 0, get_date_string, 0x03),
-    JS_ALIAS_DEF("toGMTString", "toUTCString"),
-    JS_CFUNC_MAGIC_DEF("toISOString", 0, get_date_string, 0x23),
-    JS_CFUNC_MAGIC_DEF("toDateString", 0, get_date_string, 0x11),
-    JS_CFUNC_MAGIC_DEF("toTimeString", 0, get_date_string, 0x12),
-    JS_CFUNC_MAGIC_DEF("toLocaleString", 0, get_date_string, 0x33),
-    JS_CFUNC_MAGIC_DEF("toLocaleDateString", 0, get_date_string, 0x31),
-    JS_CFUNC_MAGIC_DEF("toLocaleTimeString", 0, get_date_string, 0x32),
-    JS_CFUNC_DEF("getTimezoneOffset", 0, js_date_getTimezoneOffset),
-    JS_CFUNC_DEF("getTime", 0, js_date_getTime),
-    JS_CFUNC_MAGIC_DEF("getYear", 0, get_date_field, 0x101),
-    JS_CFUNC_MAGIC_DEF("getFullYear", 0, get_date_field, 0x01),
-    JS_CFUNC_MAGIC_DEF("getUTCFullYear", 0, get_date_field, 0x00),
-    JS_CFUNC_MAGIC_DEF("getMonth", 0, get_date_field, 0x11),
-    JS_CFUNC_MAGIC_DEF("getUTCMonth", 0, get_date_field, 0x10),
-    JS_CFUNC_MAGIC_DEF("getDate", 0, get_date_field, 0x21),
-    JS_CFUNC_MAGIC_DEF("getUTCDate", 0, get_date_field, 0x20),
-    JS_CFUNC_MAGIC_DEF("getHours", 0, get_date_field, 0x31),
-    JS_CFUNC_MAGIC_DEF("getUTCHours", 0, get_date_field, 0x30),
-    JS_CFUNC_MAGIC_DEF("getMinutes", 0, get_date_field, 0x41),
-    JS_CFUNC_MAGIC_DEF("getUTCMinutes", 0, get_date_field, 0x40),
-    JS_CFUNC_MAGIC_DEF("getSeconds", 0, get_date_field, 0x51),
-    JS_CFUNC_MAGIC_DEF("getUTCSeconds", 0, get_date_field, 0x50),
-    JS_CFUNC_MAGIC_DEF("getMilliseconds", 0, get_date_field, 0x61),
-    JS_CFUNC_MAGIC_DEF("getUTCMilliseconds", 0, get_date_field, 0x60),
-    JS_CFUNC_MAGIC_DEF("getDay", 0, get_date_field, 0x71),
-    JS_CFUNC_MAGIC_DEF("getUTCDay", 0, get_date_field, 0x70),
-    JS_CFUNC_DEF("setTime", 1, js_date_setTime),
-    JS_CFUNC_MAGIC_DEF("setMilliseconds", 1, set_date_field, 0x671),
-    JS_CFUNC_MAGIC_DEF("setUTCMilliseconds", 1, set_date_field, 0x670),
-    JS_CFUNC_MAGIC_DEF("setSeconds", 2, set_date_field, 0x571),
-    JS_CFUNC_MAGIC_DEF("setUTCSeconds", 2, set_date_field, 0x570),
-    JS_CFUNC_MAGIC_DEF("setMinutes", 3, set_date_field, 0x471),
-    JS_CFUNC_MAGIC_DEF("setUTCMinutes", 3, set_date_field, 0x470),
-    JS_CFUNC_MAGIC_DEF("setHours", 4, set_date_field, 0x371),
-    JS_CFUNC_MAGIC_DEF("setUTCHours", 4, set_date_field, 0x370),
-    JS_CFUNC_MAGIC_DEF("setDate", 1, set_date_field, 0x231),
-    JS_CFUNC_MAGIC_DEF("setUTCDate", 1, set_date_field, 0x230),
-    JS_CFUNC_MAGIC_DEF("setMonth", 2, set_date_field, 0x131),
-    JS_CFUNC_MAGIC_DEF("setUTCMonth", 2, set_date_field, 0x130),
-    JS_CFUNC_DEF("setYear", 1, js_date_setYear),
-    JS_CFUNC_MAGIC_DEF("setFullYear", 3, set_date_field, 0x031),
-    JS_CFUNC_MAGIC_DEF("setUTCFullYear", 3, set_date_field, 0x030),
-    JS_CFUNC_DEF("toJSON", 1, js_date_toJSON),
+  JS_CFUNC_DEF("valueOf", 0, js_date_getTime),
+  JS_CFUNC_MAGIC_DEF("toString", 0, get_date_string, 0x13),
+  JS_CFUNC_DEF("[Symbol.toPrimitive]", 1, js_date_Symbol_toPrimitive),
+  JS_CFUNC_MAGIC_DEF("toUTCString", 0, get_date_string, 0x03),
+  JS_ALIAS_DEF("toGMTString", "toUTCString"),
+  JS_CFUNC_MAGIC_DEF("toISOString", 0, get_date_string, 0x23),
+  JS_CFUNC_MAGIC_DEF("toDateString", 0, get_date_string, 0x11),
+  JS_CFUNC_MAGIC_DEF("toTimeString", 0, get_date_string, 0x12),
+  JS_CFUNC_MAGIC_DEF("toLocaleString", 0, get_date_string, 0x33),
+  JS_CFUNC_MAGIC_DEF("toLocaleDateString", 0, get_date_string, 0x31),
+  JS_CFUNC_MAGIC_DEF("toLocaleTimeString", 0, get_date_string, 0x32),
+  JS_CFUNC_DEF("getTimezoneOffset", 0, js_date_getTimezoneOffset),
+  JS_CFUNC_DEF("getTime", 0, js_date_getTime),
+  JS_CFUNC_MAGIC_DEF("getYear", 0, get_date_field, 0x101),
+  JS_CFUNC_MAGIC_DEF("getFullYear", 0, get_date_field, 0x01),
+  JS_CFUNC_MAGIC_DEF("getUTCFullYear", 0, get_date_field, 0x00),
+  JS_CFUNC_MAGIC_DEF("getMonth", 0, get_date_field, 0x11),
+  JS_CFUNC_MAGIC_DEF("getUTCMonth", 0, get_date_field, 0x10),
+  JS_CFUNC_MAGIC_DEF("getDate", 0, get_date_field, 0x21),
+  JS_CFUNC_MAGIC_DEF("getUTCDate", 0, get_date_field, 0x20),
+  JS_CFUNC_MAGIC_DEF("getHours", 0, get_date_field, 0x31),
+  JS_CFUNC_MAGIC_DEF("getUTCHours", 0, get_date_field, 0x30),
+  JS_CFUNC_MAGIC_DEF("getMinutes", 0, get_date_field, 0x41),
+  JS_CFUNC_MAGIC_DEF("getUTCMinutes", 0, get_date_field, 0x40),
+  JS_CFUNC_MAGIC_DEF("getSeconds", 0, get_date_field, 0x51),
+  JS_CFUNC_MAGIC_DEF("getUTCSeconds", 0, get_date_field, 0x50),
+  JS_CFUNC_MAGIC_DEF("getMilliseconds", 0, get_date_field, 0x61),
+  JS_CFUNC_MAGIC_DEF("getUTCMilliseconds", 0, get_date_field, 0x60),
+  JS_CFUNC_MAGIC_DEF("getDay", 0, get_date_field, 0x71),
+  JS_CFUNC_MAGIC_DEF("getUTCDay", 0, get_date_field, 0x70),
+  JS_CFUNC_DEF("setTime", 1, js_date_setTime),
+  JS_CFUNC_MAGIC_DEF("setMilliseconds", 1, set_date_field, 0x671),
+  JS_CFUNC_MAGIC_DEF("setUTCMilliseconds", 1, set_date_field, 0x670),
+  JS_CFUNC_MAGIC_DEF("setSeconds", 2, set_date_field, 0x571),
+  JS_CFUNC_MAGIC_DEF("setUTCSeconds", 2, set_date_field, 0x570),
+  JS_CFUNC_MAGIC_DEF("setMinutes", 3, set_date_field, 0x471),
+  JS_CFUNC_MAGIC_DEF("setUTCMinutes", 3, set_date_field, 0x470),
+  JS_CFUNC_MAGIC_DEF("setHours", 4, set_date_field, 0x371),
+  JS_CFUNC_MAGIC_DEF("setUTCHours", 4, set_date_field, 0x370),
+  JS_CFUNC_MAGIC_DEF("setDate", 1, set_date_field, 0x231),
+  JS_CFUNC_MAGIC_DEF("setUTCDate", 1, set_date_field, 0x230),
+  JS_CFUNC_MAGIC_DEF("setMonth", 2, set_date_field, 0x131),
+  JS_CFUNC_MAGIC_DEF("setUTCMonth", 2, set_date_field, 0x130),
+  JS_CFUNC_DEF("setYear", 1, js_date_setYear),
+  JS_CFUNC_MAGIC_DEF("setFullYear", 3, set_date_field, 0x031),
+  JS_CFUNC_MAGIC_DEF("setUTCFullYear", 3, set_date_field, 0x030),
+  JS_CFUNC_DEF("toJSON", 1, js_date_toJSON),
 };
 
 void JS_AddIntrinsicDate(JSContext* ctx) {
@@ -1043,7 +1152,16 @@ void JS_AddIntrinsicDate(JSContext* ctx) {
 
   /* Date */
   ctx->class_proto[JS_CLASS_DATE] = JS_NewObject(ctx);
-  JS_SetPropertyFunctionList(ctx, ctx->class_proto[JS_CLASS_DATE], js_date_proto_funcs, countof(js_date_proto_funcs));
-  obj = JS_NewGlobalCConstructor(ctx, "Date", js_date_constructor, 7, ctx->class_proto[JS_CLASS_DATE]);
+  JS_SetPropertyFunctionList(
+    ctx,
+    ctx->class_proto[JS_CLASS_DATE],
+    js_date_proto_funcs,
+    countof(js_date_proto_funcs));
+  obj = JS_NewGlobalCConstructor(
+    ctx,
+    "Date",
+    js_date_constructor,
+    7,
+    ctx->class_proto[JS_CLASS_DATE]);
   JS_SetPropertyFunctionList(ctx, obj, js_date_funcs, countof(js_date_funcs));
 }

@@ -28,9 +28,21 @@
 
 #include "quickjs/quickjs.h"
 
-JSValue js_boolean_constructor(JSContext* ctx, JSValueConst new_target, int argc, JSValueConst* argv);
+JSValue js_boolean_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv);
 JSValue js_thisBooleanValue(JSContext* ctx, JSValueConst this_val);
-JSValue js_boolean_toString(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv);
-JSValue js_boolean_valueOf(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv);
+JSValue js_boolean_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_boolean_valueOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 
 #endif

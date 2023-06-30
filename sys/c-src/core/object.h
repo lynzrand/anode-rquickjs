@@ -31,26 +31,39 @@
 #include "shape.h"
 #include "types.h"
 
-JSValue JS_GetPropertyValue(JSContext* ctx, JSValueConst this_obj, JSValue prop);
+JSValue
+JS_GetPropertyValue(JSContext* ctx, JSValueConst this_obj, JSValue prop);
 
 /* Check if an object has a generalized numeric property. Return value:
    -1 for exception,
    TRUE if property exists, stored into *pval,
    FALSE if proprty does not exist.
  */
-int JS_TryGetPropertyInt64(JSContext* ctx, JSValueConst obj, int64_t idx, JSValue* pval);
+int JS_TryGetPropertyInt64(
+  JSContext* ctx,
+  JSValueConst obj,
+  int64_t idx,
+  JSValue* pval);
 JSValue JS_GetPropertyInt64(JSContext* ctx, JSValueConst obj, int64_t idx);
 
 /* can be called on Array or Arguments objects. return < 0 if
    memory alloc error. */
-no_inline __exception int convert_fast_array_to_array(JSContext* ctx, JSObject* p);
+no_inline __exception int
+convert_fast_array_to_array(JSContext* ctx, JSObject* p);
 
 int delete_property(JSContext* ctx, JSObject* p, JSAtom atom);
-int call_setter(JSContext* ctx, JSObject* setter, JSValueConst this_obj, JSValue val, int flags);
+int call_setter(
+  JSContext* ctx,
+  JSObject* setter,
+  JSValueConst this_obj,
+  JSValue val,
+  int flags);
 void free_property(JSRuntime* rt, JSProperty* pr, int prop_flags);
-JSProperty* add_property(JSContext* ctx, JSObject* p, JSAtom prop, int prop_flags);
+JSProperty*
+add_property(JSContext* ctx, JSObject* p, JSAtom prop, int prop_flags);
 
-static force_inline JSShapeProperty* find_own_property1(JSObject* p, JSAtom atom) {
+static force_inline JSShapeProperty*
+find_own_property1(JSObject* p, JSAtom atom) {
   JSShape* sh;
   JSShapeProperty *pr, *prop;
   intptr_t h;
@@ -67,7 +80,8 @@ static force_inline JSShapeProperty* find_own_property1(JSObject* p, JSAtom atom
   }
   return NULL;
 };
-static force_inline JSShapeProperty* find_own_property(JSProperty** ppr, JSObject* p, JSAtom atom) {
+static force_inline JSShapeProperty*
+find_own_property(JSProperty** ppr, JSObject* p, JSAtom atom) {
   JSShape* sh;
   JSShapeProperty *pr, *prop;
   intptr_t h;
@@ -87,7 +101,11 @@ static force_inline JSShapeProperty* find_own_property(JSProperty** ppr, JSObjec
   *ppr = NULL;
   return NULL;
 };
-static force_inline JSShapeProperty* find_own_property_ic(JSProperty** ppr, JSObject* p, JSAtom atom, uint32_t* offset) {
+static force_inline JSShapeProperty* find_own_property_ic(
+  JSProperty** ppr,
+  JSObject* p,
+  JSAtom atom,
+  uint32_t* offset) {
   JSShape* sh;
   JSShapeProperty *pr, *prop;
   intptr_t h;
@@ -110,82 +128,136 @@ static force_inline JSShapeProperty* find_own_property_ic(JSProperty** ppr, JSOb
 }
 
 /* return FALSE if not OK */
-BOOL check_define_prop_flags(int prop_flags, int flags);;
-void js_free_prop_enum(JSContext *ctx, JSPropertyEnum *tab, uint32_t len);
-void js_free_desc(JSContext *ctx, JSPropertyDescriptor *desc);;
+BOOL check_define_prop_flags(int prop_flags, int flags);
+;
+void js_free_prop_enum(JSContext* ctx, JSPropertyEnum* tab, uint32_t len);
+void js_free_desc(JSContext* ctx, JSPropertyDescriptor* desc);
+;
 
-JSValue js_instantiate_prototype(JSContext *ctx, JSObject *p, JSAtom atom, void *opaque);
-JSValue js_create_from_ctor(JSContext *ctx, JSValueConst ctor,
-                                   int class_id);
+JSValue js_instantiate_prototype(
+  JSContext* ctx,
+  JSObject* p,
+  JSAtom atom,
+  void* opaque);
+JSValue js_create_from_ctor(JSContext* ctx, JSValueConst ctor, int class_id);
 
-__exception int JS_CopyDataProperties(JSContext *ctx,
-                                             JSValueConst target,
-                                             JSValueConst source,
-                                             JSValueConst excluded,
-                                             BOOL setprop);
+__exception int JS_CopyDataProperties(
+  JSContext* ctx,
+  JSValueConst target,
+  JSValueConst source,
+  JSValueConst excluded,
+  BOOL setprop);
 
-int JS_DefinePropertyValueValue(JSContext* ctx, JSValueConst this_obj, JSValue prop, JSValue val, int flags);
-int JS_DefinePropertyValueInt64(JSContext* ctx, JSValueConst this_obj, int64_t idx, JSValue val, int flags);
-int JS_SetPropertyGeneric(JSContext* ctx, JSValueConst obj, JSAtom prop, JSValue val, JSValueConst this_obj, int flags);
+int JS_DefinePropertyValueValue(
+  JSContext* ctx,
+  JSValueConst this_obj,
+  JSValue prop,
+  JSValue val,
+  int flags);
+int JS_DefinePropertyValueInt64(
+  JSContext* ctx,
+  JSValueConst this_obj,
+  int64_t idx,
+  JSValue val,
+  int flags);
+int JS_SetPropertyGeneric(
+  JSContext* ctx,
+  JSValueConst obj,
+  JSAtom prop,
+  JSValue val,
+  JSValueConst this_obj,
+  int flags);
 /* flags can be JS_PROP_THROW or JS_PROP_THROW_STRICT */
-int JS_SetPropertyValue(JSContext* ctx, JSValueConst this_obj, JSValue prop, JSValue val, int flags);
+int JS_SetPropertyValue(
+  JSContext* ctx,
+  JSValueConst this_obj,
+  JSValue prop,
+  JSValue val,
+  int flags);
 
 /* return -1 if exception (Proxy object only) or TRUE/FALSE */
-int JS_IsExtensible(JSContext *ctx, JSValueConst obj);
+int JS_IsExtensible(JSContext* ctx, JSValueConst obj);
 
 /* return -1 if exception (Proxy object only) or TRUE/FALSE */
-int JS_PreventExtensions(JSContext *ctx, JSValueConst obj);
+int JS_PreventExtensions(JSContext* ctx, JSValueConst obj);
 
-JSValue JS_GetOwnPropertyNames2(JSContext* ctx, JSValueConst obj1, int flags, int kind);
+JSValue
+JS_GetOwnPropertyNames2(JSContext* ctx, JSValueConst obj1, int flags, int kind);
 /* return -1 if exception otherwise TRUE or FALSE */
-int JS_HasProperty(JSContext *ctx, JSValueConst obj, JSAtom prop);
+int JS_HasProperty(JSContext* ctx, JSValueConst obj, JSAtom prop);
 
 /* Private fields can be added even on non extensible objects or
    Proxies */
-int JS_DefinePrivateField(JSContext *ctx, JSValueConst obj,
-                                 JSValueConst name, JSValue val);
+int JS_DefinePrivateField(
+  JSContext* ctx,
+  JSValueConst obj,
+  JSValueConst name,
+  JSValue val);
 
-JSValue JS_GetPrivateField(JSContext *ctx, JSValueConst obj,
-                                  JSValueConst name);
+JSValue JS_GetPrivateField(JSContext* ctx, JSValueConst obj, JSValueConst name);
 
-int JS_SetPrivateField(JSContext *ctx, JSValueConst obj,
-                              JSValueConst name, JSValue val);
+int JS_SetPrivateField(
+  JSContext* ctx,
+  JSValueConst obj,
+  JSValueConst name,
+  JSValue val);
 
-int JS_AddBrand(JSContext *ctx, JSValueConst obj, JSValueConst home_obj);
-int JS_CheckBrand(JSContext *ctx, JSValueConst obj, JSValueConst func);
+int JS_AddBrand(JSContext* ctx, JSValueConst obj, JSValueConst home_obj);
+int JS_CheckBrand(JSContext* ctx, JSValueConst obj, JSValueConst func);
 
-uint32_t js_string_obj_get_length(JSContext *ctx,
-                                         JSValueConst obj);
+uint32_t js_string_obj_get_length(JSContext* ctx, JSValueConst obj);
 
 /* return < 0 in case if exception, 0 if OK. ptab and its atoms must
    be freed by the user. */
-int __exception JS_GetOwnPropertyNamesInternal(JSContext *ctx,
-                                                      JSPropertyEnum **ptab,
-                                                      uint32_t *plen,
-                                                      JSObject *p, int flags);
+int __exception JS_GetOwnPropertyNamesInternal(
+  JSContext* ctx,
+  JSPropertyEnum** ptab,
+  uint32_t* plen,
+  JSObject* p,
+  int flags);
 /* Return -1 if exception,
    FALSE if the property does not exist, TRUE if it exists. If TRUE is
    returned, the property descriptor 'desc' is filled present. */
-int JS_GetOwnPropertyInternal(JSContext *ctx, JSPropertyDescriptor *desc,
-                                     JSObject *p, JSAtom prop);
+int JS_GetOwnPropertyInternal(
+  JSContext* ctx,
+  JSPropertyDescriptor* desc,
+  JSObject* p,
+  JSAtom prop);
 
-int JS_CreateDataPropertyUint32(JSContext* ctx, JSValueConst this_obj, int64_t idx, JSValue val, int flags);
+int JS_CreateDataPropertyUint32(
+  JSContext* ctx,
+  JSValueConst this_obj,
+  int64_t idx,
+  JSValue val,
+  int flags);
 
-int JS_GetOwnProperty(JSContext *ctx, JSPropertyDescriptor *desc,
-                      JSValueConst obj, JSAtom prop);
+int JS_GetOwnProperty(
+  JSContext* ctx,
+  JSPropertyDescriptor* desc,
+  JSValueConst obj,
+  JSAtom prop);
 
-int JS_DefineAutoInitProperty(JSContext* ctx,
-                                     JSValueConst this_obj,
-                                     JSAtom prop,
-                                     JSAutoInitIDEnum id,
-                                     void* opaque,
-                                     int flags);
+int JS_DefineAutoInitProperty(
+  JSContext* ctx,
+  JSValueConst this_obj,
+  JSAtom prop,
+  JSAutoInitIDEnum id,
+  void* opaque,
+  int flags);
 
 /* return TRUE if 'obj' has a non empty 'name' string */
 BOOL js_object_has_name(JSContext* ctx, JSValueConst obj);
-int JS_DefineObjectName(JSContext* ctx, JSValueConst obj, JSAtom name, int flags);
-int JS_DefineObjectNameComputed(JSContext* ctx, JSValueConst obj, JSValueConst str, int flags);
+int JS_DefineObjectName(
+  JSContext* ctx,
+  JSValueConst obj,
+  JSAtom name,
+  int flags);
+int JS_DefineObjectNameComputed(
+  JSContext* ctx,
+  JSValueConst obj,
+  JSValueConst str,
+  int flags);
 
-int JS_SetObjectData(JSContext *ctx, JSValueConst obj, JSValue val);
+int JS_SetObjectData(JSContext* ctx, JSValueConst obj, JSValue val);
 
 #endif

@@ -26,34 +26,49 @@
 #ifndef QUICKJS_JS_ASYNC_FUNCTION_H
 #define QUICKJS_JS_ASYNC_FUNCTION_H
 
-#include "quickjs/quickjs.h"
 #include "../types.h"
+#include "quickjs/quickjs.h"
 
-JSValue async_func_resume(JSContext *ctx, JSAsyncFunctionState *s);
-__exception int async_func_init(JSContext *ctx, JSAsyncFunctionState *s,
-                                       JSValueConst func_obj, JSValueConst this_obj,
-                                       int argc, JSValueConst *argv);
-void async_func_free(JSRuntime *rt, JSAsyncFunctionState *s);
-void async_func_mark(JSRuntime *rt, JSAsyncFunctionState *s,
-                            JS_MarkFunc *mark_func);
+JSValue async_func_resume(JSContext* ctx, JSAsyncFunctionState* s);
+__exception int async_func_init(
+  JSContext* ctx,
+  JSAsyncFunctionState* s,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv);
+void async_func_free(JSRuntime* rt, JSAsyncFunctionState* s);
+void async_func_mark(
+  JSRuntime* rt,
+  JSAsyncFunctionState* s,
+  JS_MarkFunc* mark_func);
 
-void js_async_function_terminate(JSRuntime *rt, JSAsyncFunctionData *s);
-void js_async_function_free0(JSRuntime *rt, JSAsyncFunctionData *s);
-void js_async_function_free(JSRuntime *rt, JSAsyncFunctionData *s);
-void js_async_function_resolve_finalizer(JSRuntime *rt, JSValue val);
-void js_async_function_resolve_mark(JSRuntime *rt, JSValueConst val,
-                                           JS_MarkFunc *mark_func);
-int js_async_function_resolve_create(JSContext *ctx,
-                                            JSAsyncFunctionData *s,
-                                            JSValue *resolving_funcs);
-void js_async_function_resume(JSContext *ctx, JSAsyncFunctionData *s);
-JSValue js_async_function_resolve_call(JSContext *ctx,
-                                              JSValueConst func_obj,
-                                              JSValueConst this_obj,
-                                              int argc, JSValueConst *argv,
-                                              int flags);
-JSValue js_async_function_call(JSContext *ctx, JSValueConst func_obj,
-                                      JSValueConst this_obj,
-                                      int argc, JSValueConst *argv, int flags);
+void js_async_function_terminate(JSRuntime* rt, JSAsyncFunctionData* s);
+void js_async_function_free0(JSRuntime* rt, JSAsyncFunctionData* s);
+void js_async_function_free(JSRuntime* rt, JSAsyncFunctionData* s);
+void js_async_function_resolve_finalizer(JSRuntime* rt, JSValue val);
+void js_async_function_resolve_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func);
+int js_async_function_resolve_create(
+  JSContext* ctx,
+  JSAsyncFunctionData* s,
+  JSValue* resolving_funcs);
+void js_async_function_resume(JSContext* ctx, JSAsyncFunctionData* s);
+JSValue js_async_function_resolve_call(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags);
+JSValue js_async_function_call(
+  JSContext* ctx,
+  JSValueConst func_obj,
+  JSValueConst this_obj,
+  int argc,
+  JSValueConst* argv,
+  int flags);
 
 #endif

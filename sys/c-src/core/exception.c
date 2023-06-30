@@ -24,6 +24,7 @@
  */
 
 #include "exception.h"
+
 #include "builtins/js-function.h"
 #include "runtime.h"
 #include "string.h"
@@ -32,17 +33,30 @@ JSValue JS_NewError(JSContext* ctx) {
   return JS_NewObjectClass(ctx, JS_CLASS_ERROR);
 }
 
-JSValue JS_ThrowError2(JSContext* ctx, JSErrorEnum error_num, const char* fmt, va_list ap, BOOL add_backtrace) {
+JSValue JS_ThrowError2(
+  JSContext* ctx,
+  JSErrorEnum error_num,
+  const char* fmt,
+  va_list ap,
+  BOOL add_backtrace) {
   char buf[256];
   JSValue obj, ret;
 
   vsnprintf(buf, sizeof(buf), fmt, ap);
-  obj = JS_NewObjectProtoClass(ctx, ctx->native_error_proto[error_num], JS_CLASS_ERROR);
+  obj = JS_NewObjectProtoClass(
+    ctx,
+    ctx->native_error_proto[error_num],
+    JS_CLASS_ERROR);
   if (unlikely(JS_IsException(obj))) {
     /* out of memory: throw JS_NULL to avoid recursing */
     obj = JS_NULL;
   } else {
-    JS_DefinePropertyValue(ctx, obj, JS_ATOM_message, JS_NewString(ctx, buf), JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+    JS_DefinePropertyValue(
+      ctx,
+      obj,
+      JS_ATOM_message,
+      JS_NewString(ctx, buf),
+      JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
   }
   if (add_backtrace) {
     build_backtrace(ctx, obj, NULL, 0, 0, 0);
@@ -51,18 +65,24 @@ JSValue JS_ThrowError2(JSContext* ctx, JSErrorEnum error_num, const char* fmt, v
   return ret;
 }
 
-JSValue JS_ThrowError(JSContext* ctx, JSErrorEnum error_num, const char* fmt, va_list ap) {
+JSValue JS_ThrowError(
+  JSContext* ctx,
+  JSErrorEnum error_num,
+  const char* fmt,
+  va_list ap) {
   JSRuntime* rt = ctx->rt;
   JSStackFrame* sf;
   BOOL add_backtrace;
 
   /* the backtrace is added later if called from a bytecode function */
   sf = rt->current_stack_frame;
-  add_backtrace = !rt->in_out_of_memory && (!sf || (JS_GetFunctionBytecode(sf->cur_func) == NULL));
+  add_backtrace = !rt->in_out_of_memory
+    && (!sf || (JS_GetFunctionBytecode(sf->cur_func) == NULL));
   return JS_ThrowError2(ctx, error_num, fmt, ap, add_backtrace);
 }
 
-JSValue __attribute__((format(printf, 2, 3))) JS_ThrowSyntaxError(JSContext* ctx, const char* fmt, ...) {
+JSValue __attribute__((format(printf, 2, 3)))
+JS_ThrowSyntaxError(JSContext* ctx, const char* fmt, ...) {
   JSValue val;
   va_list ap;
 
@@ -72,7 +92,8 @@ JSValue __attribute__((format(printf, 2, 3))) JS_ThrowSyntaxError(JSContext* ctx
   return val;
 }
 
-JSValue __attribute__((format(printf, 2, 3))) JS_ThrowTypeError(JSContext* ctx, const char* fmt, ...) {
+JSValue __attribute__((format(printf, 2, 3)))
+JS_ThrowTypeError(JSContext* ctx, const char* fmt, ...) {
   JSValue val;
   va_list ap;
 
@@ -86,7 +107,9 @@ int __attribute__((format(printf, 3, 4)))
 JS_ThrowTypeErrorOrFalse(JSContext* ctx, int flags, const char* fmt, ...) {
   va_list ap;
 
-  if ((flags & JS_PROP_THROW) || ((flags & JS_PROP_THROW_STRICT) && is_strict_mode(ctx))) {
+  if (
+    (flags & JS_PROP_THROW)
+    || ((flags & JS_PROP_THROW_STRICT) && is_strict_mode(ctx))) {
     va_start(ap, fmt);
     JS_ThrowError(ctx, JS_TYPE_ERROR, fmt, ap);
     va_end(ap);
@@ -100,43 +123,50 @@ JS_ThrowTypeErrorOrFalse(JSContext* ctx, int flags, const char* fmt, ...) {
 JSValue __attribute__((format(printf, 3, 4)))
 __JS_ThrowTypeErrorAtom(JSContext* ctx, JSAtom atom, const char* fmt, ...) {
   char buf[ATOM_GET_STR_BUF_SIZE];
-  return JS_ThrowTypeError(ctx, fmt, JS_AtomGetStr(ctx, buf, sizeof(buf), atom));
+  return JS_ThrowTypeError(
+    ctx,
+    fmt,
+    JS_AtomGetStr(ctx, buf, sizeof(buf), atom));
 }
 
 /* never use it directly */
 JSValue __attribute__((format(printf, 3, 4)))
 __JS_ThrowSyntaxErrorAtom(JSContext* ctx, JSAtom atom, const char* fmt, ...) {
   char buf[ATOM_GET_STR_BUF_SIZE];
-  return JS_ThrowSyntaxError(ctx, fmt, JS_AtomGetStr(ctx, buf, sizeof(buf), atom));
+  return JS_ThrowSyntaxError(
+    ctx,
+    fmt,
+    JS_AtomGetStr(ctx, buf, sizeof(buf), atom));
 }
 
 /* WARNING: obj is freed */
-JSValue JS_Throw(JSContext *ctx, JSValue obj)
-{
-  JSRuntime *rt = ctx->rt;
+JSValue JS_Throw(JSContext* ctx, JSValue obj) {
+  JSRuntime* rt = ctx->rt;
   JS_FreeValue(ctx, rt->current_exception);
   rt->current_exception = obj;
   return JS_EXCEPTION;
 }
 
 /* return the pending exception (cannot be called twice). */
-JSValue JS_GetException(JSContext *ctx)
-{
+JSValue JS_GetException(JSContext* ctx) {
   JSValue val;
-  JSRuntime *rt = ctx->rt;
+  JSRuntime* rt = ctx->rt;
   val = rt->current_exception;
   rt->current_exception = JS_NULL;
   return val;
 }
 
-JSValue JS_ThrowTypeErrorPrivateNotFound(JSContext *ctx, JSAtom atom)
-{
-  return JS_ThrowTypeErrorAtom(ctx, "private class field '%s' does not exist",
-                               atom);
+JSValue JS_ThrowTypeErrorPrivateNotFound(JSContext* ctx, JSAtom atom) {
+  return JS_ThrowTypeErrorAtom(
+    ctx,
+    "private class field '%s' does not exist",
+    atom);
 }
 
 int JS_ThrowTypeErrorReadOnly(JSContext* ctx, int flags, JSAtom atom) {
-  if ((flags & JS_PROP_THROW) || ((flags & JS_PROP_THROW_STRICT) && is_strict_mode(ctx))) {
+  if (
+    (flags & JS_PROP_THROW)
+    || ((flags & JS_PROP_THROW_STRICT) && is_strict_mode(ctx))) {
     JS_ThrowTypeErrorAtom(ctx, "'%s' is read-only", atom);
     return -1;
   } else {
@@ -144,7 +174,8 @@ int JS_ThrowTypeErrorReadOnly(JSContext* ctx, int flags, JSAtom atom) {
   }
 }
 
-JSValue __attribute__((format(printf, 2, 3))) JS_ThrowReferenceError(JSContext* ctx, const char* fmt, ...) {
+JSValue __attribute__((format(printf, 2, 3)))
+JS_ThrowReferenceError(JSContext* ctx, const char* fmt, ...) {
   JSValue val;
   va_list ap;
 
@@ -154,7 +185,8 @@ JSValue __attribute__((format(printf, 2, 3))) JS_ThrowReferenceError(JSContext* 
   return val;
 }
 
-JSValue __attribute__((format(printf, 2, 3))) JS_ThrowRangeError(JSContext* ctx, const char* fmt, ...) {
+JSValue __attribute__((format(printf, 2, 3)))
+JS_ThrowRangeError(JSContext* ctx, const char* fmt, ...) {
   JSValue val;
   va_list ap;
 
@@ -164,7 +196,8 @@ JSValue __attribute__((format(printf, 2, 3))) JS_ThrowRangeError(JSContext* ctx,
   return val;
 }
 
-JSValue __attribute__((format(printf, 2, 3))) JS_ThrowInternalError(JSContext* ctx, const char* fmt, ...) {
+JSValue __attribute__((format(printf, 2, 3)))
+JS_ThrowInternalError(JSContext* ctx, const char* fmt, ...) {
   JSValue val;
   va_list ap;
 
@@ -198,16 +231,26 @@ JSValue JS_ThrowTypeErrorNotASymbol(JSContext* ctx) {
 
 JSValue JS_ThrowReferenceErrorNotDefined(JSContext* ctx, JSAtom name) {
   char buf[ATOM_GET_STR_BUF_SIZE];
-  return JS_ThrowReferenceError(ctx, "'%s' is not defined", JS_AtomGetStr(ctx, buf, sizeof(buf), name));
+  return JS_ThrowReferenceError(
+    ctx,
+    "'%s' is not defined",
+    JS_AtomGetStr(ctx, buf, sizeof(buf), name));
 }
 
 JSValue JS_ThrowReferenceErrorUninitialized(JSContext* ctx, JSAtom name) {
   char buf[ATOM_GET_STR_BUF_SIZE];
-  return JS_ThrowReferenceError(ctx, "%s is not initialized",
-                                name == JS_ATOM_NULL ? "lexical variable" : JS_AtomGetStr(ctx, buf, sizeof(buf), name));
+  return JS_ThrowReferenceError(
+    ctx,
+    "%s is not initialized",
+    name == JS_ATOM_NULL ? "lexical variable"
+                         : JS_AtomGetStr(ctx, buf, sizeof(buf), name));
 }
 
-JSValue JS_ThrowReferenceErrorUninitialized2(JSContext* ctx, JSFunctionBytecode* b, int idx, BOOL is_ref) {
+JSValue JS_ThrowReferenceErrorUninitialized2(
+  JSContext* ctx,
+  JSFunctionBytecode* b,
+  int idx,
+  BOOL is_ref) {
   JSAtom atom = JS_ATOM_NULL;
   if (is_ref) {
     atom = b->closure_var[idx].var_name;

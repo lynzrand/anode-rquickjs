@@ -24,15 +24,18 @@
  */
 
 #include "js-number.h"
+
 #include "../convertion.h"
 #include "../exception.h"
 #include "../object.h"
 #include "../runtime.h"
 
 /* Number */
-JSValue js_number_constructor(JSContext *ctx, JSValueConst new_target,
-                                     int argc, JSValueConst *argv)
-{
+JSValue js_number_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, obj;
   if (argc == 0) {
     val = JS_NewInt32(ctx, 0);
@@ -40,18 +43,16 @@ JSValue js_number_constructor(JSContext *ctx, JSValueConst new_target,
     val = JS_ToNumeric(ctx, argv[0]);
     if (JS_IsException(val))
       return val;
-    switch(JS_VALUE_GET_TAG(val)) {
+    switch (JS_VALUE_GET_TAG(val)) {
 #ifdef CONFIG_BIGNUM
       case JS_TAG_BIG_INT:
-      case JS_TAG_BIG_FLOAT:
-      {
-        JSBigFloat *p = JS_VALUE_GET_PTR(val);
+      case JS_TAG_BIG_FLOAT: {
+        JSBigFloat* p = JS_VALUE_GET_PTR(val);
         double d;
         bf_get_float64(&p->num, &d, BF_RNDN);
         JS_FreeValue(ctx, val);
         val = __JS_NewFloat64(ctx, d);
-      }
-      break;
+      } break;
       case JS_TAG_BIG_DECIMAL:
         val = JS_ToStringFree(ctx, val);
         if (JS_IsException(val))
@@ -92,25 +93,31 @@ JSValue js_number___toLength(JSContext *ctx, JSValueConst this_val,
 }
 #endif
 
-JSValue js_number_isNaN(JSContext *ctx, JSValueConst this_val,
-                               int argc, JSValueConst *argv)
-{
+JSValue js_number_isNaN(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   if (!JS_IsNumber(argv[0]))
     return JS_FALSE;
   return js_global_isNaN(ctx, this_val, argc, argv);
 }
 
-JSValue js_number_isFinite(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv)
-{
+JSValue js_number_isFinite(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   if (!JS_IsNumber(argv[0]))
     return JS_FALSE;
   return js_global_isFinite(ctx, this_val, argc, argv);
 }
 
-JSValue js_number_isInteger(JSContext *ctx, JSValueConst this_val,
-                                   int argc, JSValueConst *argv)
-{
+JSValue js_number_isInteger(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   int ret;
   ret = JS_NumberIsInteger(ctx, argv[0]);
   if (ret < 0)
@@ -119,9 +126,11 @@ JSValue js_number_isInteger(JSContext *ctx, JSValueConst this_val,
     return JS_NewBool(ctx, ret);
 }
 
-JSValue js_number_isSafeInteger(JSContext *ctx, JSValueConst this_val,
-                                       int argc, JSValueConst *argv)
-{
+JSValue js_number_isSafeInteger(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   double d;
   if (!JS_IsNumber(argv[0]))
     return JS_FALSE;
@@ -130,13 +139,12 @@ JSValue js_number_isSafeInteger(JSContext *ctx, JSValueConst this_val,
   return JS_NewBool(ctx, is_safe_integer(d));
 }
 
-JSValue js_thisNumberValue(JSContext *ctx, JSValueConst this_val)
-{
+JSValue js_thisNumberValue(JSContext* ctx, JSValueConst this_val) {
   if (JS_IsNumber(this_val))
     return JS_DupValue(ctx, this_val);
 
   if (JS_VALUE_GET_TAG(this_val) == JS_TAG_OBJECT) {
-    JSObject *p = JS_VALUE_GET_OBJ(this_val);
+    JSObject* p = JS_VALUE_GET_OBJ(this_val);
     if (p->class_id == JS_CLASS_NUMBER) {
       if (JS_IsNumber(p->u.object_data))
         return JS_DupValue(ctx, p->u.object_data);
@@ -145,14 +153,15 @@ JSValue js_thisNumberValue(JSContext *ctx, JSValueConst this_val)
   return JS_ThrowTypeError(ctx, "not a number");
 }
 
-JSValue js_number_valueOf(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv)
-{
+JSValue js_number_valueOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return js_thisNumberValue(ctx, this_val);
 }
 
-int js_get_radix(JSContext *ctx, JSValueConst val)
-{
+int js_get_radix(JSContext* ctx, JSValueConst val) {
   int radix;
   if (JS_ToInt32Sat(ctx, &radix, val))
     return -1;
@@ -163,9 +172,12 @@ int js_get_radix(JSContext *ctx, JSValueConst val)
   return radix;
 }
 
-JSValue js_number_toString(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv, int magic)
-{
+JSValue js_number_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   JSValue val;
   int base;
   double d;
@@ -188,9 +200,11 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_number_toFixed(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv)
-{
+JSValue js_number_toFixed(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val;
   int f;
   double d;
@@ -211,9 +225,11 @@ JSValue js_number_toFixed(JSContext *ctx, JSValueConst this_val,
   }
 }
 
-JSValue js_number_toExponential(JSContext *ctx, JSValueConst this_val,
-                                       int argc, JSValueConst *argv)
-{
+JSValue js_number_toExponential(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val;
   int f, flags;
   double d;
@@ -226,7 +242,7 @@ JSValue js_number_toExponential(JSContext *ctx, JSValueConst this_val,
   if (JS_ToInt32Sat(ctx, &f, argv[0]))
     return JS_EXCEPTION;
   if (!isfinite(d)) {
-    return JS_ToStringFree(ctx,  __JS_NewFloat64(ctx, d));
+    return JS_ToStringFree(ctx, __JS_NewFloat64(ctx, d));
   }
   if (JS_IsUndefined(argv[0])) {
     flags = 0;
@@ -240,9 +256,11 @@ JSValue js_number_toExponential(JSContext *ctx, JSValueConst this_val,
   return js_dtoa(ctx, d, 10, f, flags | JS_DTOA_FORCE_EXP);
 }
 
-JSValue js_number_toPrecision(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv)
-{
+JSValue js_number_toPrecision(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val;
   int p;
   double d;
@@ -258,16 +276,18 @@ JSValue js_number_toPrecision(JSContext *ctx, JSValueConst this_val,
     return JS_EXCEPTION;
   if (!isfinite(d)) {
   to_string:
-    return JS_ToStringFree(ctx,  __JS_NewFloat64(ctx, d));
+    return JS_ToStringFree(ctx, __JS_NewFloat64(ctx, d));
   }
   if (p < 1 || p > 100)
     return JS_ThrowRangeError(ctx, "invalid number of digits");
   return js_dtoa(ctx, d, 10, p, JS_DTOA_FIXED_FORMAT);
 }
 
-JSValue js_parseInt(JSContext *ctx, JSValueConst this_val,
-                           int argc, JSValueConst *argv)
-{
+JSValue js_parseInt(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   const char *str, *p;
   int radix, flags;
   JSValue ret;
@@ -291,9 +311,11 @@ JSValue js_parseInt(JSContext *ctx, JSValueConst this_val,
   return ret;
 }
 
-JSValue js_parseFloat(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
-{
+JSValue js_parseFloat(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   const char *str, *p;
   JSValue ret;
 

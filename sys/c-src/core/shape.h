@@ -26,13 +26,13 @@
 #ifndef QUICKJS_SHAPE_H
 #define QUICKJS_SHAPE_H
 
-#include "quickjs/quickjs.h"
 #include "quickjs/cutils.h"
+#include "quickjs/quickjs.h"
 #include "types.h"
 
-
 static inline size_t get_shape_size(size_t hash_size, size_t prop_size) {
-  return hash_size * sizeof(uint32_t) + sizeof(JSShape) + prop_size * sizeof(JSShapeProperty);
+  return hash_size * sizeof(uint32_t) + sizeof(JSShape)
+    + prop_size * sizeof(JSShapeProperty);
 }
 
 static inline JSShape* get_shape_from_alloc(void* sh_alloc, size_t hash_size) {
@@ -61,7 +61,8 @@ int resize_shape_hash(JSRuntime* rt, int new_shape_hash_bits);
 void js_shape_hash_link(JSRuntime* rt, JSShape* sh);
 void js_shape_hash_unlink(JSRuntime* rt, JSShape* sh);
 /* create a new empty shape with prototype 'proto' */
-no_inline JSShape* js_new_shape2(JSContext* ctx, JSObject* proto, int hash_size, int prop_size);
+no_inline JSShape*
+js_new_shape2(JSContext* ctx, JSObject* proto, int hash_size, int prop_size);
 JSShape* js_new_shape(JSContext* ctx, JSObject* proto);
 
 /* The shape is cloned. The new shape is not inserted in the shape
@@ -72,20 +73,31 @@ void js_free_shape0(JSRuntime* rt, JSShape* sh);
 void js_free_shape(JSRuntime* rt, JSShape* sh);
 void js_free_shape_null(JSRuntime* rt, JSShape* sh);
 /* make space to hold at least 'count' properties */
-no_inline int resize_properties(JSContext* ctx, JSShape** psh, JSObject* p, uint32_t count);
+no_inline int
+resize_properties(JSContext* ctx, JSShape** psh, JSObject* p, uint32_t count);
 /* remove the deleted properties. */
 int compact_properties(JSContext* ctx, JSObject* p);
-int add_shape_property(JSContext* ctx, JSShape** psh, JSObject* p, JSAtom atom, int prop_flags);
+int add_shape_property(
+  JSContext* ctx,
+  JSShape** psh,
+  JSObject* p,
+  JSAtom atom,
+  int prop_flags);
 /* find a hashed empty shape matching the prototype. Return NULL if
    not found */
 JSShape* find_hashed_shape_proto(JSRuntime* rt, JSObject* proto);
 /* find a hashed shape matching sh + (prop, prop_flags). Return NULL if
    not found */
-JSShape* find_hashed_shape_prop(JSRuntime* rt, JSShape* sh, JSAtom atom, int prop_flags);;
+JSShape*
+find_hashed_shape_prop(JSRuntime* rt, JSShape* sh, JSAtom atom, int prop_flags);
+;
 __maybe_unused void JS_DumpShape(JSRuntime* rt, int i, JSShape* sh);
 __maybe_unused void JS_DumpShapes(JSRuntime* rt);
 JSValue JS_NewObjectFromShape(JSContext* ctx, JSShape* sh, JSClassID class_id);
 /* ensure that the shape can be safely modified */
-int js_shape_prepare_update(JSContext* ctx, JSObject* p, JSShapeProperty** pprs);
+int js_shape_prepare_update(
+  JSContext* ctx,
+  JSObject* p,
+  JSShapeProperty** pprs);
 
 #endif

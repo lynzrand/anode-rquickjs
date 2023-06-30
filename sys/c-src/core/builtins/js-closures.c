@@ -24,16 +24,16 @@
  */
 
 #include "js-closures.h"
+
 #include "../gc.h"
 #include "../object.h"
 #include "js-function.h"
 #include "quickjs/list.h"
 
-JSVarRef *get_var_ref(JSContext *ctx, JSStackFrame *sf,
-                             int var_idx, BOOL is_arg)
-{
-  JSVarRef *var_ref;
-  struct list_head *el;
+JSVarRef*
+get_var_ref(JSContext* ctx, JSStackFrame* sf, int var_idx, BOOL is_arg) {
+  JSVarRef* var_ref;
+  struct list_head* el;
 
   list_for_each(el, &sf->var_ref_list) {
     var_ref = list_entry(el, JSVarRef, header.link);
@@ -59,13 +59,14 @@ JSVarRef *get_var_ref(JSContext *ctx, JSStackFrame *sf,
   return var_ref;
 }
 
-JSValue js_closure2(JSContext *ctx, JSValue func_obj,
-                           JSFunctionBytecode *b,
-                           JSVarRef **cur_var_refs,
-                           JSStackFrame *sf)
-{
-  JSObject *p;
-  JSVarRef **var_refs;
+JSValue js_closure2(
+  JSContext* ctx,
+  JSValue func_obj,
+  JSFunctionBytecode* b,
+  JSVarRef** cur_var_refs,
+  JSStackFrame* sf) {
+  JSObject* p;
+  JSVarRef** var_refs;
   int i;
 
   p = JS_VALUE_GET_OBJ(func_obj);
@@ -77,9 +78,9 @@ JSValue js_closure2(JSContext *ctx, JSValue func_obj,
     if (!var_refs)
       goto fail;
     p->u.func.var_refs = var_refs;
-    for(i = 0; i < b->closure_var_count; i++) {
-      JSClosureVar *cv = &b->closure_var[i];
-      JSVarRef *var_ref;
+    for (i = 0; i < b->closure_var_count; i++) {
+      JSClosureVar* cv = &b->closure_var[i];
+      JSVarRef* var_ref;
       if (cv->is_local) {
         /* reuse the existing variable reference if it already exists */
         var_ref = get_var_ref(ctx, sf, cv->var_idx, cv->is_arg);
@@ -99,12 +100,12 @@ fail:
   return JS_EXCEPTION;
 }
 
-
-JSValue js_closure(JSContext *ctx, JSValue bfunc,
-                          JSVarRef **cur_var_refs,
-                          JSStackFrame *sf)
-{
-  JSFunctionBytecode *b;
+JSValue js_closure(
+  JSContext* ctx,
+  JSValue bfunc,
+  JSVarRef** cur_var_refs,
+  JSStackFrame* sf) {
+  JSFunctionBytecode* b;
   JSValue func_obj;
   JSAtom name_atom;
 
@@ -122,8 +123,7 @@ JSValue js_closure(JSContext *ctx, JSValue bfunc,
   name_atom = b->func_name;
   if (name_atom == JS_ATOM_NULL)
     name_atom = JS_ATOM_empty_string;
-  js_function_set_properties(ctx, func_obj, name_atom,
-                             b->defined_arg_count);
+  js_function_set_properties(ctx, func_obj, name_atom, b->defined_arg_count);
 
   if (b->func_kind & JS_FUNC_GENERATOR) {
     JSValue proto;
@@ -137,16 +137,24 @@ JSValue js_closure(JSContext *ctx, JSValue bfunc,
     proto = JS_NewObjectProto(ctx, ctx->class_proto[proto_class_id]);
     if (JS_IsException(proto))
       goto fail;
-    JS_DefinePropertyValue(ctx, func_obj, JS_ATOM_prototype, proto,
-                           JS_PROP_WRITABLE);
+    JS_DefinePropertyValue(
+      ctx,
+      func_obj,
+      JS_ATOM_prototype,
+      proto,
+      JS_PROP_WRITABLE);
   } else if (b->has_prototype) {
     /* add the 'prototype' property: delay instantiation to avoid
        creating cycles for every javascript function. The prototype
        object is created on the fly when first accessed */
     JS_SetConstructorBit(ctx, func_obj, TRUE);
-    JS_DefineAutoInitProperty(ctx, func_obj, JS_ATOM_prototype,
-                              JS_AUTOINIT_ID_PROTOTYPE, NULL,
-                              JS_PROP_WRITABLE);
+    JS_DefineAutoInitProperty(
+      ctx,
+      func_obj,
+      JS_ATOM_prototype,
+      JS_AUTOINIT_ID_PROTOTYPE,
+      NULL,
+      JS_PROP_WRITABLE);
   }
   return func_obj;
 fail:
@@ -155,10 +163,9 @@ fail:
   return JS_EXCEPTION;
 }
 
-void close_lexical_var(JSContext *ctx, JSStackFrame *sf, int idx, int is_arg)
-{
+void close_lexical_var(JSContext* ctx, JSStackFrame* sf, int idx, int is_arg) {
   struct list_head *el, *el1;
-  JSVarRef *var_ref;
+  JSVarRef* var_ref;
   int var_idx = idx;
 
   list_for_each_safe(el, el1, &sf->var_ref_list) {
@@ -173,7 +180,6 @@ void close_lexical_var(JSContext *ctx, JSStackFrame *sf, int idx, int is_arg)
     }
   }
 }
-
 
 void close_var_refs(JSRuntime* rt, JSStackFrame* sf) {
   struct list_head *el, *el1;

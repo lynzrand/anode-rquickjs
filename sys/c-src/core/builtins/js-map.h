@@ -28,6 +28,6 @@
 
 #include "quickjs/quickjs.h"
 
-void reset_weak_ref(JSRuntime *rt, JSObject *p);
+void reset_weak_ref(JSRuntime* rt, JSObject* p);
 
 #endif

@@ -23,6 +23,10 @@
  * THE SOFTWARE.
  */
 
+// No formatting of this file. The file will be analyzed by scripts to generate
+// files at compile time.
+// clang-format off
+
 #ifdef FMT
 FMT(none)
 FMT(none_int)

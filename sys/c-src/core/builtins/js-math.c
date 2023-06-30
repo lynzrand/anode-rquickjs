@@ -28,8 +28,7 @@
 /* Math */
 
 /* precondition: a and b are not NaN */
-double js_fmin(double a, double b)
-{
+double js_fmin(double a, double b) {
   if (a == 0 && b == 0) {
     JSFloat64Union a1, b1;
     a1.d = a;
@@ -42,8 +41,7 @@ double js_fmin(double a, double b)
 }
 
 /* precondition: a and b are not NaN */
-double js_fmax(double a, double b)
-{
+double js_fmax(double a, double b) {
   if (a == 0 && b == 0) {
     JSFloat64Union a1, b1;
     a1.d = a;
@@ -55,9 +53,12 @@ double js_fmax(double a, double b)
   }
 }
 
-JSValue js_math_min_max(JSContext *ctx, JSValueConst this_val,
-                               int argc, JSValueConst *argv, int magic)
-{
+JSValue js_math_min_max(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   BOOL is_max = magic;
   double r, a;
   int i;
@@ -70,7 +71,7 @@ JSValue js_math_min_max(JSContext *ctx, JSValueConst this_val,
   tag = JS_VALUE_GET_TAG(argv[0]);
   if (tag == JS_TAG_INT) {
     int a1, r1 = JS_VALUE_GET_INT(argv[0]);
-    for(i = 1; i < argc; i++) {
+    for (i = 1; i < argc; i++) {
       tag = JS_VALUE_GET_TAG(argv[i]);
       if (tag != JS_TAG_INT) {
         r = r1;
@@ -81,7 +82,6 @@ JSValue js_math_min_max(JSContext *ctx, JSValueConst this_val,
         r1 = max_int(r1, a1);
       else
         r1 = min_int(r1, a1);
-
     }
     return JS_NewInt32(ctx, r1);
   } else {
@@ -108,8 +108,7 @@ JSValue js_math_min_max(JSContext *ctx, JSValueConst this_val,
   }
 }
 
-double js_math_sign(double a)
-{
+double js_math_sign(double a) {
   if (isnan(a) || a == 0.0)
     return a;
   if (a < 0)
@@ -118,8 +117,7 @@ double js_math_sign(double a)
     return 1;
 }
 
-double js_math_round(double a)
-{
+double js_math_round(double a) {
   JSFloat64Union u;
   uint64_t frac_mask, one;
   unsigned int e, s;
@@ -146,9 +144,11 @@ double js_math_round(double a)
   return u.d;
 }
 
-JSValue js_math_hypot(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
-{
+JSValue js_math_hypot(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   double r, a;
   int i;
 
@@ -170,14 +170,15 @@ JSValue js_math_hypot(JSContext *ctx, JSValueConst this_val,
   return JS_NewFloat64(ctx, r);
 }
 
-double js_math_fround(double a)
-{
+double js_math_fround(double a) {
   return (float)a;
 }
 
-JSValue js_math_imul(JSContext *ctx, JSValueConst this_val,
-                            int argc, JSValueConst *argv)
-{
+JSValue js_math_imul(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   int a, b;
 
   if (JS_ToInt32(ctx, &a, argv[0]))
@@ -188,9 +189,11 @@ JSValue js_math_imul(JSContext *ctx, JSValueConst this_val,
   return JS_NewInt32(ctx, a * b);
 }
 
-JSValue js_math_clz32(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
-{
+JSValue js_math_clz32(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   uint32_t a, r;
 
   if (JS_ToUint32(ctx, &a, argv[0]))
@@ -203,8 +206,7 @@ JSValue js_math_clz32(JSContext *ctx, JSValueConst this_val,
 }
 
 /* xorshift* random number generator by Marsaglia */
-uint64_t xorshift64star(uint64_t *pstate)
-{
+uint64_t xorshift64star(uint64_t* pstate) {
   uint64_t x;
   x = *pstate;
   x ^= x >> 12;
@@ -214,8 +216,7 @@ uint64_t xorshift64star(uint64_t *pstate)
   return x * 0x2545F4914F6CDD1D;
 }
 
-void js_random_init(JSContext *ctx)
-{
+void js_random_init(JSContext* ctx) {
   struct timeval tv;
   gettimeofday(&tv, NULL);
   ctx->random_state = ((int64_t)tv.tv_sec * 1000000) + tv.tv_usec;
@@ -224,9 +225,11 @@ void js_random_init(JSContext *ctx)
     ctx->random_state = 1;
 }
 
-JSValue js_math_random(JSContext *ctx, JSValueConst this_val,
-                              int argc, JSValueConst *argv)
-{
+JSValue js_math_random(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSFloat64Union u;
   uint64_t v;
 
@@ -235,4 +238,3 @@ JSValue js_math_random(JSContext *ctx, JSValueConst this_val,
   u.u64 = ((uint64_t)0x3ff << 52) | (v >> 12);
   return __JS_NewFloat64(ctx, u.d - 1.0);
 }
-

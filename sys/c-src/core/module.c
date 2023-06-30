@@ -24,6 +24,7 @@
  */
 
 #include "module.h"
+
 #include "exception.h"
 #include "function.h"
 #include "gc.h"
@@ -34,9 +35,8 @@
 #include "string.h"
 
 /* 'name' is freed */
-JSModuleDef *js_new_module_def(JSContext *ctx, JSAtom name)
-{
-  JSModuleDef *m;
+JSModuleDef* js_new_module_def(JSContext* ctx, JSAtom name) {
+  JSModuleDef* m;
   m = js_mallocz(ctx, sizeof(*m));
   if (!m) {
     JS_FreeAtom(ctx, name);
@@ -52,15 +52,12 @@ JSModuleDef *js_new_module_def(JSContext *ctx, JSAtom name)
   return m;
 }
 
-void js_mark_module_def(JSRuntime *rt, JSModuleDef *m,
-                               JS_MarkFunc *mark_func)
-{
+void js_mark_module_def(JSRuntime* rt, JSModuleDef* m, JS_MarkFunc* mark_func) {
   int i;
 
-  for(i = 0; i < m->export_entries_count; i++) {
-    JSExportEntry *me = &m->export_entries[i];
-    if (me->export_type == JS_EXPORT_TYPE_LOCAL &&
-        me->u.local.var_ref) {
+  for (i = 0; i < m->export_entries_count; i++) {
+    JSExportEntry* me = &m->export_entries[i];
+    if (me->export_type == JS_EXPORT_TYPE_LOCAL && me->u.local.var_ref) {
       mark_func(rt, &me->u.local.var_ref->header);
     }
   }
@@ -71,20 +68,19 @@ void js_mark_module_def(JSRuntime *rt, JSModuleDef *m,
   JS_MarkValue(rt, m->meta_obj, mark_func);
 }
 
-void js_free_module_def(JSContext *ctx, JSModuleDef *m)
-{
+void js_free_module_def(JSContext* ctx, JSModuleDef* m) {
   int i;
 
   JS_FreeAtom(ctx, m->module_name);
 
-  for(i = 0; i < m->req_module_entries_count; i++) {
-    JSReqModuleEntry *rme = &m->req_module_entries[i];
+  for (i = 0; i < m->req_module_entries_count; i++) {
+    JSReqModuleEntry* rme = &m->req_module_entries[i];
     JS_FreeAtom(ctx, rme->module_name);
   }
   js_free(ctx, m->req_module_entries);
 
-  for(i = 0; i < m->export_entries_count; i++) {
-    JSExportEntry *me = &m->export_entries[i];
+  for (i = 0; i < m->export_entries_count; i++) {
+    JSExportEntry* me = &m->export_entries[i];
     if (me->export_type == JS_EXPORT_TYPE_LOCAL)
       free_var_ref(ctx->rt, me->u.local.var_ref);
     JS_FreeAtom(ctx, me->export_name);
@@ -94,8 +90,8 @@ void js_free_module_def(JSContext *ctx, JSModuleDef *m)
 
   js_free(ctx, m->star_export_entries);
 
-  for(i = 0; i < m->import_entries_count; i++) {
-    JSImportEntry *mi = &m->import_entries[i];
+  for (i = 0; i < m->import_entries_count; i++) {
+    JSImportEntry* mi = &m->import_entries[i];
     JS_FreeAtom(ctx, mi->import_name);
   }
   js_free(ctx, m->import_entries);
@@ -108,23 +104,23 @@ void js_free_module_def(JSContext *ctx, JSModuleDef *m)
   js_free(ctx, m);
 }
 
-int add_req_module_entry(JSContext *ctx, JSModuleDef *m,
-                                JSAtom module_name)
-{
-  JSReqModuleEntry *rme;
+int add_req_module_entry(JSContext* ctx, JSModuleDef* m, JSAtom module_name) {
+  JSReqModuleEntry* rme;
   int i;
 
   /* no need to add the module request if it is already present */
-  for(i = 0; i < m->req_module_entries_count; i++) {
+  for (i = 0; i < m->req_module_entries_count; i++) {
     rme = &m->req_module_entries[i];
     if (rme->module_name == module_name)
       return i;
   }
 
-  if (js_resize_array(ctx, (void **)&m->req_module_entries,
-                      sizeof(JSReqModuleEntry),
-                      &m->req_module_entries_size,
-                      m->req_module_entries_count + 1))
+  if (js_resize_array(
+        ctx,
+        (void**)&m->req_module_entries,
+        sizeof(JSReqModuleEntry),
+        &m->req_module_entries_size,
+        m->req_module_entries_count + 1))
     return -1;
   rme = &m->req_module_entries[m->req_module_entries_count++];
   rme->module_name = JS_DupAtom(ctx, module_name);
@@ -132,12 +128,11 @@ int add_req_module_entry(JSContext *ctx, JSModuleDef *m,
   return i;
 }
 
-JSExportEntry *find_export_entry(JSContext *ctx, JSModuleDef *m,
-                                        JSAtom export_name)
-{
-  JSExportEntry *me;
+JSExportEntry*
+find_export_entry(JSContext* ctx, JSModuleDef* m, JSAtom export_name) {
+  JSExportEntry* me;
   int i;
-  for(i = 0; i < m->export_entries_count; i++) {
+  for (i = 0; i < m->export_entries_count; i++) {
     me = &m->export_entries[i];
     if (me->export_name == export_name)
       return me;
@@ -146,10 +141,9 @@ JSExportEntry *find_export_entry(JSContext *ctx, JSModuleDef *m,
 }
 
 /* create a C module */
-JSModuleDef *JS_NewCModule(JSContext *ctx, const char *name_str,
-                           JSModuleInitFunc *func)
-{
-  JSModuleDef *m;
+JSModuleDef*
+JS_NewCModule(JSContext* ctx, const char* name_str, JSModuleInitFunc* func) {
+  JSModuleDef* m;
   JSAtom name;
   name = JS_NewAtom(ctx, name_str);
   if (name == JS_ATOM_NULL)
@@ -159,15 +153,17 @@ JSModuleDef *JS_NewCModule(JSContext *ctx, const char *name_str,
   return m;
 }
 
-int JS_AddModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name)
-{
-  JSExportEntry *me;
+int JS_AddModuleExport(
+  JSContext* ctx,
+  JSModuleDef* m,
+  const char* export_name) {
+  JSExportEntry* me;
   JSAtom name;
   name = JS_NewAtom(ctx, export_name);
   if (name == JS_ATOM_NULL)
     return -1;
-  me = add_export_entry2(ctx, NULL, m, JS_ATOM_NULL, name,
-                         JS_EXPORT_TYPE_LOCAL);
+  me =
+    add_export_entry2(ctx, NULL, m, JS_ATOM_NULL, name, JS_EXPORT_TYPE_LOCAL);
   JS_FreeAtom(ctx, name);
   if (!me)
     return -1;
@@ -175,10 +171,12 @@ int JS_AddModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name)
     return 0;
 }
 
-int JS_SetModuleExport(JSContext *ctx, JSModuleDef *m, const char *export_name,
-                       JSValue val)
-{
-  JSExportEntry *me;
+int JS_SetModuleExport(
+  JSContext* ctx,
+  JSModuleDef* m,
+  const char* export_name,
+  JSValue val) {
+  JSExportEntry* me;
   JSAtom name;
   name = JS_NewAtom(ctx, export_name);
   if (name == JS_ATOM_NULL)
@@ -194,22 +192,23 @@ fail:
   return -1;
 }
 
-void JS_SetModuleLoaderFunc(JSRuntime *rt,
-                            JSModuleNormalizeFunc *module_normalize,
-                            JSModuleLoaderFunc *module_loader, void *opaque)
-{
+void JS_SetModuleLoaderFunc(
+  JSRuntime* rt,
+  JSModuleNormalizeFunc* module_normalize,
+  JSModuleLoaderFunc* module_loader,
+  void* opaque) {
   rt->module_normalize_func = module_normalize;
   rt->module_loader_func = module_loader;
   rt->module_loader_opaque = opaque;
 }
 
 /* default module filename normalizer */
-char *js_default_module_normalize_name(JSContext *ctx,
-                                              const char *base_name,
-                                              const char *name)
-{
+char* js_default_module_normalize_name(
+  JSContext* ctx,
+  const char* base_name,
+  const char* name) {
   char *filename, *p;
-  const char *r;
+  const char* r;
   int len;
 
   if (name[0] != '.') {
@@ -231,7 +230,7 @@ char *js_default_module_normalize_name(JSContext *ctx,
 
   /* we only normalize the leading '..' or '.' */
   r = name;
-  for(;;) {
+  for (;;) {
     if (r[0] == '.' && r[1] == '/') {
       r += 2;
     } else if (r[0] == '.' && r[1] == '.' && r[2] == '/') {
@@ -261,10 +260,9 @@ char *js_default_module_normalize_name(JSContext *ctx,
   return filename;
 }
 
-JSModuleDef *js_find_loaded_module(JSContext *ctx, JSAtom name)
-{
-  struct list_head *el;
-  JSModuleDef *m;
+JSModuleDef* js_find_loaded_module(JSContext* ctx, JSAtom name) {
+  struct list_head* el;
+  JSModuleDef* m;
 
   /* first look at the loaded modules */
   list_for_each(el, &ctx->loaded_modules) {
@@ -276,20 +274,23 @@ JSModuleDef *js_find_loaded_module(JSContext *ctx, JSAtom name)
 }
 
 /* return NULL in case of exception (e.g. module could not be loaded) */
-JSModuleDef *js_host_resolve_imported_module(JSContext *ctx,
-                                                    const char *base_cname,
-                                                    const char *cname1)
-{
-  JSRuntime *rt = ctx->rt;
-  JSModuleDef *m;
-  char *cname;
+JSModuleDef* js_host_resolve_imported_module(
+  JSContext* ctx,
+  const char* base_cname,
+  const char* cname1) {
+  JSRuntime* rt = ctx->rt;
+  JSModuleDef* m;
+  char* cname;
   JSAtom module_name;
 
   if (!rt->module_normalize_func) {
     cname = js_default_module_normalize_name(ctx, base_cname, cname1);
   } else {
-    cname = rt->module_normalize_func(ctx, base_cname, cname1,
-                                      rt->module_loader_opaque);
+    cname = rt->module_normalize_func(
+      ctx,
+      base_cname,
+      cname1,
+      rt->module_loader_opaque);
   }
   if (!cname)
     return NULL;
@@ -313,8 +314,7 @@ JSModuleDef *js_host_resolve_imported_module(JSContext *ctx,
   /* load the module */
   if (!rt->module_loader_func) {
     /* XXX: use a syntax error ? */
-    JS_ThrowReferenceError(ctx, "could not load module '%s'",
-                           cname);
+    JS_ThrowReferenceError(ctx, "could not load module '%s'", cname);
     js_free(ctx, cname);
     return NULL;
   }
@@ -324,12 +324,12 @@ JSModuleDef *js_host_resolve_imported_module(JSContext *ctx,
   return m;
 }
 
-JSModuleDef *js_host_resolve_imported_module_atom(JSContext *ctx,
-                                                         JSAtom base_module_name,
-                                                         JSAtom module_name1)
-{
+JSModuleDef* js_host_resolve_imported_module_atom(
+  JSContext* ctx,
+  JSAtom base_module_name,
+  JSAtom module_name1) {
   const char *base_cname, *cname;
-  JSModuleDef *m;
+  JSModuleDef* m;
 
   base_cname = JS_AtomToCString(ctx, base_module_name);
   if (!base_cname)
@@ -345,26 +345,29 @@ JSModuleDef *js_host_resolve_imported_module_atom(JSContext *ctx,
   return m;
 }
 
-static int find_resolve_entry(JSResolveState *s,
-                              JSModuleDef *m, JSAtom name)
-{
+static int find_resolve_entry(JSResolveState* s, JSModuleDef* m, JSAtom name) {
   int i;
-  for(i = 0; i < s->count; i++) {
-    JSResolveEntry *re = &s->array[i];
+  for (i = 0; i < s->count; i++) {
+    JSResolveEntry* re = &s->array[i];
     if (re->module == m && re->name == name)
       return i;
   }
   return -1;
 }
 
-static int add_resolve_entry(JSContext *ctx, JSResolveState *s,
-                             JSModuleDef *m, JSAtom name)
-{
-  JSResolveEntry *re;
+static int add_resolve_entry(
+  JSContext* ctx,
+  JSResolveState* s,
+  JSModuleDef* m,
+  JSAtom name) {
+  JSResolveEntry* re;
 
-  if (js_resize_array(ctx, (void **)&s->array,
-                      sizeof(JSResolveEntry),
-                      &s->size, s->count + 1))
+  if (js_resize_array(
+        ctx,
+        (void**)&s->array,
+        sizeof(JSResolveEntry),
+        &s->size,
+        s->count + 1))
     return -1;
   re = &s->array[s->count++];
   re->module = m;
@@ -380,14 +383,14 @@ typedef enum JSResolveResultEnum {
   JS_RESOLVE_RES_AMBIGUOUS,
 } JSResolveResultEnum;
 
-static JSResolveResultEnum js_resolve_export1(JSContext *ctx,
-                                              JSModuleDef **pmodule,
-                                              JSExportEntry **pme,
-                                              JSModuleDef *m,
-                                              JSAtom export_name,
-                                              JSResolveState *s)
-{
-  JSExportEntry *me;
+static JSResolveResultEnum js_resolve_export1(
+  JSContext* ctx,
+  JSModuleDef** pmodule,
+  JSExportEntry** pme,
+  JSModuleDef* m,
+  JSAtom export_name,
+  JSResolveState* s) {
+  JSExportEntry* me;
 
   *pmodule = NULL;
   *pme = NULL;
@@ -404,7 +407,7 @@ static JSResolveResultEnum js_resolve_export1(JSContext *ctx,
       return JS_RESOLVE_RES_FOUND;
     } else {
       /* indirect export */
-      JSModuleDef *m1;
+      JSModuleDef* m1;
       m1 = m->req_module_entries[me->u.req_module_idx].module;
       if (me->local_name == JS_ATOM__star_) {
         /* export ns from */
@@ -412,8 +415,7 @@ static JSResolveResultEnum js_resolve_export1(JSContext *ctx,
         *pme = me;
         return JS_RESOLVE_RES_FOUND;
       } else {
-        return js_resolve_export1(ctx, pmodule, pme, m1,
-                                  me->local_name, s);
+        return js_resolve_export1(ctx, pmodule, pme, m1, me->local_name, s);
       }
     }
   } else {
@@ -421,22 +423,20 @@ static JSResolveResultEnum js_resolve_export1(JSContext *ctx,
       /* not found in direct or indirect exports: try star exports */
       int i;
 
-      for(i = 0; i < m->star_export_entries_count; i++) {
-        JSStarExportEntry *se = &m->star_export_entries[i];
+      for (i = 0; i < m->star_export_entries_count; i++) {
+        JSStarExportEntry* se = &m->star_export_entries[i];
         JSModuleDef *m1, *res_m;
-        JSExportEntry *res_me;
+        JSExportEntry* res_me;
         JSResolveResultEnum ret;
 
         m1 = m->req_module_entries[se->req_module_idx].module;
-        ret = js_resolve_export1(ctx, &res_m, &res_me, m1,
-                                 export_name, s);
-        if (ret == JS_RESOLVE_RES_AMBIGUOUS ||
-            ret == JS_RESOLVE_RES_EXCEPTION) {
+        ret = js_resolve_export1(ctx, &res_m, &res_me, m1, export_name, s);
+        if (
+          ret == JS_RESOLVE_RES_AMBIGUOUS || ret == JS_RESOLVE_RES_EXCEPTION) {
           return ret;
         } else if (ret == JS_RESOLVE_RES_FOUND) {
           if (*pme != NULL) {
-            if (*pmodule != res_m ||
-                res_me->local_name != (*pme)->local_name) {
+            if (*pmodule != res_m || res_me->local_name != (*pme)->local_name) {
               *pmodule = NULL;
               *pme = NULL;
               return JS_RESOLVE_RES_AMBIGUOUS;
@@ -457,12 +457,12 @@ static JSResolveResultEnum js_resolve_export1(JSContext *ctx,
 /* If the return value is JS_RESOLVE_RES_FOUND, return the module
   (*pmodule) and the corresponding local export entry
   (*pme). Otherwise return (NULL, NULL) */
-static JSResolveResultEnum js_resolve_export(JSContext *ctx,
-                                             JSModuleDef **pmodule,
-                                             JSExportEntry **pme,
-                                             JSModuleDef *m,
-                                             JSAtom export_name)
-{
+static JSResolveResultEnum js_resolve_export(
+  JSContext* ctx,
+  JSModuleDef** pmodule,
+  JSExportEntry** pme,
+  JSModuleDef* m,
+  JSAtom export_name) {
   JSResolveState ss, *s = &ss;
   int i;
   JSResolveResultEnum ret;
@@ -473,41 +473,47 @@ static JSResolveResultEnum js_resolve_export(JSContext *ctx,
 
   ret = js_resolve_export1(ctx, pmodule, pme, m, export_name, s);
 
-  for(i = 0; i < s->count; i++)
+  for (i = 0; i < s->count; i++)
     JS_FreeAtom(ctx, s->array[i].name);
   js_free(ctx, s->array);
 
   return ret;
 }
 
-static void js_resolve_export_throw_error(JSContext *ctx,
-                                          JSResolveResultEnum res,
-                                          JSModuleDef *m, JSAtom export_name)
-{
+static void js_resolve_export_throw_error(
+  JSContext* ctx,
+  JSResolveResultEnum res,
+  JSModuleDef* m,
+  JSAtom export_name) {
   char buf1[ATOM_GET_STR_BUF_SIZE];
   char buf2[ATOM_GET_STR_BUF_SIZE];
-  switch(res) {
+  switch (res) {
     case JS_RESOLVE_RES_EXCEPTION:
       break;
     default:
     case JS_RESOLVE_RES_NOT_FOUND:
-      JS_ThrowSyntaxError(ctx, "Could not find export '%s' in module '%s'",
-                          JS_AtomGetStr(ctx, buf1, sizeof(buf1), export_name),
-                          JS_AtomGetStr(ctx, buf2, sizeof(buf2), m->module_name));
+      JS_ThrowSyntaxError(
+        ctx,
+        "Could not find export '%s' in module '%s'",
+        JS_AtomGetStr(ctx, buf1, sizeof(buf1), export_name),
+        JS_AtomGetStr(ctx, buf2, sizeof(buf2), m->module_name));
       break;
     case JS_RESOLVE_RES_CIRCULAR:
-      JS_ThrowSyntaxError(ctx, "circular reference when looking for export '%s' in module '%s'",
-                          JS_AtomGetStr(ctx, buf1, sizeof(buf1), export_name),
-                          JS_AtomGetStr(ctx, buf2, sizeof(buf2), m->module_name));
+      JS_ThrowSyntaxError(
+        ctx,
+        "circular reference when looking for export '%s' in module '%s'",
+        JS_AtomGetStr(ctx, buf1, sizeof(buf1), export_name),
+        JS_AtomGetStr(ctx, buf2, sizeof(buf2), m->module_name));
       break;
     case JS_RESOLVE_RES_AMBIGUOUS:
-      JS_ThrowSyntaxError(ctx, "export '%s' in module '%s' is ambiguous",
-                          JS_AtomGetStr(ctx, buf1, sizeof(buf1), export_name),
-                          JS_AtomGetStr(ctx, buf2, sizeof(buf2), m->module_name));
+      JS_ThrowSyntaxError(
+        ctx,
+        "export '%s' in module '%s' is ambiguous",
+        JS_AtomGetStr(ctx, buf1, sizeof(buf1), export_name),
+        JS_AtomGetStr(ctx, buf2, sizeof(buf2), m->module_name));
       break;
   }
 }
-
 
 typedef enum {
   EXPORTED_NAME_AMBIGUOUS,
@@ -519,58 +525,65 @@ typedef struct ExportedNameEntry {
   JSAtom export_name;
   ExportedNameEntryEnum export_type;
   union {
-    JSExportEntry *me; /* using when the list is built */
-    JSVarRef *var_ref; /* EXPORTED_NAME_NORMAL */
-    JSModuleDef *module; /* for EXPORTED_NAME_NS */
+    JSExportEntry* me; /* using when the list is built */
+    JSVarRef* var_ref; /* EXPORTED_NAME_NORMAL */
+    JSModuleDef* module; /* for EXPORTED_NAME_NS */
   } u;
 } ExportedNameEntry;
 
 typedef struct GetExportNamesState {
-  JSModuleDef **modules;
+  JSModuleDef** modules;
   int modules_size;
   int modules_count;
 
-  ExportedNameEntry *exported_names;
+  ExportedNameEntry* exported_names;
   int exported_names_size;
   int exported_names_count;
 } GetExportNamesState;
 
-static int find_exported_name(GetExportNamesState *s, JSAtom name)
-{
+static int find_exported_name(GetExportNamesState* s, JSAtom name) {
   int i;
-  for(i = 0; i < s->exported_names_count; i++) {
+  for (i = 0; i < s->exported_names_count; i++) {
     if (s->exported_names[i].export_name == name)
       return i;
   }
   return -1;
 }
 
-static __exception int get_exported_names(JSContext *ctx,
-                                          GetExportNamesState *s,
-                                          JSModuleDef *m, BOOL from_star)
-{
-  ExportedNameEntry *en;
+static __exception int get_exported_names(
+  JSContext* ctx,
+  GetExportNamesState* s,
+  JSModuleDef* m,
+  BOOL from_star) {
+  ExportedNameEntry* en;
   int i, j;
 
   /* check circular reference */
-  for(i = 0; i < s->modules_count; i++) {
+  for (i = 0; i < s->modules_count; i++) {
     if (s->modules[i] == m)
       return 0;
   }
-  if (js_resize_array(ctx, (void **)&s->modules, sizeof(s->modules[0]),
-                      &s->modules_size, s->modules_count + 1))
+  if (js_resize_array(
+        ctx,
+        (void**)&s->modules,
+        sizeof(s->modules[0]),
+        &s->modules_size,
+        s->modules_count + 1))
     return -1;
   s->modules[s->modules_count++] = m;
 
-  for(i = 0; i < m->export_entries_count; i++) {
-    JSExportEntry *me = &m->export_entries[i];
+  for (i = 0; i < m->export_entries_count; i++) {
+    JSExportEntry* me = &m->export_entries[i];
     if (from_star && me->export_name == JS_ATOM_default)
       continue;
     j = find_exported_name(s, me->export_name);
     if (j < 0) {
-      if (js_resize_array(ctx, (void **)&s->exported_names, sizeof(s->exported_names[0]),
-                          &s->exported_names_size,
-                          s->exported_names_count + 1))
+      if (js_resize_array(
+            ctx,
+            (void**)&s->exported_names,
+            sizeof(s->exported_names[0]),
+            &s->exported_names_size,
+            s->exported_names_count + 1))
         return -1;
       en = &s->exported_names[s->exported_names_count++];
       en->export_name = me->export_name;
@@ -584,9 +597,9 @@ static __exception int get_exported_names(JSContext *ctx,
       en->u.me = NULL;
     }
   }
-  for(i = 0; i < m->star_export_entries_count; i++) {
-    JSStarExportEntry *se = &m->star_export_entries[i];
-    JSModuleDef *m1;
+  for (i = 0; i < m->star_export_entries_count; i++) {
+    JSStarExportEntry* se = &m->star_export_entries[i];
+    JSModuleDef* m1;
     m1 = m->req_module_entries[se->req_module_idx].module;
     if (get_exported_names(ctx, s, m1, TRUE))
       return -1;
@@ -595,20 +608,18 @@ static __exception int get_exported_names(JSContext *ctx,
 }
 
 /* Unfortunately, the spec gives a different behavior from GetOwnProperty ! */
-static int js_module_ns_has(JSContext *ctx, JSValueConst obj, JSAtom atom)
-{
+static int js_module_ns_has(JSContext* ctx, JSValueConst obj, JSAtom atom) {
   return (find_own_property1(JS_VALUE_GET_OBJ(obj), atom) != NULL);
 }
 
 static const JSClassExoticMethods js_module_ns_exotic_methods = {
-    .has_property = js_module_ns_has,
+  .has_property = js_module_ns_has,
 };
 
-static int exported_names_cmp(const void *p1, const void *p2, void *opaque)
-{
-  JSContext *ctx = opaque;
-  const ExportedNameEntry *me1 = p1;
-  const ExportedNameEntry *me2 = p2;
+static int exported_names_cmp(const void* p1, const void* p2, void* opaque) {
+  JSContext* ctx = opaque;
+  const ExportedNameEntry* me1 = p1;
+  const ExportedNameEntry* me2 = p2;
   JSValue str1, str2;
   int ret;
 
@@ -619,30 +630,30 @@ static int exported_names_cmp(const void *p1, const void *p2, void *opaque)
     /* XXX: raise an error ? */
     ret = 0;
   } else {
-    ret = js_string_compare(ctx, JS_VALUE_GET_STRING(str1),
-                            JS_VALUE_GET_STRING(str2));
+    ret = js_string_compare(
+      ctx,
+      JS_VALUE_GET_STRING(str1),
+      JS_VALUE_GET_STRING(str2));
   }
   JS_FreeValue(ctx, str1);
   JS_FreeValue(ctx, str2);
   return ret;
 }
 
-static JSValue js_get_module_ns(JSContext *ctx, JSModuleDef *m);
+static JSValue js_get_module_ns(JSContext* ctx, JSModuleDef* m);
 
-JSValue js_module_ns_autoinit(JSContext *ctx, JSObject *p, JSAtom atom,
-                                     void *opaque)
-{
-  JSModuleDef *m = opaque;
+JSValue
+js_module_ns_autoinit(JSContext* ctx, JSObject* p, JSAtom atom, void* opaque) {
+  JSModuleDef* m = opaque;
   return js_get_module_ns(ctx, m);
 }
 
-static JSValue js_build_module_ns(JSContext *ctx, JSModuleDef *m)
-{
+static JSValue js_build_module_ns(JSContext* ctx, JSModuleDef* m) {
   JSValue obj;
-  JSObject *p;
+  JSObject* p;
   GetExportNamesState s_s, *s = &s_s;
   int i, ret;
-  JSProperty *pr;
+  JSProperty* pr;
 
   obj = JS_NewObjectClass(ctx, JS_CLASS_MODULE_NS);
   if (JS_IsException(obj))
@@ -656,19 +667,18 @@ static JSValue js_build_module_ns(JSContext *ctx, JSModuleDef *m)
     goto fail;
 
   /* Resolve the exported names. The ambiguous exports are removed */
-  for(i = 0; i < s->exported_names_count; i++) {
-    ExportedNameEntry *en = &s->exported_names[i];
+  for (i = 0; i < s->exported_names_count; i++) {
+    ExportedNameEntry* en = &s->exported_names[i];
     JSResolveResultEnum res;
-    JSExportEntry *res_me;
-    JSModuleDef *res_m;
+    JSExportEntry* res_me;
+    JSModuleDef* res_m;
 
     if (en->u.me) {
       res_me = en->u.me; /* fast case: no resolution needed */
       res_m = m;
       res = JS_RESOLVE_RES_FOUND;
     } else {
-      res = js_resolve_export(ctx, &res_m, &res_me, m,
-                              en->export_name);
+      res = js_resolve_export(ctx, &res_m, &res_me, m, en->export_name);
     }
     if (res != JS_RESOLVE_RES_FOUND) {
       if (res != JS_RESOLVE_RES_AMBIGUOUS) {
@@ -679,13 +689,14 @@ static JSValue js_build_module_ns(JSContext *ctx, JSModuleDef *m)
     } else {
       if (res_me->local_name == JS_ATOM__star_) {
         en->export_type = EXPORTED_NAME_NS;
-        en->u.module = res_m->req_module_entries[res_me->u.req_module_idx].module;
+        en->u.module =
+          res_m->req_module_entries[res_me->u.req_module_idx].module;
       } else {
         en->export_type = EXPORTED_NAME_NORMAL;
         if (res_me->u.local.var_ref) {
           en->u.var_ref = res_me->u.local.var_ref;
         } else {
-          JSObject *p1 = JS_VALUE_GET_OBJ(res_m->func_obj);
+          JSObject* p1 = JS_VALUE_GET_OBJ(res_m->func_obj);
           p1 = JS_VALUE_GET_OBJ(res_m->func_obj);
           en->u.var_ref = p1->u.func.var_refs[res_me->u.local.var_idx];
         }
@@ -694,30 +705,39 @@ static JSValue js_build_module_ns(JSContext *ctx, JSModuleDef *m)
   }
 
   /* sort the exported names */
-  rqsort(s->exported_names, s->exported_names_count,
-         sizeof(s->exported_names[0]), exported_names_cmp, ctx);
+  rqsort(
+    s->exported_names,
+    s->exported_names_count,
+    sizeof(s->exported_names[0]),
+    exported_names_cmp,
+    ctx);
 
-  for(i = 0; i < s->exported_names_count; i++) {
-    ExportedNameEntry *en = &s->exported_names[i];
-    switch(en->export_type) {
-      case EXPORTED_NAME_NORMAL:
-      {
-        JSVarRef *var_ref = en->u.var_ref;
-        pr = add_property(ctx, p, en->export_name,
-                          JS_PROP_ENUMERABLE | JS_PROP_WRITABLE |
-                              JS_PROP_VARREF);
+  for (i = 0; i < s->exported_names_count; i++) {
+    ExportedNameEntry* en = &s->exported_names[i];
+    switch (en->export_type) {
+      case EXPORTED_NAME_NORMAL: {
+        JSVarRef* var_ref = en->u.var_ref;
+        pr = add_property(
+          ctx,
+          p,
+          en->export_name,
+          JS_PROP_ENUMERABLE | JS_PROP_WRITABLE | JS_PROP_VARREF);
         if (!pr)
           goto fail;
         var_ref->header.ref_count++;
         pr->u.var_ref = var_ref;
-      }
-      break;
+      } break;
       case EXPORTED_NAME_NS:
         /* the exported namespace must be created on demand */
-        if (JS_DefineAutoInitProperty(ctx, obj,
-                                      en->export_name,
-                                      JS_AUTOINIT_ID_MODULE_NS,
-                                      en->u.module, JS_PROP_ENUMERABLE | JS_PROP_WRITABLE) < 0)
+        if (
+          JS_DefineAutoInitProperty(
+            ctx,
+            obj,
+            en->export_name,
+            JS_AUTOINIT_ID_MODULE_NS,
+            en->u.module,
+            JS_PROP_ENUMERABLE | JS_PROP_WRITABLE)
+          < 0)
           goto fail;
         break;
       default:
@@ -727,9 +747,12 @@ static JSValue js_build_module_ns(JSContext *ctx, JSModuleDef *m)
 
   js_free(ctx, s->exported_names);
 
-  JS_DefinePropertyValue(ctx, obj, JS_ATOM_Symbol_toStringTag,
-                         JS_AtomToString(ctx, JS_ATOM_Module),
-                         0);
+  JS_DefinePropertyValue(
+    ctx,
+    obj,
+    JS_ATOM_Symbol_toStringTag,
+    JS_AtomToString(ctx, JS_ATOM_Module),
+    0);
 
   p->extensible = FALSE;
   return obj;
@@ -739,8 +762,7 @@ fail:
   return JS_EXCEPTION;
 }
 
-static JSValue js_get_module_ns(JSContext *ctx, JSModuleDef *m)
-{
+static JSValue js_get_module_ns(JSContext* ctx, JSModuleDef* m) {
   if (JS_IsUndefined(m->module_ns)) {
     JSValue val;
     val = js_build_module_ns(ctx, m);
@@ -752,25 +774,28 @@ static JSValue js_get_module_ns(JSContext *ctx, JSModuleDef *m)
 }
 
 /* Load all the required modules for module 'm' */
-int js_resolve_module(JSContext *ctx, JSModuleDef *m)
-{
+int js_resolve_module(JSContext* ctx, JSModuleDef* m) {
   int i;
-  JSModuleDef *m1;
+  JSModuleDef* m1;
 
   if (m->resolved)
     return 0;
 #ifdef DUMP_MODULE_RESOLVE
   {
     char buf1[ATOM_GET_STR_BUF_SIZE];
-    printf("resolving module '%s':\n", JS_AtomGetStr(ctx, buf1, sizeof(buf1), m->module_name));
+    printf(
+      "resolving module '%s':\n",
+      JS_AtomGetStr(ctx, buf1, sizeof(buf1), m->module_name));
   }
 #endif
   m->resolved = TRUE;
   /* resolve each requested module */
-  for(i = 0; i < m->req_module_entries_count; i++) {
-    JSReqModuleEntry *rme = &m->req_module_entries[i];
-    m1 = js_host_resolve_imported_module_atom(ctx, m->module_name,
-                                              rme->module_name);
+  for (i = 0; i < m->req_module_entries_count; i++) {
+    JSReqModuleEntry* rme = &m->req_module_entries[i];
+    m1 = js_host_resolve_imported_module_atom(
+      ctx,
+      m->module_name,
+      rme->module_name);
     if (!m1)
       return -1;
     rme->module = m1;
@@ -782,9 +807,8 @@ int js_resolve_module(JSContext *ctx, JSModuleDef *m)
   return 0;
 }
 
-static JSVarRef *js_create_module_var(JSContext *ctx, BOOL is_lexical)
-{
-  JSVarRef *var_ref;
+static JSVarRef* js_create_module_var(JSContext* ctx, BOOL is_lexical) {
+  JSVarRef* var_ref;
   var_ref = js_malloc(ctx, sizeof(JSVarRef));
   if (!var_ref)
     return NULL;
@@ -800,17 +824,18 @@ static JSVarRef *js_create_module_var(JSContext *ctx, BOOL is_lexical)
 }
 
 /* Create the <eval> function associated with the module */
-static int js_create_module_bytecode_function(JSContext *ctx, JSModuleDef *m)
-{
-  JSFunctionBytecode *b;
+static int js_create_module_bytecode_function(JSContext* ctx, JSModuleDef* m) {
+  JSFunctionBytecode* b;
   int i;
-  JSVarRef **var_refs;
+  JSVarRef** var_refs;
   JSValue func_obj, bfunc;
-  JSObject *p;
+  JSObject* p;
 
   bfunc = m->func_obj;
-  func_obj = JS_NewObjectProtoClass(ctx, ctx->function_proto,
-                                    JS_CLASS_BYTECODE_FUNCTION);
+  func_obj = JS_NewObjectProtoClass(
+    ctx,
+    ctx->function_proto,
+    JS_CLASS_BYTECODE_FUNCTION);
 
   if (JS_IsException(func_obj))
     return -1;
@@ -829,9 +854,9 @@ static int js_create_module_bytecode_function(JSContext *ctx, JSModuleDef *m)
 
     /* create the global variables. The other variables are
        imported from other modules */
-    for(i = 0; i < b->closure_var_count; i++) {
-      JSClosureVar *cv = &b->closure_var[i];
-      JSVarRef *var_ref;
+    for (i = 0; i < b->closure_var_count; i++) {
+      JSClosureVar* cv = &b->closure_var[i];
+      JSVarRef* var_ref;
       if (cv->is_local) {
         var_ref = js_create_module_var(ctx, cv->is_lexical);
         if (!var_ref)
@@ -852,11 +877,10 @@ fail:
 }
 
 /* must be done before js_link_module() because of cyclic references */
-int js_create_module_function(JSContext *ctx, JSModuleDef *m)
-{
+int js_create_module_function(JSContext* ctx, JSModuleDef* m) {
   BOOL is_c_module;
   int i;
-  JSVarRef *var_ref;
+  JSVarRef* var_ref;
 
   if (m->func_created)
     return 0;
@@ -865,8 +889,8 @@ int js_create_module_function(JSContext *ctx, JSModuleDef *m)
 
   if (is_c_module) {
     /* initialize the exported variables */
-    for(i = 0; i < m->export_entries_count; i++) {
-      JSExportEntry *me = &m->export_entries[i];
+    for (i = 0; i < m->export_entries_count; i++) {
+      JSExportEntry* me = &m->export_entries[i];
       if (me->export_type == JS_EXPORT_TYPE_LOCAL) {
         var_ref = js_create_module_var(ctx, FALSE);
         if (!var_ref)
@@ -882,8 +906,8 @@ int js_create_module_function(JSContext *ctx, JSModuleDef *m)
 
   /* do it on the dependencies */
 
-  for(i = 0; i < m->req_module_entries_count; i++) {
-    JSReqModuleEntry *rme = &m->req_module_entries[i];
+  for (i = 0; i < m->req_module_entries_count; i++) {
+    JSReqModuleEntry* rme = &m->req_module_entries[i];
     if (js_create_module_function(ctx, rme->module) < 0)
       return -1;
   }
@@ -891,16 +915,14 @@ int js_create_module_function(JSContext *ctx, JSModuleDef *m)
   return 0;
 }
 
-
 /* Prepare a module to be executed by resolving all the imported
    variables. */
-int js_link_module(JSContext *ctx, JSModuleDef *m)
-{
+int js_link_module(JSContext* ctx, JSModuleDef* m) {
   int i;
-  JSImportEntry *mi;
-  JSModuleDef *m1;
+  JSImportEntry* mi;
+  JSModuleDef* m1;
   JSVarRef **var_refs, *var_ref;
-  JSObject *p;
+  JSObject* p;
   BOOL is_c_module;
   JSValue ret_val;
 
@@ -911,12 +933,14 @@ int js_link_module(JSContext *ctx, JSModuleDef *m)
 #ifdef DUMP_MODULE_RESOLVE
   {
     char buf1[ATOM_GET_STR_BUF_SIZE];
-    printf("start instantiating module '%s':\n", JS_AtomGetStr(ctx, buf1, sizeof(buf1), m->module_name));
+    printf(
+      "start instantiating module '%s':\n",
+      JS_AtomGetStr(ctx, buf1, sizeof(buf1), m->module_name));
   }
 #endif
 
-  for(i = 0; i < m->req_module_entries_count; i++) {
-    JSReqModuleEntry *rme = &m->req_module_entries[i];
+  for (i = 0; i < m->req_module_entries_count; i++) {
+    JSReqModuleEntry* rme = &m->req_module_entries[i];
     if (js_link_module(ctx, rme->module) < 0)
       goto fail;
   }
@@ -924,16 +948,19 @@ int js_link_module(JSContext *ctx, JSModuleDef *m)
 #ifdef DUMP_MODULE_RESOLVE
   {
     char buf1[ATOM_GET_STR_BUF_SIZE];
-    printf("instantiating module '%s':\n", JS_AtomGetStr(ctx, buf1, sizeof(buf1), m->module_name));
+    printf(
+      "instantiating module '%s':\n",
+      JS_AtomGetStr(ctx, buf1, sizeof(buf1), m->module_name));
   }
 #endif
   /* check the indirect exports */
-  for(i = 0; i < m->export_entries_count; i++) {
-    JSExportEntry *me = &m->export_entries[i];
-    if (me->export_type == JS_EXPORT_TYPE_INDIRECT &&
-        me->local_name != JS_ATOM__star_) {
+  for (i = 0; i < m->export_entries_count; i++) {
+    JSExportEntry* me = &m->export_entries[i];
+    if (
+      me->export_type == JS_EXPORT_TYPE_INDIRECT
+      && me->local_name != JS_ATOM__star_) {
       JSResolveResultEnum ret;
-      JSExportEntry *res_me;
+      JSExportEntry* res_me;
       JSModuleDef *res_m, *m1;
       m1 = m->req_module_entries[me->u.req_module_idx].module;
       ret = js_resolve_export(ctx, &res_m, &res_me, m1, me->local_name);
@@ -947,10 +974,12 @@ int js_link_module(JSContext *ctx, JSModuleDef *m)
 #ifdef DUMP_MODULE_RESOLVE
   {
     printf("exported bindings:\n");
-    for(i = 0; i < m->export_entries_count; i++) {
-      JSExportEntry *me = &m->export_entries[i];
-      printf(" name="); print_atom(ctx, me->export_name);
-      printf(" local="); print_atom(ctx, me->local_name);
+    for (i = 0; i < m->export_entries_count; i++) {
+      JSExportEntry* me = &m->export_entries[i];
+      printf(" name=");
+      print_atom(ctx, me->export_name);
+      printf(" local=");
+      print_atom(ctx, me->local_name);
       printf(" type=%d idx=%d\n", me->export_type, me->u.local.var_idx);
     }
   }
@@ -962,7 +991,7 @@ int js_link_module(JSContext *ctx, JSModuleDef *m)
     p = JS_VALUE_GET_OBJ(m->func_obj);
     var_refs = p->u.func.var_refs;
 
-    for(i = 0; i < m->import_entries_count; i++) {
+    for (i = 0; i < m->import_entries_count; i++) {
       mi = &m->import_entries[i];
 #ifdef DUMP_MODULE_RESOLVE
       printf("import var_idx=%d name=", mi->var_idx);
@@ -982,19 +1011,18 @@ int js_link_module(JSContext *ctx, JSModuleDef *m)
 #endif
       } else {
         JSResolveResultEnum ret;
-        JSExportEntry *res_me;
-        JSModuleDef *res_m;
-        JSObject *p1;
+        JSExportEntry* res_me;
+        JSModuleDef* res_m;
+        JSObject* p1;
 
-        ret = js_resolve_export(ctx, &res_m,
-                                &res_me, m1, mi->import_name);
+        ret = js_resolve_export(ctx, &res_m, &res_me, m1, mi->import_name);
         if (ret != JS_RESOLVE_RES_FOUND) {
           js_resolve_export_throw_error(ctx, ret, m1, mi->import_name);
           goto fail;
         }
         if (res_me->local_name == JS_ATOM__star_) {
           JSValue val;
-          JSModuleDef *m2;
+          JSModuleDef* m2;
           /* name space import from */
           m2 = res_m->req_module_entries[res_me->u.req_module_idx].module;
           val = js_get_module_ns(ctx, m2);
@@ -1028,8 +1056,8 @@ int js_link_module(JSContext *ctx, JSModuleDef *m)
     /* keep the exported variables in the module export entries (they
        are used when the eval function is deleted and cannot be
        initialized before in case imports are exported) */
-    for(i = 0; i < m->export_entries_count; i++) {
-      JSExportEntry *me = &m->export_entries[i];
+    for (i = 0; i < m->export_entries_count; i++) {
+      JSExportEntry* me = &m->export_entries[i];
       if (me->export_type == JS_EXPORT_TYPE_LOCAL) {
         var_ref = var_refs[me->u.local.var_idx];
         var_ref->header.ref_count++;
@@ -1054,11 +1082,10 @@ fail:
 
 /* return JS_ATOM_NULL if the name cannot be found. Only works with
    not striped bytecode functions. */
-JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels)
-{
-  JSStackFrame *sf;
-  JSFunctionBytecode *b;
-  JSObject *p;
+JSAtom JS_GetScriptOrModuleName(JSContext* ctx, int n_stack_levels) {
+  JSStackFrame* sf;
+  JSFunctionBytecode* b;
+  JSObject* p;
   /* XXX: currently we just use the filename of the englobing
      function. It does not work for eval(). Need to add a
      ScriptOrModule info in JSFunctionBytecode */
@@ -1081,13 +1108,11 @@ JSAtom JS_GetScriptOrModuleName(JSContext *ctx, int n_stack_levels)
   return JS_DupAtom(ctx, b->debug.filename);
 }
 
-JSAtom JS_GetModuleName(JSContext *ctx, JSModuleDef *m)
-{
+JSAtom JS_GetModuleName(JSContext* ctx, JSModuleDef* m) {
   return JS_DupAtom(ctx, m->module_name);
 }
 
-JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m)
-{
+JSValue JS_GetImportMeta(JSContext* ctx, JSModuleDef* m) {
   JSValue obj;
   /* allocate meta_obj only if requested to save memory */
   obj = m->meta_obj;
@@ -1100,10 +1125,9 @@ JSValue JS_GetImportMeta(JSContext *ctx, JSModuleDef *m)
   return JS_DupValue(ctx, obj);
 }
 
-JSValue js_import_meta(JSContext *ctx)
-{
+JSValue js_import_meta(JSContext* ctx) {
   JSAtom filename;
-  JSModuleDef *m;
+  JSModuleDef* m;
 
   filename = JS_GetScriptOrModuleName(ctx, 0);
   if (filename == JS_ATOM_NULL)
@@ -1122,10 +1146,9 @@ JSValue js_import_meta(JSContext *ctx)
 }
 
 /* used by os.Worker() and import() */
-JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
-                          const char *filename)
-{
-  JSModuleDef *m;
+JSModuleDef*
+JS_RunModule(JSContext* ctx, const char* basename, const char* filename) {
+  JSModuleDef* m;
   JSValue ret, func_obj;
 
   m = js_host_resolve_imported_module(ctx, basename, filename);
@@ -1146,13 +1169,12 @@ JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
   return m;
 }
 
-static JSValue js_dynamic_import_job(JSContext *ctx,
-                                     int argc, JSValueConst *argv)
-{
-  JSValueConst *resolving_funcs = argv;
+static JSValue
+js_dynamic_import_job(JSContext* ctx, int argc, JSValueConst* argv) {
+  JSValueConst* resolving_funcs = argv;
   JSValueConst basename_val = argv[2];
   JSValueConst specifier = argv[3];
-  JSModuleDef *m;
+  JSModuleDef* m;
   const char *basename = NULL, *filename;
   JSValue ret, err, ns;
 
@@ -1178,8 +1200,7 @@ static JSValue js_dynamic_import_job(JSContext *ctx,
   if (JS_IsException(ns))
     goto exception;
 
-  ret = JS_Call(ctx, resolving_funcs[0], JS_UNDEFINED,
-                1, (JSValueConst *)&ns);
+  ret = JS_Call(ctx, resolving_funcs[0], JS_UNDEFINED, 1, (JSValueConst*)&ns);
   JS_FreeValue(ctx, ret); /* XXX: what to do if exception ? */
   JS_FreeValue(ctx, ns);
   JS_FreeCString(ctx, basename);
@@ -1187,16 +1208,14 @@ static JSValue js_dynamic_import_job(JSContext *ctx,
 exception:
 
   err = JS_GetException(ctx);
-  ret = JS_Call(ctx, resolving_funcs[1], JS_UNDEFINED,
-                1, (JSValueConst *)&err);
+  ret = JS_Call(ctx, resolving_funcs[1], JS_UNDEFINED, 1, (JSValueConst*)&err);
   JS_FreeValue(ctx, ret); /* XXX: what to do if exception ? */
   JS_FreeValue(ctx, err);
   JS_FreeCString(ctx, basename);
   return JS_UNDEFINED;
 }
 
-JSValue js_dynamic_import(JSContext *ctx, JSValueConst specifier)
-{
+JSValue js_dynamic_import(JSContext* ctx, JSValueConst specifier) {
   JSAtom basename;
   JSValue promise, resolving_funcs[2], basename_val;
   JSValueConst args[4];
@@ -1231,9 +1250,8 @@ JSValue js_dynamic_import(JSContext *ctx, JSValueConst specifier)
 
 /* Run the <eval> function of the module and of all its requested
    modules. */
-JSValue js_evaluate_module(JSContext *ctx, JSModuleDef *m)
-{
-  JSModuleDef *m1;
+JSValue js_evaluate_module(JSContext* ctx, JSModuleDef* m) {
+  JSModuleDef* m1;
   int i;
   JSValue ret_val;
 
@@ -1252,8 +1270,8 @@ JSValue js_evaluate_module(JSContext *ctx, JSModuleDef *m)
 
   m->eval_mark = TRUE;
 
-  for(i = 0; i < m->req_module_entries_count; i++) {
-    JSReqModuleEntry *rme = &m->req_module_entries[i];
+  for (i = 0; i < m->req_module_entries_count; i++) {
+    JSReqModuleEntry* rme = &m->req_module_entries[i];
     m1 = rme->module;
     if (!m1->eval_mark) {
       ret_val = js_evaluate_module(ctx, m1);
@@ -1285,10 +1303,9 @@ JSValue js_evaluate_module(JSContext *ctx, JSModuleDef *m)
   return ret_val;
 }
 
-int JS_ResolveModule(JSContext *ctx, JSValueConst obj)
-{
+int JS_ResolveModule(JSContext* ctx, JSValueConst obj) {
   if (JS_VALUE_GET_TAG(obj) == JS_TAG_MODULE) {
-    JSModuleDef *m = JS_VALUE_GET_PTR(obj);
+    JSModuleDef* m = JS_VALUE_GET_PTR(obj);
     if (js_resolve_module(ctx, m) < 0) {
       js_free_modules(ctx, JS_FREE_MODULE_NOT_RESOLVED);
       return -1;
@@ -1301,9 +1318,9 @@ int JS_ResolveModule(JSContext *ctx, JSValueConst obj)
 
 #ifdef CONFIG_MODULE_EXPORTS
 /* Hooks into module loading functions */
-JSValueConst JS_GetModuleExport(JSContext *ctx, JSModuleDef *m,
-                                const char *export_name) {
-  JSExportEntry *me;
+JSValueConst
+JS_GetModuleExport(JSContext* ctx, JSModuleDef* m, const char* export_name) {
+  JSExportEntry* me;
   JSAtom name;
   name = JS_NewAtom(ctx, export_name);
   if (name == JS_ATOM_NULL)
@@ -1317,17 +1334,17 @@ fail:
   return JS_UNDEFINED;
 }
 
-int JS_GetModuleExportEntriesCount(JSModuleDef *m) {
+int JS_GetModuleExportEntriesCount(JSModuleDef* m) {
   return m->export_entries_count;
 }
 
-JSValue JS_GetModuleExportEntry(JSContext *ctx, JSModuleDef *m, int idx) {
+JSValue JS_GetModuleExportEntry(JSContext* ctx, JSModuleDef* m, int idx) {
   if (idx >= m->export_entries_count || idx < 0)
     return JS_UNDEFINED;
   return JS_DupValue(ctx, m->export_entries[idx].u.local.var_ref->value);
 }
 
-JSAtom JS_GetModuleExportEntryName(JSContext *ctx, JSModuleDef *m, int idx) {
+JSAtom JS_GetModuleExportEntryName(JSContext* ctx, JSModuleDef* m, int idx) {
   if (idx >= m->export_entries_count || idx < 0)
     return JS_ATOM_NULL;
   return JS_DupAtom(ctx, m->export_entries[idx].export_name);

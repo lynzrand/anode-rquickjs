@@ -30,18 +30,21 @@
 #include "shape.h"
 #include "types.h"
 
-InlineCache *init_ic(JSContext *ctx);
-int rebuild_ic(InlineCache *ic);
-int resize_ic_hash(InlineCache *ic);
-int free_ic(InlineCache *ic);
-uint32_t add_ic_slot(InlineCache *ic, JSAtom atom, JSObject *object,
-                     uint32_t prop_offset);
-uint32_t add_ic_slot1(InlineCache *ic, JSAtom atom);
-force_inline int32_t get_ic_prop_offset(InlineCache *ic, uint32_t cache_offset,
-                                        JSShape *shape) {
+InlineCache* init_ic(JSContext* ctx);
+int rebuild_ic(InlineCache* ic);
+int resize_ic_hash(InlineCache* ic);
+int free_ic(InlineCache* ic);
+uint32_t add_ic_slot(
+  InlineCache* ic,
+  JSAtom atom,
+  JSObject* object,
+  uint32_t prop_offset);
+uint32_t add_ic_slot1(InlineCache* ic, JSAtom atom);
+force_inline int32_t
+get_ic_prop_offset(InlineCache* ic, uint32_t cache_offset, JSShape* shape) {
   uint32_t i;
-  InlineCacheRingSlot *cr;
-  InlineCacheRingItem *buffer;
+  InlineCacheRingSlot* cr;
+  InlineCacheRingItem* buffer;
   assert(cache_offset < ic->capacity);
   cr = ic->cache + cache_offset;
   i = cr->index;
@@ -60,7 +63,7 @@ force_inline int32_t get_ic_prop_offset(InlineCache *ic, uint32_t cache_offset,
 
   return -1;
 }
-force_inline JSAtom get_ic_atom(InlineCache *ic, uint32_t cache_offset) {
+force_inline JSAtom get_ic_atom(InlineCache* ic, uint32_t cache_offset) {
   assert(cache_offset < ic->capacity);
   return ic->cache[cache_offset].atom;
 }

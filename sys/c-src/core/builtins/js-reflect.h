@@ -28,21 +28,45 @@
 
 #include "quickjs/quickjs.h"
 
-JSValue js_reflect_apply(JSContext *ctx, JSValueConst this_val,
-                                int argc, JSValueConst *argv);
-JSValue js_reflect_construct(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv);
-JSValue js_reflect_deleteProperty(JSContext *ctx, JSValueConst this_val,
-                                         int argc, JSValueConst *argv);
-JSValue js_reflect_get(JSContext *ctx, JSValueConst this_val,
-                              int argc, JSValueConst *argv);
-JSValue js_reflect_has(JSContext *ctx, JSValueConst this_val,
-                              int argc, JSValueConst *argv);
-JSValue js_reflect_set(JSContext *ctx, JSValueConst this_val,
-                              int argc, JSValueConst *argv);
-JSValue js_reflect_setPrototypeOf(JSContext *ctx, JSValueConst this_val,
-                                         int argc, JSValueConst *argv);
-JSValue js_reflect_ownKeys(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv);
+JSValue js_reflect_apply(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_reflect_construct(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_reflect_deleteProperty(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_reflect_get(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_reflect_has(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_reflect_set(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_reflect_setPrototypeOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
+JSValue js_reflect_ownKeys(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv);
 
 #endif

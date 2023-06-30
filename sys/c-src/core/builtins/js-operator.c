@@ -40,7 +40,10 @@ void js_for_in_iterator_finalizer(JSRuntime* rt, JSValue val) {
   js_free_rt(rt, it);
 }
 
-void js_for_in_iterator_mark(JSRuntime* rt, JSValueConst val, JS_MarkFunc* mark_func) {
+void js_for_in_iterator_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func) {
   JSObject* p = JS_VALUE_GET_OBJ(val);
   JSForInIterator* it = p->u.for_in_iterator;
   JS_MarkValue(rt, it->obj, mark_func);
@@ -56,7 +59,11 @@ double js_pow(double a, double b) {
 }
 
 /* XXX: Should take JSValueConst arguments */
-BOOL js_strict_eq2(JSContext* ctx, JSValue op1, JSValue op2, JSStrictEqModeEnum eq_mode) {
+BOOL js_strict_eq2(
+  JSContext* ctx,
+  JSValue op1,
+  JSValue op2,
+  JSStrictEqModeEnum eq_mode) {
   BOOL res;
   int tag1, tag2;
   double d1, d2;
@@ -168,7 +175,9 @@ BOOL js_strict_eq2(JSContext* ctx, JSValue op1, JSValue op2, JSStrictEqModeEnum 
       a = &p1->num;
       b = &p2->num;
       if (unlikely(eq_mode >= JS_EQ_SAME_VALUE)) {
-        if (eq_mode == JS_EQ_SAME_VALUE_ZERO && a->expn == BF_EXP_ZERO && b->expn == BF_EXP_ZERO) {
+        if (
+          eq_mode == JS_EQ_SAME_VALUE_ZERO && a->expn == BF_EXP_ZERO
+          && b->expn == BF_EXP_ZERO) {
           res = TRUE;
         } else {
           res = (bf_cmp_full(a, b) == 0);
@@ -206,11 +215,19 @@ BOOL js_strict_eq(JSContext* ctx, JSValue op1, JSValue op2) {
 }
 
 BOOL js_same_value(JSContext* ctx, JSValueConst op1, JSValueConst op2) {
-  return js_strict_eq2(ctx, JS_DupValue(ctx, op1), JS_DupValue(ctx, op2), JS_EQ_SAME_VALUE);
+  return js_strict_eq2(
+    ctx,
+    JS_DupValue(ctx, op1),
+    JS_DupValue(ctx, op2),
+    JS_EQ_SAME_VALUE);
 }
 
 BOOL js_same_value_zero(JSContext* ctx, JSValueConst op1, JSValueConst op2) {
-  return js_strict_eq2(ctx, JS_DupValue(ctx, op1), JS_DupValue(ctx, op2), JS_EQ_SAME_VALUE_ZERO);
+  return js_strict_eq2(
+    ctx,
+    JS_DupValue(ctx, op1),
+    JS_DupValue(ctx, op2),
+    JS_EQ_SAME_VALUE_ZERO);
 }
 
 no_inline int js_strict_eq_slow(JSContext* ctx, JSValue* sp, BOOL is_neq) {
@@ -245,7 +262,8 @@ __exception int js_operator_in(JSContext* ctx, JSValue* sp) {
   return 0;
 }
 
-__exception int js_has_unscopable(JSContext* ctx, JSValueConst obj, JSAtom atom) {
+__exception int
+js_has_unscopable(JSContext* ctx, JSValueConst obj, JSAtom atom) {
   JSValue arr, val;
   int ret;
 
@@ -350,7 +368,11 @@ __exception int js_operator_delete(JSContext* ctx, JSValue* sp) {
   return 0;
 }
 
-JSValue js_throw_type_error(JSContext* ctx, JSValueConst this_val, int argc, JSValueConst* argv) {
+JSValue js_throw_type_error(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return JS_ThrowTypeError(ctx, "invalid property access");
 }
 
@@ -362,7 +384,12 @@ JSValue js_build_rest(JSContext* ctx, int first, int argc, JSValueConst* argv) {
   if (JS_IsException(val))
     return val;
   for (i = first; i < argc; i++) {
-    ret = JS_DefinePropertyValueUint32(ctx, val, i - first, JS_DupValue(ctx, argv[i]), JS_PROP_C_W_E);
+    ret = JS_DefinePropertyValueUint32(
+      ctx,
+      val,
+      i - first,
+      JS_DupValue(ctx, argv[i]),
+      JS_PROP_C_W_E);
     if (ret < 0) {
       JS_FreeValue(ctx, val);
       return JS_EXCEPTION;
@@ -412,8 +439,12 @@ JSValue build_for_in_iterator(JSContext* ctx, JSValue obj) {
       break;
     if (JS_IsException(obj1))
       goto fail;
-    if (JS_GetOwnPropertyNamesInternal(ctx, &tab_atom, &tab_atom_count, JS_VALUE_GET_OBJ(obj1),
-                                       JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY)) {
+    if (JS_GetOwnPropertyNamesInternal(
+          ctx,
+          &tab_atom,
+          &tab_atom_count,
+          JS_VALUE_GET_OBJ(obj1),
+          JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY)) {
       JS_FreeValue(ctx, obj1);
       goto fail;
     }
@@ -445,7 +476,12 @@ JSValue build_for_in_iterator(JSContext* ctx, JSValue obj) {
     it->array_length = p->u.array.count;
   } else {
   normal_case:
-    if (JS_GetOwnPropertyNamesInternal(ctx, &tab_atom, &tab_atom_count, p, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY))
+    if (JS_GetOwnPropertyNamesInternal(
+          ctx,
+          &tab_atom,
+          &tab_atom_count,
+          p,
+          JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY))
       goto fail;
     for (i = 0; i < tab_atom_count; i++) {
       JS_SetPropertyInternal(ctx, enum_obj, tab_atom[i].atom, JS_NULL, 0, NULL);
@@ -459,14 +495,22 @@ slow_path:
      prototype chain */
   obj1 = JS_DupValue(ctx, obj);
   for (;;) {
-    if (JS_GetOwnPropertyNamesInternal(ctx, &tab_atom, &tab_atom_count, JS_VALUE_GET_OBJ(obj1),
-                                       JS_GPN_STRING_MASK | JS_GPN_SET_ENUM)) {
+    if (JS_GetOwnPropertyNamesInternal(
+          ctx,
+          &tab_atom,
+          &tab_atom_count,
+          JS_VALUE_GET_OBJ(obj1),
+          JS_GPN_STRING_MASK | JS_GPN_SET_ENUM)) {
       JS_FreeValue(ctx, obj1);
       goto fail;
     }
     for (i = 0; i < tab_atom_count; i++) {
-      JS_DefinePropertyValue(ctx, enum_obj, tab_atom[i].atom, JS_NULL,
-                             (tab_atom[i].is_enumerable ? JS_PROP_ENUMERABLE : 0));
+      JS_DefinePropertyValue(
+        ctx,
+        enum_obj,
+        tab_atom[i].atom,
+        JS_NULL,
+        (tab_atom[i].is_enumerable ? JS_PROP_ENUMERABLE : 0));
     }
     js_free_prop_enum(ctx, tab_atom, tab_atom_count);
     obj1 = JS_GetPrototypeFree(ctx, obj1);
@@ -560,12 +604,9 @@ JSValue JS_GetIterator2(JSContext* ctx, JSValueConst obj, JSValueConst method) {
   return enum_obj;
 }
 
-
-JSValue JS_CreateAsyncFromSyncIterator(JSContext *ctx,
-                                              JSValueConst sync_iter)
-{
+JSValue JS_CreateAsyncFromSyncIterator(JSContext* ctx, JSValueConst sync_iter) {
   JSValue async_iter, next_method;
-  JSAsyncFromSyncIteratorData *s;
+  JSAsyncFromSyncIteratorData* s;
 
   next_method = JS_GetProperty(ctx, sync_iter, JS_ATOM_next);
   if (JS_IsException(next_method))
@@ -621,19 +662,22 @@ JSValue JS_GetIterator(JSContext* ctx, JSValueConst obj, BOOL is_async) {
 }
 
 /* return *pdone = 2 if the iterator object is not parsed */
-JSValue JS_IteratorNext2(JSContext* ctx,
-                                JSValueConst enum_obj,
-                                JSValueConst method,
-                                int argc,
-                                JSValueConst* argv,
-                                int* pdone) {
+JSValue JS_IteratorNext2(
+  JSContext* ctx,
+  JSValueConst enum_obj,
+  JSValueConst method,
+  int argc,
+  JSValueConst* argv,
+  int* pdone) {
   JSValue obj;
 
   /* fast path for the built-in iterators (avoid creating the
      intermediate result object) */
   if (JS_IsObject(method)) {
     JSObject* p = JS_VALUE_GET_OBJ(method);
-    if (p->class_id == JS_CLASS_C_FUNCTION && p->u.cfunc.cproto == JS_CFUNC_iterator_next) {
+    if (
+      p->class_id == JS_CLASS_C_FUNCTION
+      && p->u.cfunc.cproto == JS_CFUNC_iterator_next) {
       JSCFunctionType func;
       JSValueConst args[1];
 
@@ -643,7 +687,8 @@ JSValue JS_IteratorNext2(JSContext* ctx,
         argv = args;
       }
       func = p->u.cfunc.c_function;
-      return func.iterator_next(ctx, enum_obj, argc, argv, pdone, p->u.cfunc.magic);
+      return func
+        .iterator_next(ctx, enum_obj, argc, argv, pdone, p->u.cfunc.magic);
     }
   }
   obj = JS_Call(ctx, method, enum_obj, argc, argv);
@@ -661,12 +706,13 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue JS_IteratorNext(JSContext* ctx,
-                               JSValueConst enum_obj,
-                               JSValueConst method,
-                               int argc,
-                               JSValueConst* argv,
-                               BOOL* pdone) {
+JSValue JS_IteratorNext(
+  JSContext* ctx,
+  JSValueConst enum_obj,
+  JSValueConst method,
+  int argc,
+  JSValueConst* argv,
+  BOOL* pdone) {
   JSValue obj, value, done_val;
   int done;
 
@@ -695,7 +741,10 @@ fail:
 }
 
 /* return < 0 in case of exception */
-int JS_IteratorClose(JSContext* ctx, JSValueConst enum_obj, BOOL is_exception_pending) {
+int JS_IteratorClose(
+  JSContext* ctx,
+  JSValueConst enum_obj,
+  BOOL is_exception_pending) {
   JSValue method, ret, ex_obj;
   int res;
 
@@ -778,7 +827,8 @@ __exception int js_for_of_next(JSContext* ctx, JSValue* sp, int offset) {
   return 0;
 }
 
-JSValue JS_IteratorGetCompleteValue(JSContext* ctx, JSValueConst obj, BOOL* pdone) {
+JSValue
+JS_IteratorGetCompleteValue(JSContext* ctx, JSValueConst obj, BOOL* pdone) {
   JSValue done_val, value;
   BOOL done;
   done_val = JS_GetProperty(ctx, obj, JS_ATOM_done);

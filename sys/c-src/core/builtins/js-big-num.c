@@ -24,6 +24,7 @@
  */
 
 #include "js-big-num.h"
+
 #include "../convertion.h"
 #include "../exception.h"
 #include "../function.h"
@@ -35,10 +36,9 @@
 
 #ifdef CONFIG_BIGNUM
 
-JSValue JS_NewBigInt64_1(JSContext *ctx, int64_t v)
-{
+JSValue JS_NewBigInt64_1(JSContext* ctx, int64_t v) {
   JSValue val;
-  bf_t *a;
+  bf_t* a;
   val = JS_NewBigInt(ctx);
   if (JS_IsException(val))
     return val;
@@ -50,23 +50,20 @@ JSValue JS_NewBigInt64_1(JSContext *ctx, int64_t v)
   return val;
 }
 
-JSValue JS_NewBigInt64(JSContext *ctx, int64_t v)
-{
-  if (is_math_mode(ctx) &&
-      v >= -MAX_SAFE_INTEGER && v <= MAX_SAFE_INTEGER) {
+JSValue JS_NewBigInt64(JSContext* ctx, int64_t v) {
+  if (is_math_mode(ctx) && v >= -MAX_SAFE_INTEGER && v <= MAX_SAFE_INTEGER) {
     return JS_NewInt64(ctx, v);
   } else {
     return JS_NewBigInt64_1(ctx, v);
   }
 }
 
-JSValue JS_NewBigUint64(JSContext *ctx, uint64_t v)
-{
+JSValue JS_NewBigUint64(JSContext* ctx, uint64_t v) {
   JSValue val;
   if (is_math_mode(ctx) && v <= MAX_SAFE_INTEGER) {
     val = JS_NewInt64(ctx, v);
   } else {
-    bf_t *a;
+    bf_t* a;
     val = JS_NewBigInt(ctx);
     if (JS_IsException(val))
       return val;
@@ -82,14 +79,13 @@ JSValue JS_NewBigUint64(JSContext *ctx, uint64_t v)
 /* if the returned bigfloat is allocated it is equal to
    'buf'. Otherwise it is a pointer to the bigfloat in 'val'. Return
    NULL in case of error. */
-bf_t *JS_ToBigFloat(JSContext *ctx, bf_t *buf, JSValueConst val)
-{
+bf_t* JS_ToBigFloat(JSContext* ctx, bf_t* buf, JSValueConst val) {
   uint32_t tag;
-  bf_t *r;
-  JSBigFloat *p;
+  bf_t* r;
+  JSBigFloat* p;
 
   tag = JS_VALUE_GET_NORM_TAG(val);
-  switch(tag) {
+  switch (tag) {
     case JS_TAG_INT:
     case JS_TAG_BOOL:
     case JS_TAG_NULL:
@@ -123,14 +119,13 @@ bf_t *JS_ToBigFloat(JSContext *ctx, bf_t *buf, JSValueConst val)
 }
 
 /* return NULL if invalid type */
-bfdec_t *JS_ToBigDecimal(JSContext *ctx, JSValueConst val)
-{
+bfdec_t* JS_ToBigDecimal(JSContext* ctx, JSValueConst val) {
   uint32_t tag;
-  JSBigDecimal *p;
-  bfdec_t *r;
+  JSBigDecimal* p;
+  bfdec_t* r;
 
   tag = JS_VALUE_GET_NORM_TAG(val);
-  switch(tag) {
+  switch (tag) {
     case JS_TAG_BIG_DECIMAL:
       p = JS_VALUE_GET_PTR(val);
       r = &p->num;
@@ -144,8 +139,7 @@ bfdec_t *JS_ToBigDecimal(JSContext *ctx, JSValueConst val)
 }
 
 /* return NaN if bad bigint literal */
-JSValue JS_StringToBigInt(JSContext *ctx, JSValue val)
-{
+JSValue JS_StringToBigInt(JSContext* ctx, JSValue val) {
   const char *str, *p;
   size_t len;
   int flags;
@@ -175,8 +169,7 @@ JSValue JS_StringToBigInt(JSContext *ctx, JSValue val)
   return val;
 }
 
-JSValue JS_StringToBigIntErr(JSContext *ctx, JSValue val)
-{
+JSValue JS_StringToBigIntErr(JSContext* ctx, JSValue val) {
   val = JS_StringToBigInt(ctx, val);
   if (JS_VALUE_IS_NAN(val))
     return JS_ThrowSyntaxError(ctx, "invalid bigint literal");
@@ -185,15 +178,14 @@ JSValue JS_StringToBigIntErr(JSContext *ctx, JSValue val)
 
 /* if the returned bigfloat is allocated it is equal to
    'buf'. Otherwise it is a pointer to the bigfloat in 'val'. */
-bf_t *JS_ToBigIntFree(JSContext *ctx, bf_t *buf, JSValue val)
-{
+bf_t* JS_ToBigIntFree(JSContext* ctx, bf_t* buf, JSValue val) {
   uint32_t tag;
-  bf_t *r;
-  JSBigFloat *p;
+  bf_t* r;
+  JSBigFloat* p;
 
 redo:
   tag = JS_VALUE_GET_NORM_TAG(val);
-  switch(tag) {
+  switch (tag) {
     case JS_TAG_INT:
     case JS_TAG_NULL:
     case JS_TAG_UNDEFINED:
@@ -205,8 +197,7 @@ redo:
       bf_init(ctx->bf_ctx, r);
       bf_set_si(r, JS_VALUE_GET_INT(val));
       break;
-    case JS_TAG_FLOAT64:
-    {
+    case JS_TAG_FLOAT64: {
       double d = JS_VALUE_GET_FLOAT64(val);
       if (!is_math_mode(ctx))
         goto fail;
@@ -216,8 +207,7 @@ redo:
       bf_init(ctx->bf_ctx, r);
       d = trunc(d);
       bf_set_float64(r, d);
-    }
-    break;
+    } break;
     case JS_TAG_BIG_INT:
       p = JS_VALUE_GET_PTR(val);
       r = &p->num;
@@ -253,13 +243,11 @@ redo:
   return r;
 }
 
-bf_t *JS_ToBigInt(JSContext *ctx, bf_t *buf, JSValueConst val)
-{
+bf_t* JS_ToBigInt(JSContext* ctx, bf_t* buf, JSValueConst val) {
   return JS_ToBigIntFree(ctx, buf, JS_DupValue(ctx, val));
 }
 
-__maybe_unused JSValue JS_ToBigIntValueFree(JSContext *ctx, JSValue val)
-{
+__maybe_unused JSValue JS_ToBigIntValueFree(JSContext* ctx, JSValue val) {
   if (JS_VALUE_GET_TAG(val) == JS_TAG_BIG_INT) {
     return val;
   } else {
@@ -287,20 +275,17 @@ __maybe_unused JSValue JS_ToBigIntValueFree(JSContext *ctx, JSValue val)
 }
 
 /* free the bf_t allocated by JS_ToBigInt */
-void JS_FreeBigInt(JSContext *ctx, bf_t *a, bf_t *buf)
-{
+void JS_FreeBigInt(JSContext* ctx, bf_t* a, bf_t* buf) {
   if (a == buf) {
     bf_delete(a);
   } else {
-    JSBigFloat *p = (JSBigFloat *)((uint8_t *)a -
-                                  offsetof(JSBigFloat, num));
+    JSBigFloat* p = (JSBigFloat*)((uint8_t*)a - offsetof(JSBigFloat, num));
     JS_FreeValue(ctx, JS_MKPTR(JS_TAG_BIG_FLOAT, p));
   }
 }
 
 /* XXX: merge with JS_ToInt64Free with a specific flag */
-int JS_ToBigInt64Free(JSContext *ctx, int64_t *pres, JSValue val)
-{
+int JS_ToBigInt64Free(JSContext* ctx, int64_t* pres, JSValue val) {
   bf_t a_s, *a;
 
   a = JS_ToBigIntFree(ctx, &a_s, val);
@@ -313,14 +298,12 @@ int JS_ToBigInt64Free(JSContext *ctx, int64_t *pres, JSValue val)
   return 0;
 }
 
-int JS_ToBigInt64(JSContext *ctx, int64_t *pres, JSValueConst val)
-{
+int JS_ToBigInt64(JSContext* ctx, int64_t* pres, JSValueConst val) {
   return JS_ToBigInt64Free(ctx, pres, JS_DupValue(ctx, val));
 }
 
-JSBigFloat *js_new_bf(JSContext *ctx)
-{
-  JSBigFloat *p;
+JSBigFloat* js_new_bf(JSContext* ctx) {
+  JSBigFloat* p;
   p = js_malloc(ctx, sizeof(*p));
   if (!p)
     return NULL;
@@ -329,9 +312,8 @@ JSBigFloat *js_new_bf(JSContext *ctx)
   return p;
 }
 
-JSValue JS_NewBigFloat(JSContext *ctx)
-{
-  JSBigFloat *p;
+JSValue JS_NewBigFloat(JSContext* ctx) {
+  JSBigFloat* p;
   p = js_malloc(ctx, sizeof(*p));
   if (!p)
     return JS_EXCEPTION;
@@ -340,9 +322,8 @@ JSValue JS_NewBigFloat(JSContext *ctx)
   return JS_MKPTR(JS_TAG_BIG_FLOAT, p);
 }
 
-JSValue JS_NewBigDecimal(JSContext *ctx)
-{
-  JSBigDecimal *p;
+JSValue JS_NewBigDecimal(JSContext* ctx) {
+  JSBigDecimal* p;
   p = js_malloc(ctx, sizeof(*p));
   if (!p)
     return JS_EXCEPTION;
@@ -351,9 +332,8 @@ JSValue JS_NewBigDecimal(JSContext *ctx)
   return JS_MKPTR(JS_TAG_BIG_DECIMAL, p);
 }
 
-JSValue JS_NewBigInt(JSContext *ctx)
-{
-  JSBigFloat *p;
+JSValue JS_NewBigInt(JSContext* ctx) {
+  JSBigFloat* p;
   p = js_malloc(ctx, sizeof(*p));
   if (!p)
     return JS_EXCEPTION;
@@ -362,21 +342,21 @@ JSValue JS_NewBigInt(JSContext *ctx)
   return JS_MKPTR(JS_TAG_BIG_INT, p);
 }
 
-JSValue JS_CompactBigInt1(JSContext *ctx, JSValue val,
-                                 BOOL convert_to_safe_integer)
-{
+JSValue
+JS_CompactBigInt1(JSContext* ctx, JSValue val, BOOL convert_to_safe_integer) {
   int64_t v;
-  bf_t *a;
+  bf_t* a;
 
   if (JS_VALUE_GET_TAG(val) != JS_TAG_BIG_INT)
     return val; /* fail safe */
   a = JS_GetBigInt(val);
-  if (convert_to_safe_integer && bf_get_int64(&v, a, 0) == 0 &&
-      v >= -MAX_SAFE_INTEGER && v <= MAX_SAFE_INTEGER) {
+  if (
+    convert_to_safe_integer && bf_get_int64(&v, a, 0) == 0
+    && v >= -MAX_SAFE_INTEGER && v <= MAX_SAFE_INTEGER) {
     JS_FreeValue(ctx, val);
     return JS_NewInt64(ctx, v);
   } else if (a->expn == BF_EXP_ZERO && a->sign) {
-    JSBigFloat *p = JS_VALUE_GET_PTR(val);
+    JSBigFloat* p = JS_VALUE_GET_PTR(val);
     assert(p->header.ref_count == 1);
     a->sign = 0;
   }
@@ -387,38 +367,19 @@ JSValue JS_CompactBigInt1(JSContext *ctx, JSValue val,
    the zero representation. Could also be used to convert the bigint
    to a short bigint value. The reference count of the value must be
    1. Cannot fail */
-JSValue JS_CompactBigInt(JSContext *ctx, JSValue val)
-{
+JSValue JS_CompactBigInt(JSContext* ctx, JSValue val) {
   return JS_CompactBigInt1(ctx, val, is_math_mode(ctx));
 }
 
 /* must be kept in sync with JSOverloadableOperatorEnum */
 /* XXX: use atoms ? */
 const char js_overloadable_operator_names[JS_OVOP_COUNT][4] = {
-    "+",
-    "-",
-    "*",
-    "/",
-    "%",
-    "**",
-    "|",
-    "&",
-    "^",
-    "<<",
-    ">>",
-    ">>>",
-    "==",
-    "<",
-    "pos",
-    "neg",
-    "++",
-    "--",
-    "~",
+  "+",  "-",   "*",  "/", "%",   "**",  "|",  "&",  "^", "<<",
+  ">>", ">>>", "==", "<", "pos", "neg", "++", "--", "~",
 };
 
-int get_ovop_from_opcode(OPCodeEnum op)
-{
-  switch(op) {
+int get_ovop_from_opcode(OPCodeEnum op) {
+  switch (op) {
     case OP_add:
       return JS_OVOP_ADD;
     case OP_sub:
@@ -466,13 +427,13 @@ int get_ovop_from_opcode(OPCodeEnum op)
 }
 
 /* return NULL if not present */
-JSObject *find_binary_op(JSBinaryOperatorDef *def,
-                                uint32_t operator_index,
-                                JSOverloadableOperatorEnum op)
-{
-  JSBinaryOperatorDefEntry *ent;
+JSObject* find_binary_op(
+  JSBinaryOperatorDef* def,
+  uint32_t operator_index,
+  JSOverloadableOperatorEnum op) {
+  JSBinaryOperatorDefEntry* ent;
   int i;
-  for(i = 0; i < def->count; i++) {
+  for (i = 0; i < def->count; i++) {
     ent = &def->tab[i];
     if (ent->operator_index == operator_index)
       return ent->ops[op];
@@ -482,18 +443,18 @@ JSObject *find_binary_op(JSBinaryOperatorDef *def,
 
 /* return -1 if exception, 0 if no operator overloading, 1 if
    overloaded operator called */
-__exception int js_call_binary_op_fallback(JSContext *ctx,
-                                                  JSValue *pret,
-                                                  JSValueConst op1,
-                                                  JSValueConst op2,
-                                                  OPCodeEnum op,
-                                                  BOOL is_numeric,
-                                                  int hint)
-{
+__exception int js_call_binary_op_fallback(
+  JSContext* ctx,
+  JSValue* pret,
+  JSValueConst op1,
+  JSValueConst op2,
+  OPCodeEnum op,
+  BOOL is_numeric,
+  int hint) {
   JSValue opset1_obj, opset2_obj, method, ret, new_op1, new_op2;
   JSOperatorSetData *opset1, *opset2;
   JSOverloadableOperatorEnum ovop;
-  JSObject *p;
+  JSObject* p;
   JSValueConst args[2];
 
   if (!ctx->allow_operator_overloading)
@@ -536,8 +497,10 @@ __exception int js_call_binary_op_fallback(JSContext *ctx,
     p = find_binary_op(&opset2->right, opset1->operator_counter, ovop);
   }
   if (!p) {
-    JS_ThrowTypeError(ctx, "operator %s: no function defined",
-                      js_overloadable_operator_names[ovop]);
+    JS_ThrowTypeError(
+      ctx,
+      "operator %s: no function defined",
+      js_overloadable_operator_names[ovop]);
     goto exception;
   }
 
@@ -611,17 +574,17 @@ exception:
 
 /* try to call the operation on the operatorSet field of 'obj'. Only
    used for "/" and "**" on the BigInt prototype in math mode */
-__exception int js_call_binary_op_simple(JSContext *ctx,
-                                                JSValue *pret,
-                                                JSValueConst obj,
-                                                JSValueConst op1,
-                                                JSValueConst op2,
-                                                OPCodeEnum op)
-{
+__exception int js_call_binary_op_simple(
+  JSContext* ctx,
+  JSValue* pret,
+  JSValueConst obj,
+  JSValueConst op1,
+  JSValueConst op2,
+  OPCodeEnum op) {
   JSValue opset1_obj, method, ret, new_op1, new_op2;
-  JSOperatorSetData *opset1;
+  JSOperatorSetData* opset1;
   JSOverloadableOperatorEnum ovop;
-  JSObject *p;
+  JSObject* p;
   JSValueConst args[2];
 
   opset1_obj = JS_GetProperty(ctx, obj, JS_ATOM_Symbol_operatorSet);
@@ -668,15 +631,15 @@ exception:
 
 /* return -1 if exception, 0 if no operator overloading, 1 if
    overloaded operator called */
-__exception int js_call_unary_op_fallback(JSContext *ctx,
-                                                 JSValue *pret,
-                                                 JSValueConst op1,
-                                                 OPCodeEnum op)
-{
+__exception int js_call_unary_op_fallback(
+  JSContext* ctx,
+  JSValue* pret,
+  JSValueConst op1,
+  OPCodeEnum op) {
   JSValue opset1_obj, method, ret;
-  JSOperatorSetData *opset1;
+  JSOperatorSetData* opset1;
   JSOverloadableOperatorEnum ovop;
-  JSObject *p;
+  JSObject* p;
 
   if (!ctx->allow_operator_overloading)
     return 0;
@@ -698,8 +661,10 @@ __exception int js_call_unary_op_fallback(JSContext *ctx,
 
   p = opset1->self_ops[ovop];
   if (!p) {
-    JS_ThrowTypeError(ctx, "no overloaded operator %s",
-                      js_overloadable_operator_names[ovop]);
+    JS_ThrowTypeError(
+      ctx,
+      "no overloaded operator %s",
+      js_overloadable_operator_names[ovop]);
     goto exception;
   }
   method = JS_DupValue(ctx, JS_MKPTR(JS_TAG_OBJECT, p));
@@ -715,9 +680,8 @@ exception:
   return -1;
 }
 
-JSValue throw_bf_exception(JSContext *ctx, int status)
-{
-  const char *str;
+JSValue throw_bf_exception(JSContext* ctx, int status) {
+  const char* str;
   if (status & BF_ST_MEM_ERROR)
     return JS_ThrowOutOfMemory(ctx);
   if (status & BF_ST_DIVIDE_ZERO) {
@@ -730,9 +694,11 @@ JSValue throw_bf_exception(JSContext *ctx, int status)
   return JS_ThrowRangeError(ctx, "%s", str);
 }
 
-int js_unary_arith_bigint(JSContext *ctx,
-                                 JSValue *pres, OPCodeEnum op, JSValue op1)
-{
+int js_unary_arith_bigint(
+  JSContext* ctx,
+  JSValue* pres,
+  OPCodeEnum op,
+  JSValue op1) {
   bf_t a_s, *r, *a;
   int ret, v;
   JSValue res;
@@ -750,7 +716,7 @@ int js_unary_arith_bigint(JSContext *ctx,
   r = JS_GetBigInt(res);
   a = JS_ToBigInt(ctx, &a_s, op1);
   ret = 0;
-  switch(op) {
+  switch (op) {
     case OP_inc:
     case OP_dec:
       v = 2 * (op - OP_dec) - 1;
@@ -782,9 +748,11 @@ int js_unary_arith_bigint(JSContext *ctx,
   return 0;
 }
 
-int js_unary_arith_bigfloat(JSContext *ctx,
-                                   JSValue *pres, OPCodeEnum op, JSValue op1)
-{
+int js_unary_arith_bigfloat(
+  JSContext* ctx,
+  JSValue* pres,
+  OPCodeEnum op,
+  JSValue op1) {
   bf_t a_s, *r, *a;
   int ret, v;
   JSValue res;
@@ -803,7 +771,7 @@ int js_unary_arith_bigfloat(JSContext *ctx,
   r = JS_GetBigFloat(res);
   a = JS_ToBigFloat(ctx, &a_s, op1);
   ret = 0;
-  switch(op) {
+  switch (op) {
     case OP_inc:
     case OP_dec:
       v = 2 * (op - OP_dec) - 1;
@@ -831,9 +799,11 @@ int js_unary_arith_bigfloat(JSContext *ctx,
   return 0;
 }
 
-int js_unary_arith_bigdecimal(JSContext *ctx,
-                                     JSValue *pres, OPCodeEnum op, JSValue op1)
-{
+int js_unary_arith_bigdecimal(
+  JSContext* ctx,
+  JSValue* pres,
+  OPCodeEnum op,
+  JSValue op1) {
   bfdec_t *r, *a;
   int ret, v;
   JSValue res;
@@ -852,7 +822,7 @@ int js_unary_arith_bigdecimal(JSContext *ctx,
   r = JS_GetBigDecimal(res);
   a = JS_ToBigDecimal(ctx, op1);
   ret = 0;
-  switch(op) {
+  switch (op) {
     case OP_inc:
     case OP_dec:
       v = 2 * (op - OP_dec) - 1;
@@ -878,10 +848,8 @@ int js_unary_arith_bigdecimal(JSContext *ctx,
   return 0;
 }
 
-no_inline __exception int js_unary_arith_slow(JSContext *ctx,
-                                                     JSValue *sp,
-                                                     OPCodeEnum op)
-{
+no_inline __exception int
+js_unary_arith_slow(JSContext* ctx, JSValue* sp, OPCodeEnum op) {
   JSValue op1, val;
   int v, ret;
   uint32_t tag;
@@ -905,12 +873,11 @@ no_inline __exception int js_unary_arith_slow(JSContext *ctx,
   if (JS_IsException(op1))
     goto exception;
   tag = JS_VALUE_GET_TAG(op1);
-  switch(tag) {
-    case JS_TAG_INT:
-    {
+  switch (tag) {
+    case JS_TAG_INT: {
       int64_t v64;
       v64 = JS_VALUE_GET_INT(op1);
-      switch(op) {
+      switch (op) {
         case OP_inc:
         case OP_dec:
           v = 2 * (op - OP_dec) - 1;
@@ -930,8 +897,7 @@ no_inline __exception int js_unary_arith_slow(JSContext *ctx,
           abort();
       }
       sp[-1] = JS_NewInt64(ctx, v64);
-    }
-    break;
+    } break;
     case JS_TAG_BIG_INT:
     handle_bigint:
       if (ctx->rt->bigint_ops.unary_arith(ctx, sp - 1, op, op1))
@@ -946,13 +912,12 @@ no_inline __exception int js_unary_arith_slow(JSContext *ctx,
         goto exception;
       break;
     default:
-    handle_float64:
-    {
+    handle_float64: {
       double d;
       if (is_math_mode(ctx))
         goto handle_bigint;
       d = JS_VALUE_GET_FLOAT64(op1);
-      switch(op) {
+      switch (op) {
         case OP_inc:
         case OP_dec:
           v = 2 * (op - OP_dec) - 1;
@@ -967,8 +932,7 @@ no_inline __exception int js_unary_arith_slow(JSContext *ctx,
           abort();
       }
       sp[-1] = __JS_NewFloat64(ctx, d);
-    }
-    break;
+    } break;
   }
   return 0;
 exception:
@@ -976,9 +940,7 @@ exception:
   return -1;
 }
 
-__exception int js_post_inc_slow(JSContext *ctx,
-                                        JSValue *sp, OPCodeEnum op)
-{
+__exception int js_post_inc_slow(JSContext* ctx, JSValue* sp, OPCodeEnum op) {
   JSValue op1;
 
   /* XXX: allow custom operators */
@@ -993,8 +955,7 @@ __exception int js_post_inc_slow(JSContext *ctx,
   return js_unary_arith_slow(ctx, sp + 1, op - OP_post_dec + OP_dec);
 }
 
-no_inline int js_not_slow(JSContext *ctx, JSValue *sp)
-{
+no_inline int js_not_slow(JSContext* ctx, JSValue* sp) {
   JSValue op1, val;
   int ret;
 
@@ -1028,9 +989,12 @@ exception:
   return -1;
 }
 
-int js_binary_arith_bigfloat(JSContext *ctx, OPCodeEnum op,
-                                    JSValue *pres, JSValue op1, JSValue op2)
-{
+int js_binary_arith_bigfloat(
+  JSContext* ctx,
+  OPCodeEnum op,
+  JSValue* pres,
+  JSValue op1,
+  JSValue op2) {
   bf_t a_s, b_s, *r, *a, *b;
   int ret;
   JSValue res;
@@ -1045,7 +1009,7 @@ int js_binary_arith_bigfloat(JSContext *ctx, OPCodeEnum op,
   a = JS_ToBigFloat(ctx, &a_s, op1);
   b = JS_ToBigFloat(ctx, &b_s, op2);
   bf_init(ctx->bf_ctx, r);
-  switch(op) {
+  switch (op) {
     case OP_add:
       ret = bf_add(r, a, b, ctx->fp_env.prec, ctx->fp_env.flags);
       break;
@@ -1060,16 +1024,20 @@ int js_binary_arith_bigfloat(JSContext *ctx, OPCodeEnum op,
       break;
     case OP_math_mod:
       /* Euclidian remainder */
-      ret = bf_rem(r, a, b, ctx->fp_env.prec, ctx->fp_env.flags,
-                   BF_DIVREM_EUCLIDIAN);
+      ret = bf_rem(
+        r,
+        a,
+        b,
+        ctx->fp_env.prec,
+        ctx->fp_env.flags,
+        BF_DIVREM_EUCLIDIAN);
       break;
     case OP_mod:
-      ret = bf_rem(r, a, b, ctx->fp_env.prec, ctx->fp_env.flags,
-                   BF_RNDZ);
+      ret = bf_rem(r, a, b, ctx->fp_env.prec, ctx->fp_env.flags, BF_RNDZ);
       break;
     case OP_pow:
-      ret = bf_pow(r, a, b, ctx->fp_env.prec,
-                   ctx->fp_env.flags | BF_POW_JS_QUIRKS);
+      ret =
+        bf_pow(r, a, b, ctx->fp_env.prec, ctx->fp_env.flags | BF_POW_JS_QUIRKS);
       break;
     default:
       abort();
@@ -1089,9 +1057,12 @@ int js_binary_arith_bigfloat(JSContext *ctx, OPCodeEnum op,
   return 0;
 }
 
-int js_binary_arith_bigint(JSContext *ctx, OPCodeEnum op,
-                                  JSValue *pres, JSValue op1, JSValue op2)
-{
+int js_binary_arith_bigint(
+  JSContext* ctx,
+  OPCodeEnum op,
+  JSValue* pres,
+  JSValue op1,
+  JSValue op2) {
   bf_t a_s, b_s, *r, *a, *b;
   int ret;
   JSValue res;
@@ -1109,7 +1080,7 @@ int js_binary_arith_bigint(JSContext *ctx, OPCodeEnum op,
   }
   r = JS_GetBigInt(res);
   ret = 0;
-  switch(op) {
+  switch (op) {
     case OP_add:
       ret = bf_add(r, a, b, BF_PREC_INF, BF_RNDZ);
       break;
@@ -1123,8 +1094,7 @@ int js_binary_arith_bigint(JSContext *ctx, OPCodeEnum op,
       if (!is_math_mode(ctx)) {
         bf_t rem_s, *rem = &rem_s;
         bf_init(ctx->bf_ctx, rem);
-        ret = bf_divrem(r, rem, a, b, BF_PREC_INF, BF_RNDZ,
-                        BF_RNDZ);
+        ret = bf_divrem(r, rem, a, b, BF_PREC_INF, BF_RNDZ, BF_RNDZ);
         bf_delete(rem);
       } else {
         goto math_mode_div_pow;
@@ -1132,12 +1102,11 @@ int js_binary_arith_bigint(JSContext *ctx, OPCodeEnum op,
       break;
     case OP_math_mod:
       /* Euclidian remainder */
-      ret = bf_rem(r, a, b, BF_PREC_INF, BF_RNDZ,
-                   BF_DIVREM_EUCLIDIAN) & BF_ST_INVALID_OP;
+      ret = bf_rem(r, a, b, BF_PREC_INF, BF_RNDZ, BF_DIVREM_EUCLIDIAN)
+        & BF_ST_INVALID_OP;
       break;
     case OP_mod:
-      ret = bf_rem(r, a, b, BF_PREC_INF, BF_RNDZ,
-                   BF_RNDZ) & BF_ST_INVALID_OP;
+      ret = bf_rem(r, a, b, BF_PREC_INF, BF_RNDZ, BF_RNDZ) & BF_ST_INVALID_OP;
       break;
     case OP_pow:
       if (b->sign) {
@@ -1146,7 +1115,13 @@ int js_binary_arith_bigint(JSContext *ctx, OPCodeEnum op,
         } else {
         math_mode_div_pow:
           JS_FreeValue(ctx, res);
-          ret = js_call_binary_op_simple(ctx, &res, ctx->class_proto[JS_CLASS_BIG_INT], op1, op2, op);
+          ret = js_call_binary_op_simple(
+            ctx,
+            &res,
+            ctx->class_proto[JS_CLASS_BIG_INT],
+            op1,
+            op2,
+            op);
           if (ret != 0) {
             JS_FreeBigInt(ctx, a, &a_s);
             JS_FreeBigInt(ctx, b, &b_s);
@@ -1169,10 +1144,16 @@ int js_binary_arith_bigint(JSContext *ctx, OPCodeEnum op,
           }
           r = JS_GetBigFloat(res);
           if (op == OP_div) {
-            ret = bf_div(r, a, b, ctx->fp_env.prec, ctx->fp_env.flags) & BF_ST_MEM_ERROR;
+            ret = bf_div(r, a, b, ctx->fp_env.prec, ctx->fp_env.flags)
+              & BF_ST_MEM_ERROR;
           } else {
-            ret = bf_pow(r, a, b, ctx->fp_env.prec,
-                         ctx->fp_env.flags | BF_POW_JS_QUIRKS) & BF_ST_MEM_ERROR;
+            ret = bf_pow(
+                    r,
+                    a,
+                    b,
+                    ctx->fp_env.prec,
+                    ctx->fp_env.flags | BF_POW_JS_QUIRKS)
+              & BF_ST_MEM_ERROR;
           }
           JS_FreeBigInt(ctx, a, &a_s);
           JS_FreeBigInt(ctx, b, &b_s);
@@ -1193,18 +1174,17 @@ int js_binary_arith_bigint(JSContext *ctx, OPCodeEnum op,
 
       /* logical operations */
     case OP_shl:
-    case OP_sar:
-    {
+    case OP_sar: {
       slimb_t v2;
-#if LIMB_BITS == 32
+  #if LIMB_BITS == 32
       bf_get_int32(&v2, b, 0);
       if (v2 == INT32_MIN)
         v2 = INT32_MIN + 1;
-#else
+  #else
       bf_get_int64(&v2, b, 0);
       if (v2 == INT64_MIN)
         v2 = INT64_MIN + 1;
-#endif
+  #endif
       if (op == OP_sar)
         v2 = -v2;
       ret = bf_set(r, a);
@@ -1212,8 +1192,7 @@ int js_binary_arith_bigint(JSContext *ctx, OPCodeEnum op,
       if (v2 < 0) {
         ret |= bf_rint(r, BF_RNDD) & (BF_ST_OVERFLOW | BF_ST_MEM_ERROR);
       }
-    }
-    break;
+    } break;
     case OP_and:
       ret = bf_logic_and(r, a, b);
       break;
@@ -1245,8 +1224,7 @@ fail:
 }
 
 /* b must be a positive integer */
-int js_bfdec_pow(bfdec_t *r, const bfdec_t *a, const bfdec_t *b)
-{
+int js_bfdec_pow(bfdec_t* r, const bfdec_t* a, const bfdec_t* b) {
   bfdec_t b1;
   int32_t b2;
   int ret;
@@ -1271,9 +1249,12 @@ int js_bfdec_pow(bfdec_t *r, const bfdec_t *a, const bfdec_t *b)
   return bfdec_pow_ui(r, a, b2);
 }
 
-int js_binary_arith_bigdecimal(JSContext *ctx, OPCodeEnum op,
-                                      JSValue *pres, JSValue op1, JSValue op2)
-{
+int js_binary_arith_bigdecimal(
+  JSContext* ctx,
+  OPCodeEnum op,
+  JSValue* pres,
+  JSValue op1,
+  JSValue op2) {
   bfdec_t *r, *a, *b;
   int ret;
   JSValue res;
@@ -1289,7 +1270,7 @@ int js_binary_arith_bigdecimal(JSContext *ctx, OPCodeEnum op,
   b = JS_ToBigDecimal(ctx, op2);
   if (!b)
     goto fail;
-  switch(op) {
+  switch (op) {
     case OP_add:
       ret = bfdec_add(r, a, b, BF_PREC_INF, BF_RNDZ);
       break;
@@ -1331,9 +1312,8 @@ fail:
   return -1;
 }
 
-no_inline __exception int js_binary_arith_slow(JSContext *ctx, JSValue *sp,
-                                                      OPCodeEnum op)
-{
+no_inline __exception int
+js_binary_arith_slow(JSContext* ctx, JSValue* sp, OPCodeEnum op) {
   JSValue op1, op2, res;
   uint32_t tag1, tag2;
   int ret;
@@ -1351,10 +1331,9 @@ no_inline __exception int js_binary_arith_slow(JSContext *ctx, JSValue *sp,
   }
 
   /* try to call an overloaded operator */
-  if ((tag1 == JS_TAG_OBJECT &&
-       (tag2 != JS_TAG_NULL && tag2 != JS_TAG_UNDEFINED)) ||
-      (tag2 == JS_TAG_OBJECT &&
-       (tag1 != JS_TAG_NULL && tag1 != JS_TAG_UNDEFINED))) {
+  if (
+    (tag1 == JS_TAG_OBJECT && (tag2 != JS_TAG_NULL && tag2 != JS_TAG_UNDEFINED))
+    || (tag2 == JS_TAG_OBJECT && (tag1 != JS_TAG_NULL && tag1 != JS_TAG_UNDEFINED))) {
     ret = js_call_binary_op_fallback(ctx, &res, op1, op2, op, TRUE, 0);
     if (ret != 0) {
       JS_FreeValue(ctx, op1);
@@ -1386,14 +1365,14 @@ no_inline __exception int js_binary_arith_slow(JSContext *ctx, JSValue *sp,
     int64_t v;
     v1 = JS_VALUE_GET_INT(op1);
     v2 = JS_VALUE_GET_INT(op2);
-    switch(op) {
+    switch (op) {
       case OP_sub:
         v = (int64_t)v1 - (int64_t)v2;
         break;
       case OP_mul:
         v = (int64_t)v1 * (int64_t)v2;
-        if (is_math_mode(ctx) &&
-            (v < -MAX_SAFE_INTEGER || v > MAX_SAFE_INTEGER))
+        if (
+          is_math_mode(ctx) && (v < -MAX_SAFE_INTEGER || v > MAX_SAFE_INTEGER))
           goto handle_bigint;
         if (v == 0 && (v1 | v2) < 0) {
           sp[-2] = __JS_NewFloat64(ctx, -0.0);
@@ -1460,7 +1439,7 @@ no_inline __exception int js_binary_arith_slow(JSContext *ctx, JSValue *sp,
   handle_float64:
     if (is_math_mode(ctx) && is_safe_integer(d1) && is_safe_integer(d2))
       goto handle_bigint;
-    switch(op) {
+    switch (op) {
       case OP_sub:
         dr = d1 - d2;
         break;
@@ -1495,8 +1474,7 @@ exception:
   return -1;
 }
 
-no_inline __exception int js_add_slow(JSContext *ctx, JSValue *sp)
-{
+no_inline __exception int js_add_slow(JSContext* ctx, JSValue* sp) {
   JSValue op1, op2, res;
   uint32_t tag1, tag2;
   int ret;
@@ -1517,14 +1495,18 @@ no_inline __exception int js_add_slow(JSContext *ctx, JSValue *sp)
 
   if (tag1 == JS_TAG_OBJECT || tag2 == JS_TAG_OBJECT) {
     /* try to call an overloaded operator */
-    if ((tag1 == JS_TAG_OBJECT &&
-         (tag2 != JS_TAG_NULL && tag2 != JS_TAG_UNDEFINED &&
-          tag2 != JS_TAG_STRING)) ||
-        (tag2 == JS_TAG_OBJECT &&
-         (tag1 != JS_TAG_NULL && tag1 != JS_TAG_UNDEFINED &&
-          tag1 != JS_TAG_STRING))) {
-      ret = js_call_binary_op_fallback(ctx, &res, op1, op2, OP_add,
-                                       FALSE, HINT_NONE);
+    if (
+      (tag1 == JS_TAG_OBJECT
+       && (tag2 != JS_TAG_NULL && tag2 != JS_TAG_UNDEFINED && tag2 != JS_TAG_STRING))
+      || (tag2 == JS_TAG_OBJECT && (tag1 != JS_TAG_NULL && tag1 != JS_TAG_UNDEFINED && tag1 != JS_TAG_STRING))) {
+      ret = js_call_binary_op_fallback(
+        ctx,
+        &res,
+        op1,
+        op2,
+        OP_add,
+        FALSE,
+        HINT_NONE);
       if (ret != 0) {
         JS_FreeValue(ctx, op1);
         JS_FreeValue(ctx, op2);
@@ -1609,10 +1591,8 @@ exception:
   return -1;
 }
 
-no_inline __exception int js_binary_logic_slow(JSContext *ctx,
-                                                      JSValue *sp,
-                                                      OPCodeEnum op)
-{
+no_inline __exception int
+js_binary_logic_slow(JSContext* ctx, JSValue* sp, OPCodeEnum op) {
   JSValue op1, op2, res;
   int ret;
   uint32_t tag1, tag2;
@@ -1624,10 +1604,9 @@ no_inline __exception int js_binary_logic_slow(JSContext *ctx,
   tag2 = JS_VALUE_GET_NORM_TAG(op2);
 
   /* try to call an overloaded operator */
-  if ((tag1 == JS_TAG_OBJECT &&
-       (tag2 != JS_TAG_NULL && tag2 != JS_TAG_UNDEFINED)) ||
-      (tag2 == JS_TAG_OBJECT &&
-       (tag1 != JS_TAG_NULL && tag1 != JS_TAG_UNDEFINED))) {
+  if (
+    (tag1 == JS_TAG_OBJECT && (tag2 != JS_TAG_NULL && tag2 != JS_TAG_UNDEFINED))
+    || (tag2 == JS_TAG_OBJECT && (tag1 != JS_TAG_NULL && tag1 != JS_TAG_UNDEFINED))) {
     ret = js_call_binary_op_fallback(ctx, &res, op1, op2, op, TRUE, 0);
     if (ret != 0) {
       JS_FreeValue(ctx, op1);
@@ -1669,13 +1648,13 @@ no_inline __exception int js_binary_logic_slow(JSContext *ctx,
         goto exception;
     }
   } else {
-    if (unlikely(JS_ToInt32Free(ctx, (int32_t *)&v1, op1))) {
+    if (unlikely(JS_ToInt32Free(ctx, (int32_t*)&v1, op1))) {
       JS_FreeValue(ctx, op2);
       goto exception;
     }
-    if (unlikely(JS_ToInt32Free(ctx, (int32_t *)&v2, op2)))
+    if (unlikely(JS_ToInt32Free(ctx, (int32_t*)&v2, op2)))
       goto exception;
-    switch(op) {
+    switch (op) {
       case OP_shl:
         r = v1 << (v2 & 0x1f);
         break;
@@ -1704,9 +1683,11 @@ exception:
 }
 
 /* Note: also used for bigint */
-int js_compare_bigfloat(JSContext *ctx, OPCodeEnum op,
-                               JSValue op1, JSValue op2)
-{
+int js_compare_bigfloat(
+  JSContext* ctx,
+  OPCodeEnum op,
+  JSValue op1,
+  JSValue op2) {
   bf_t a_s, b_s, *a, *b;
   int res;
 
@@ -1722,7 +1703,7 @@ int js_compare_bigfloat(JSContext *ctx, OPCodeEnum op,
     JS_FreeValue(ctx, op1);
     return -1;
   }
-  switch(op) {
+  switch (op) {
     case OP_lt:
       res = bf_cmp_lt(a, b); /* if NaN return false */
       break;
@@ -1750,9 +1731,11 @@ int js_compare_bigfloat(JSContext *ctx, OPCodeEnum op,
   return res;
 }
 
-int js_compare_bigdecimal(JSContext *ctx, OPCodeEnum op,
-                                 JSValue op1, JSValue op2)
-{
+int js_compare_bigdecimal(
+  JSContext* ctx,
+  OPCodeEnum op,
+  JSValue op1,
+  JSValue op2) {
   bfdec_t *a, *b;
   int res;
 
@@ -1772,7 +1755,7 @@ int js_compare_bigdecimal(JSContext *ctx, OPCodeEnum op,
   a = JS_ToBigDecimal(ctx, op1);
   b = JS_ToBigDecimal(ctx, op2);
 
-  switch(op) {
+  switch (op) {
     case OP_lt:
       res = bfdec_cmp_lt(a, b); /* if NaN return false */
       break;
@@ -1796,9 +1779,7 @@ int js_compare_bigdecimal(JSContext *ctx, OPCodeEnum op,
   return res;
 }
 
-no_inline int js_relational_slow(JSContext *ctx, JSValue *sp,
-                                        OPCodeEnum op)
-{
+no_inline int js_relational_slow(JSContext* ctx, JSValue* sp, OPCodeEnum op) {
   JSValue op1, op2, ret;
   int res;
   uint32_t tag1, tag2;
@@ -1808,12 +1789,11 @@ no_inline int js_relational_slow(JSContext *ctx, JSValue *sp,
   tag1 = JS_VALUE_GET_NORM_TAG(op1);
   tag2 = JS_VALUE_GET_NORM_TAG(op2);
   /* try to call an overloaded operator */
-  if ((tag1 == JS_TAG_OBJECT &&
-       (tag2 != JS_TAG_NULL && tag2 != JS_TAG_UNDEFINED)) ||
-      (tag2 == JS_TAG_OBJECT &&
-       (tag1 != JS_TAG_NULL && tag1 != JS_TAG_UNDEFINED))) {
-    res = js_call_binary_op_fallback(ctx, &ret, op1, op2, op,
-                                     FALSE, HINT_NUMBER);
+  if (
+    (tag1 == JS_TAG_OBJECT && (tag2 != JS_TAG_NULL && tag2 != JS_TAG_UNDEFINED))
+    || (tag2 == JS_TAG_OBJECT && (tag1 != JS_TAG_NULL && tag1 != JS_TAG_UNDEFINED))) {
+    res =
+      js_call_binary_op_fallback(ctx, &ret, op1, op2, op, FALSE, HINT_NUMBER);
     if (res != 0) {
       JS_FreeValue(ctx, op1);
       JS_FreeValue(ctx, op2);
@@ -1843,7 +1823,7 @@ no_inline int js_relational_slow(JSContext *ctx, JSValue *sp,
     p1 = JS_VALUE_GET_STRING(op1);
     p2 = JS_VALUE_GET_STRING(op2);
     res = js_string_compare(ctx, p1, p2);
-    switch(op) {
+    switch (op) {
       case OP_lt:
         res = (res < 0);
         break;
@@ -1860,14 +1840,16 @@ no_inline int js_relational_slow(JSContext *ctx, JSValue *sp,
     }
     JS_FreeValue(ctx, op1);
     JS_FreeValue(ctx, op2);
-  } else if ((tag1 <= JS_TAG_NULL || tag1 == JS_TAG_FLOAT64) &&
-             (tag2 <= JS_TAG_NULL || tag2 == JS_TAG_FLOAT64)) {
+  } else if (
+    (tag1 <= JS_TAG_NULL || tag1 == JS_TAG_FLOAT64)
+    && (tag2 <= JS_TAG_NULL || tag2 == JS_TAG_FLOAT64)) {
     /* fast path for float64/int */
     goto float64_compare;
   } else {
-    if (((tag1 == JS_TAG_BIG_INT && tag2 == JS_TAG_STRING) ||
-         (tag2 == JS_TAG_BIG_INT && tag1 == JS_TAG_STRING)) &&
-        !is_math_mode(ctx)) {
+    if (
+      ((tag1 == JS_TAG_BIG_INT && tag2 == JS_TAG_STRING)
+       || (tag2 == JS_TAG_BIG_INT && tag1 == JS_TAG_STRING))
+      && !is_math_mode(ctx)) {
       if (tag1 == JS_TAG_STRING) {
         op1 = JS_StringToBigInt(ctx, op1);
         if (JS_VALUE_GET_TAG(op1) != JS_TAG_BIG_INT)
@@ -1926,7 +1908,7 @@ no_inline int js_relational_slow(JSContext *ctx, JSValue *sp,
       } else {
         d2 = JS_VALUE_GET_INT(op2);
       }
-      switch(op) {
+      switch (op) {
         case OP_lt:
           res = (d1 < d2); /* if NaN return false */
           break;
@@ -1952,16 +1934,13 @@ exception:
   return -1;
 }
 
-BOOL tag_is_number(uint32_t tag)
-{
-  return (tag == JS_TAG_INT || tag == JS_TAG_BIG_INT ||
-          tag == JS_TAG_FLOAT64 || tag == JS_TAG_BIG_FLOAT ||
-          tag == JS_TAG_BIG_DECIMAL);
+BOOL tag_is_number(uint32_t tag) {
+  return (
+    tag == JS_TAG_INT || tag == JS_TAG_BIG_INT || tag == JS_TAG_FLOAT64
+    || tag == JS_TAG_BIG_FLOAT || tag == JS_TAG_BIG_DECIMAL);
 }
 
-no_inline __exception int js_eq_slow(JSContext *ctx, JSValue *sp,
-                                            BOOL is_neq)
-{
+no_inline __exception int js_eq_slow(JSContext* ctx, JSValue* sp, BOOL is_neq) {
   JSValue op1, op2, ret;
   int res;
   uint32_t tag1, tag2;
@@ -1974,10 +1953,9 @@ redo:
   if (tag_is_number(tag1) && tag_is_number(tag2)) {
     if (tag1 == JS_TAG_INT && tag2 == JS_TAG_INT) {
       res = JS_VALUE_GET_INT(op1) == JS_VALUE_GET_INT(op2);
-    } else if ((tag1 == JS_TAG_FLOAT64 &&
-                (tag2 == JS_TAG_INT || tag2 == JS_TAG_FLOAT64)) ||
-               (tag2 == JS_TAG_FLOAT64 &&
-                (tag1 == JS_TAG_INT || tag1 == JS_TAG_FLOAT64))) {
+    } else if (
+      (tag1 == JS_TAG_FLOAT64 && (tag2 == JS_TAG_INT || tag2 == JS_TAG_FLOAT64))
+      || (tag2 == JS_TAG_FLOAT64 && (tag1 == JS_TAG_INT || tag1 == JS_TAG_FLOAT64))) {
       double d1, d2;
       if (tag1 == JS_TAG_FLOAT64) {
         d1 = JS_VALUE_GET_FLOAT64(op1);
@@ -2006,9 +1984,14 @@ redo:
   } else if (tag1 == tag2) {
     if (tag1 == JS_TAG_OBJECT) {
       /* try the fallback operator */
-      res = js_call_binary_op_fallback(ctx, &ret, op1, op2,
-                                       is_neq ? OP_neq : OP_eq,
-                                       FALSE, HINT_NONE);
+      res = js_call_binary_op_fallback(
+        ctx,
+        &ret,
+        op1,
+        op2,
+        is_neq ? OP_neq : OP_eq,
+        FALSE,
+        HINT_NONE);
       if (res != 0) {
         JS_FreeValue(ctx, op1);
         JS_FreeValue(ctx, op2);
@@ -2021,14 +2004,16 @@ redo:
       }
     }
     res = js_strict_eq2(ctx, op1, op2, JS_EQ_STRICT);
-  } else if ((tag1 == JS_TAG_NULL && tag2 == JS_TAG_UNDEFINED) ||
-             (tag2 == JS_TAG_NULL && tag1 == JS_TAG_UNDEFINED)) {
+  } else if (
+    (tag1 == JS_TAG_NULL && tag2 == JS_TAG_UNDEFINED)
+    || (tag2 == JS_TAG_NULL && tag1 == JS_TAG_UNDEFINED)) {
     res = TRUE;
-  } else if ((tag1 == JS_TAG_STRING && tag_is_number(tag2)) ||
-             (tag2 == JS_TAG_STRING && tag_is_number(tag1))) {
-
-    if ((tag1 == JS_TAG_BIG_INT || tag2 == JS_TAG_BIG_INT) &&
-        !is_math_mode(ctx)) {
+  } else if (
+    (tag1 == JS_TAG_STRING && tag_is_number(tag2))
+    || (tag2 == JS_TAG_STRING && tag_is_number(tag1))) {
+    if (
+      (tag1 == JS_TAG_BIG_INT || tag2 == JS_TAG_BIG_INT)
+      && !is_math_mode(ctx)) {
       if (tag1 == JS_TAG_STRING) {
         op1 = JS_StringToBigInt(ctx, op1);
         if (JS_VALUE_GET_TAG(op1) != JS_TAG_BIG_INT)
@@ -2063,15 +2048,19 @@ redo:
   } else if (tag2 == JS_TAG_BOOL) {
     op2 = JS_NewInt32(ctx, JS_VALUE_GET_INT(op2));
     goto redo;
-  } else if ((tag1 == JS_TAG_OBJECT &&
-              (tag_is_number(tag2) || tag2 == JS_TAG_STRING || tag2 == JS_TAG_SYMBOL)) ||
-             (tag2 == JS_TAG_OBJECT &&
-              (tag_is_number(tag1) || tag1 == JS_TAG_STRING || tag1 == JS_TAG_SYMBOL))) {
-
+  } else if (
+    (tag1 == JS_TAG_OBJECT
+     && (tag_is_number(tag2) || tag2 == JS_TAG_STRING || tag2 == JS_TAG_SYMBOL))
+    || (tag2 == JS_TAG_OBJECT && (tag_is_number(tag1) || tag1 == JS_TAG_STRING || tag1 == JS_TAG_SYMBOL))) {
     /* try the fallback operator */
-    res = js_call_binary_op_fallback(ctx, &ret, op1, op2,
-                                     is_neq ? OP_neq : OP_eq,
-                                     FALSE, HINT_NONE);
+    res = js_call_binary_op_fallback(
+      ctx,
+      &ret,
+      op1,
+      op2,
+      is_neq ? OP_neq : OP_eq,
+      FALSE,
+      HINT_NONE);
     if (res != 0) {
       JS_FreeValue(ctx, op1);
       JS_FreeValue(ctx, op2);
@@ -2096,10 +2085,10 @@ redo:
     goto redo;
   } else {
     /* IsHTMLDDA object is equivalent to undefined for '==' and '!=' */
-    if ((JS_IsHTMLDDA(ctx, op1) &&
-         (tag2 == JS_TAG_NULL || tag2 == JS_TAG_UNDEFINED)) ||
-        (JS_IsHTMLDDA(ctx, op2) &&
-         (tag1 == JS_TAG_NULL || tag1 == JS_TAG_UNDEFINED))) {
+    if (
+      (JS_IsHTMLDDA(ctx, op1)
+       && (tag2 == JS_TAG_NULL || tag2 == JS_TAG_UNDEFINED))
+      || (JS_IsHTMLDDA(ctx, op2) && (tag1 == JS_TAG_NULL || tag1 == JS_TAG_UNDEFINED))) {
       res = TRUE;
     } else {
       res = FALSE;
@@ -2116,8 +2105,7 @@ exception:
   return -1;
 }
 
-no_inline int js_shr_slow(JSContext *ctx, JSValue *sp)
-{
+no_inline int js_shr_slow(JSContext* ctx, JSValue* sp) {
   JSValue op1, op2;
   uint32_t v1, v2, r;
 
@@ -2134,9 +2122,9 @@ no_inline int js_shr_slow(JSContext *ctx, JSValue *sp)
     goto exception;
   }
   /* XXX: could forbid >>> in bignum mode */
-  if (!is_math_mode(ctx) &&
-      (JS_VALUE_GET_TAG(op1) == JS_TAG_BIG_INT ||
-       JS_VALUE_GET_TAG(op2) == JS_TAG_BIG_INT)) {
+  if (
+    !is_math_mode(ctx)
+    && (JS_VALUE_GET_TAG(op1) == JS_TAG_BIG_INT || JS_VALUE_GET_TAG(op2) == JS_TAG_BIG_INT)) {
     JS_ThrowTypeError(ctx, "bigint operands are forbidden for >>>");
     JS_FreeValue(ctx, op1);
     JS_FreeValue(ctx, op2);
@@ -2154,18 +2142,21 @@ exception:
   return -1;
 }
 
-JSValue js_mul_pow10_to_float64(JSContext *ctx, const bf_t *a,
-                                       int64_t exponent)
-{
+JSValue
+js_mul_pow10_to_float64(JSContext* ctx, const bf_t* a, int64_t exponent) {
   bf_t r_s, *r = &r_s;
   double d;
   int ret;
 
   /* always convert to Float64 */
   bf_init(ctx->bf_ctx, r);
-  ret = bf_mul_pow_radix(r, a, 10, exponent,
-                         53, bf_set_exp_bits(11) | BF_RNDN |
-                                 BF_FLAG_SUBNORMAL);
+  ret = bf_mul_pow_radix(
+    r,
+    a,
+    10,
+    exponent,
+    53,
+    bf_set_exp_bits(11) | BF_RNDN | BF_FLAG_SUBNORMAL);
   bf_get_float64(r, &d, BF_RNDN);
   bf_delete(r);
   if (ret & BF_ST_MEM_ERROR)
@@ -2174,8 +2165,7 @@ JSValue js_mul_pow10_to_float64(JSContext *ctx, const bf_t *a,
     return __JS_NewFloat64(ctx, d);
 }
 
-no_inline int js_mul_pow10(JSContext *ctx, JSValue *sp)
-{
+no_inline int js_mul_pow10(JSContext* ctx, JSValue* sp) {
   bf_t a_s, *a, *r;
   JSValue op1, op2, res;
   int64_t e;
@@ -2211,35 +2201,28 @@ no_inline int js_mul_pow10(JSContext *ctx, JSValue *sp)
   return 0;
 }
 
-
 #else /* !CONFIG_BIGNUM */
 
-JSValue JS_ThrowUnsupportedBigint(JSContext *ctx)
-{
+JSValue JS_ThrowUnsupportedBigint(JSContext* ctx) {
   return JS_ThrowTypeError(ctx, "bigint is not supported");
 }
 
-JSValue JS_NewBigInt64(JSContext *ctx, int64_t v)
-{
+JSValue JS_NewBigInt64(JSContext* ctx, int64_t v) {
   return JS_ThrowUnsupportedBigint(ctx);
 }
 
-JSValue JS_NewBigUint64(JSContext *ctx, uint64_t v)
-{
+JSValue JS_NewBigUint64(JSContext* ctx, uint64_t v) {
   return JS_ThrowUnsupportedBigint(ctx);
 }
 
-int JS_ToBigInt64(JSContext *ctx, int64_t *pres, JSValueConst val)
-{
+int JS_ToBigInt64(JSContext* ctx, int64_t* pres, JSValueConst val) {
   JS_ThrowUnsupportedBigint(ctx);
   *pres = 0;
   return -1;
 }
 
-no_inline __exception int js_unary_arith_slow(JSContext *ctx,
-                                                     JSValue *sp,
-                                                     OPCodeEnum op)
-{
+no_inline __exception int
+js_unary_arith_slow(JSContext* ctx, JSValue* sp, OPCodeEnum op) {
   JSValue op1;
   double d;
 
@@ -2248,7 +2231,7 @@ no_inline __exception int js_unary_arith_slow(JSContext *ctx,
     sp[-1] = JS_UNDEFINED;
     return -1;
   }
-  switch(op) {
+  switch (op) {
     case OP_inc:
       d++;
       break;
@@ -2268,9 +2251,7 @@ no_inline __exception int js_unary_arith_slow(JSContext *ctx,
 }
 
 /* specific case necessary for correct return value semantics */
-__exception int js_post_inc_slow(JSContext *ctx,
-                                        JSValue *sp, OPCodeEnum op)
-{
+__exception int js_post_inc_slow(JSContext* ctx, JSValue* sp, OPCodeEnum op) {
   JSValue op1;
   double d, r;
 
@@ -2285,9 +2266,8 @@ __exception int js_post_inc_slow(JSContext *ctx,
   return 0;
 }
 
-no_inline __exception int js_binary_arith_slow(JSContext *ctx, JSValue *sp,
-                                                      OPCodeEnum op)
-{
+no_inline __exception int
+js_binary_arith_slow(JSContext* ctx, JSValue* sp, OPCodeEnum op) {
   JSValue op1, op2;
   double d1, d2, r;
 
@@ -2300,7 +2280,7 @@ no_inline __exception int js_binary_arith_slow(JSContext *ctx, JSValue *sp,
   if (unlikely(JS_ToFloat64Free(ctx, &d2, op2))) {
     goto exception;
   }
-  switch(op) {
+  switch (op) {
     case OP_sub:
       r = d1 - d2;
       break;
@@ -2327,8 +2307,7 @@ exception:
   return -1;
 }
 
-no_inline __exception int js_add_slow(JSContext *ctx, JSValue *sp)
-{
+no_inline __exception int js_add_slow(JSContext* ctx, JSValue* sp) {
   JSValue op1, op2;
   uint32_t tag1, tag2;
 
@@ -2336,8 +2315,9 @@ no_inline __exception int js_add_slow(JSContext *ctx, JSValue *sp)
   op2 = sp[-1];
   tag1 = JS_VALUE_GET_TAG(op1);
   tag2 = JS_VALUE_GET_TAG(op2);
-  if ((tag1 == JS_TAG_INT || JS_TAG_IS_FLOAT64(tag1)) &&
-      (tag2 == JS_TAG_INT || JS_TAG_IS_FLOAT64(tag2))) {
+  if (
+    (tag1 == JS_TAG_INT || JS_TAG_IS_FLOAT64(tag1))
+    && (tag2 == JS_TAG_INT || JS_TAG_IS_FLOAT64(tag2))) {
     goto add_numbers;
   } else {
     op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NONE);
@@ -2375,22 +2355,20 @@ exception:
   return -1;
 }
 
-no_inline __exception int js_binary_logic_slow(JSContext *ctx,
-                                                      JSValue *sp,
-                                                      OPCodeEnum op)
-{
+no_inline __exception int
+js_binary_logic_slow(JSContext* ctx, JSValue* sp, OPCodeEnum op) {
   JSValue op1, op2;
   uint32_t v1, v2, r;
 
   op1 = sp[-2];
   op2 = sp[-1];
-  if (unlikely(JS_ToInt32Free(ctx, (int32_t *)&v1, op1))) {
+  if (unlikely(JS_ToInt32Free(ctx, (int32_t*)&v1, op1))) {
     JS_FreeValue(ctx, op2);
     goto exception;
   }
-  if (unlikely(JS_ToInt32Free(ctx, (int32_t *)&v2, op2)))
+  if (unlikely(JS_ToInt32Free(ctx, (int32_t*)&v2, op2)))
     goto exception;
-  switch(op) {
+  switch (op) {
     case OP_shl:
       r = v1 << (v2 & 0x1f);
       break;
@@ -2417,8 +2395,7 @@ exception:
   return -1;
 }
 
-no_inline int js_not_slow(JSContext *ctx, JSValue *sp)
-{
+no_inline int js_not_slow(JSContext* ctx, JSValue* sp) {
   int32_t v1;
 
   if (unlikely(JS_ToInt32Free(ctx, &v1, sp[-1]))) {
@@ -2429,9 +2406,7 @@ no_inline int js_not_slow(JSContext *ctx, JSValue *sp)
   return 0;
 }
 
-no_inline int js_relational_slow(JSContext *ctx, JSValue *sp,
-                                        OPCodeEnum op)
-{
+no_inline int js_relational_slow(JSContext* ctx, JSValue* sp, OPCodeEnum op) {
   JSValue op1, op2;
   int res;
 
@@ -2447,15 +2422,16 @@ no_inline int js_relational_slow(JSContext *ctx, JSValue *sp,
     JS_FreeValue(ctx, op1);
     goto exception;
   }
-  if (JS_VALUE_GET_TAG(op1) == JS_TAG_STRING &&
-      JS_VALUE_GET_TAG(op2) == JS_TAG_STRING) {
+  if (
+    JS_VALUE_GET_TAG(op1) == JS_TAG_STRING
+    && JS_VALUE_GET_TAG(op2) == JS_TAG_STRING) {
     JSString *p1, *p2;
     p1 = JS_VALUE_GET_STRING(op1);
     p2 = JS_VALUE_GET_STRING(op2);
     res = js_string_compare(ctx, p1, p2);
     JS_FreeValue(ctx, op1);
     JS_FreeValue(ctx, op2);
-    switch(op) {
+    switch (op) {
       case OP_lt:
         res = (res < 0);
         break;
@@ -2478,7 +2454,7 @@ no_inline int js_relational_slow(JSContext *ctx, JSValue *sp,
     }
     if (JS_ToFloat64Free(ctx, &d2, op2))
       goto exception;
-    switch(op) {
+    switch (op) {
       case OP_lt:
         res = (d1 < d2); /* if NaN return false */
         break;
@@ -2502,9 +2478,7 @@ exception:
   return -1;
 }
 
-no_inline __exception int js_eq_slow(JSContext *ctx, JSValue *sp,
-                                            BOOL is_neq)
-{
+no_inline __exception int js_eq_slow(JSContext* ctx, JSValue* sp, BOOL is_neq) {
   JSValue op1, op2;
   int tag1, tag2;
   BOOL res;
@@ -2514,17 +2488,17 @@ no_inline __exception int js_eq_slow(JSContext *ctx, JSValue *sp,
 redo:
   tag1 = JS_VALUE_GET_NORM_TAG(op1);
   tag2 = JS_VALUE_GET_NORM_TAG(op2);
-  if (tag1 == tag2 ||
-      (tag1 == JS_TAG_INT && tag2 == JS_TAG_FLOAT64) ||
-      (tag2 == JS_TAG_INT && tag1 == JS_TAG_FLOAT64)) {
+  if (
+    tag1 == tag2 || (tag1 == JS_TAG_INT && tag2 == JS_TAG_FLOAT64)
+    || (tag2 == JS_TAG_INT && tag1 == JS_TAG_FLOAT64)) {
     res = js_strict_eq(ctx, op1, op2);
-  } else if ((tag1 == JS_TAG_NULL && tag2 == JS_TAG_UNDEFINED) ||
-             (tag2 == JS_TAG_NULL && tag1 == JS_TAG_UNDEFINED)) {
+  } else if (
+    (tag1 == JS_TAG_NULL && tag2 == JS_TAG_UNDEFINED)
+    || (tag2 == JS_TAG_NULL && tag1 == JS_TAG_UNDEFINED)) {
     res = TRUE;
-  } else if ((tag1 == JS_TAG_STRING && (tag2 == JS_TAG_INT ||
-                                        tag2 == JS_TAG_FLOAT64)) ||
-             (tag2 == JS_TAG_STRING && (tag1 == JS_TAG_INT ||
-                                        tag1 == JS_TAG_FLOAT64))) {
+  } else if (
+    (tag1 == JS_TAG_STRING && (tag2 == JS_TAG_INT || tag2 == JS_TAG_FLOAT64))
+    || (tag2 == JS_TAG_STRING && (tag1 == JS_TAG_INT || tag1 == JS_TAG_FLOAT64))) {
     double d1;
     double d2;
     if (JS_ToFloat64Free(ctx, &d1, op1)) {
@@ -2540,16 +2514,18 @@ redo:
   } else if (tag2 == JS_TAG_BOOL) {
     op2 = JS_NewInt32(ctx, JS_VALUE_GET_INT(op2));
     goto redo;
-  } else if (tag1 == JS_TAG_OBJECT &&
-             (tag2 == JS_TAG_INT || tag2 == JS_TAG_FLOAT64 || tag2 == JS_TAG_STRING || tag2 == JS_TAG_SYMBOL)) {
+  } else if (
+    tag1 == JS_TAG_OBJECT
+    && (tag2 == JS_TAG_INT || tag2 == JS_TAG_FLOAT64 || tag2 == JS_TAG_STRING || tag2 == JS_TAG_SYMBOL)) {
     op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NONE);
     if (JS_IsException(op1)) {
       JS_FreeValue(ctx, op2);
       goto exception;
     }
     goto redo;
-  } else if (tag2 == JS_TAG_OBJECT &&
-             (tag1 == JS_TAG_INT || tag1 == JS_TAG_FLOAT64 || tag1 == JS_TAG_STRING || tag1 == JS_TAG_SYMBOL)) {
+  } else if (
+    tag2 == JS_TAG_OBJECT
+    && (tag1 == JS_TAG_INT || tag1 == JS_TAG_FLOAT64 || tag1 == JS_TAG_STRING || tag1 == JS_TAG_SYMBOL)) {
     op2 = JS_ToPrimitiveFree(ctx, op2, HINT_NONE);
     if (JS_IsException(op2)) {
       JS_FreeValue(ctx, op1);
@@ -2558,10 +2534,10 @@ redo:
     goto redo;
   } else {
     /* IsHTMLDDA object is equivalent to undefined for '==' and '!=' */
-    if ((JS_IsHTMLDDA(ctx, op1) &&
-         (tag2 == JS_TAG_NULL || tag2 == JS_TAG_UNDEFINED)) ||
-        (JS_IsHTMLDDA(ctx, op2) &&
-         (tag1 == JS_TAG_NULL || tag1 == JS_TAG_UNDEFINED))) {
+    if (
+      (JS_IsHTMLDDA(ctx, op1)
+       && (tag2 == JS_TAG_NULL || tag2 == JS_TAG_UNDEFINED))
+      || (JS_IsHTMLDDA(ctx, op2) && (tag1 == JS_TAG_NULL || tag1 == JS_TAG_UNDEFINED))) {
       res = TRUE;
     } else {
       res = FALSE;
@@ -2577,8 +2553,7 @@ exception:
   return -1;
 }
 
-no_inline int js_shr_slow(JSContext *ctx, JSValue *sp)
-{
+no_inline int js_shr_slow(JSContext* ctx, JSValue* sp) {
   JSValue op1, op2;
   uint32_t v1, v2, r;
 
@@ -2604,28 +2579,27 @@ exception:
 
 /* Operators */
 
-void js_operator_set_finalizer(JSRuntime *rt, JSValue val)
-{
-  JSOperatorSetData *opset = JS_GetOpaque(val, JS_CLASS_OPERATOR_SET);
+void js_operator_set_finalizer(JSRuntime* rt, JSValue val) {
+  JSOperatorSetData* opset = JS_GetOpaque(val, JS_CLASS_OPERATOR_SET);
   int i, j;
-  JSBinaryOperatorDefEntry *ent;
+  JSBinaryOperatorDefEntry* ent;
 
   if (opset) {
-    for(i = 0; i < JS_OVOP_COUNT; i++) {
+    for (i = 0; i < JS_OVOP_COUNT; i++) {
       if (opset->self_ops[i])
         JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_OBJECT, opset->self_ops[i]));
     }
-    for(j = 0; j < opset->left.count; j++) {
+    for (j = 0; j < opset->left.count; j++) {
       ent = &opset->left.tab[j];
-      for(i = 0; i < JS_OVOP_BINARY_COUNT; i++) {
+      for (i = 0; i < JS_OVOP_BINARY_COUNT; i++) {
         if (ent->ops[i])
           JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_OBJECT, ent->ops[i]));
       }
     }
     js_free_rt(rt, opset->left.tab);
-    for(j = 0; j < opset->right.count; j++) {
+    for (j = 0; j < opset->right.count; j++) {
       ent = &opset->right.tab[j];
-      for(i = 0; i < JS_OVOP_BINARY_COUNT; i++) {
+      for (i = 0; i < JS_OVOP_BINARY_COUNT; i++) {
         if (ent->ops[i])
           JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_OBJECT, ent->ops[i]));
       }
@@ -2635,51 +2609,52 @@ void js_operator_set_finalizer(JSRuntime *rt, JSValue val)
   }
 }
 
-void js_operator_set_mark(JSRuntime *rt, JSValueConst val,
-                                 JS_MarkFunc *mark_func)
-{
-  JSOperatorSetData *opset = JS_GetOpaque(val, JS_CLASS_OPERATOR_SET);
+void js_operator_set_mark(
+  JSRuntime* rt,
+  JSValueConst val,
+  JS_MarkFunc* mark_func) {
+  JSOperatorSetData* opset = JS_GetOpaque(val, JS_CLASS_OPERATOR_SET);
   int i, j;
-  JSBinaryOperatorDefEntry *ent;
+  JSBinaryOperatorDefEntry* ent;
 
   if (opset) {
-    for(i = 0; i < JS_OVOP_COUNT; i++) {
+    for (i = 0; i < JS_OVOP_COUNT; i++) {
       if (opset->self_ops[i])
-        JS_MarkValue(rt, JS_MKPTR(JS_TAG_OBJECT, opset->self_ops[i]),
-                     mark_func);
+        JS_MarkValue(
+          rt,
+          JS_MKPTR(JS_TAG_OBJECT, opset->self_ops[i]),
+          mark_func);
     }
-    for(j = 0; j < opset->left.count; j++) {
+    for (j = 0; j < opset->left.count; j++) {
       ent = &opset->left.tab[j];
-      for(i = 0; i < JS_OVOP_BINARY_COUNT; i++) {
+      for (i = 0; i < JS_OVOP_BINARY_COUNT; i++) {
         if (ent->ops[i])
-          JS_MarkValue(rt, JS_MKPTR(JS_TAG_OBJECT, ent->ops[i]),
-                       mark_func);
+          JS_MarkValue(rt, JS_MKPTR(JS_TAG_OBJECT, ent->ops[i]), mark_func);
       }
     }
-    for(j = 0; j < opset->right.count; j++) {
+    for (j = 0; j < opset->right.count; j++) {
       ent = &opset->right.tab[j];
-      for(i = 0; i < JS_OVOP_BINARY_COUNT; i++) {
+      for (i = 0; i < JS_OVOP_BINARY_COUNT; i++) {
         if (ent->ops[i])
-          JS_MarkValue(rt, JS_MKPTR(JS_TAG_OBJECT, ent->ops[i]),
-                       mark_func);
+          JS_MarkValue(rt, JS_MKPTR(JS_TAG_OBJECT, ent->ops[i]), mark_func);
       }
     }
   }
 }
 
-
 /* create an OperatorSet object */
-JSValue js_operators_create_internal(JSContext *ctx,
-                                            int argc, JSValueConst *argv,
-                                            BOOL is_primitive)
-{
+JSValue js_operators_create_internal(
+  JSContext* ctx,
+  int argc,
+  JSValueConst* argv,
+  BOOL is_primitive) {
   JSValue opset_obj, prop, obj;
   JSOperatorSetData *opset, *opset1;
-  JSBinaryOperatorDef *def;
+  JSBinaryOperatorDef* def;
   JSValueConst arg;
   int i, j;
-  JSBinaryOperatorDefEntry *new_tab;
-  JSBinaryOperatorDefEntry *ent;
+  JSBinaryOperatorDefEntry* new_tab;
+  JSBinaryOperatorDefEntry* ent;
   uint32_t op_count;
 
   if (ctx->rt->operator_count == UINT32_MAX) {
@@ -2695,7 +2670,7 @@ JSValue js_operators_create_internal(JSContext *ctx,
   if (argc >= 1) {
     arg = argv[0];
     /* self operators */
-    for(i = 0; i < JS_OVOP_COUNT; i++) {
+    for (i = 0; i < JS_OVOP_COUNT; i++) {
       prop = JS_GetPropertyStr(ctx, arg, js_overloadable_operator_names[i]);
       if (JS_IsException(prop))
         goto fail;
@@ -2709,7 +2684,7 @@ JSValue js_operators_create_internal(JSContext *ctx,
     }
   }
   /* left & right operators */
-  for(j = 1; j < argc; j++) {
+  for (j = 1; j < argc; j++) {
     arg = argv[j];
     prop = JS_GetPropertyStr(ctx, arg, "left");
     if (JS_IsException(prop))
@@ -2743,8 +2718,7 @@ JSValue js_operators_create_internal(JSContext *ctx,
     JS_FreeValue(ctx, prop);
 
     /* we assume there are few entries */
-    new_tab = js_realloc(ctx, def->tab,
-                         (def->count + 1) * sizeof(def->tab[0]));
+    new_tab = js_realloc(ctx, def->tab, (def->count + 1) * sizeof(def->tab[0]));
     if (!new_tab)
       goto fail;
     def->tab = new_tab;
@@ -2753,9 +2727,8 @@ JSValue js_operators_create_internal(JSContext *ctx,
     memset(ent, 0, sizeof(def->tab[0]));
     ent->operator_index = op_count;
 
-    for(i = 0; i < JS_OVOP_BINARY_COUNT; i++) {
-      prop = JS_GetPropertyStr(ctx, arg,
-                               js_overloadable_operator_names[i]);
+    for (i = 0; i < JS_OVOP_BINARY_COUNT; i++) {
+      prop = JS_GetPropertyStr(ctx, arg, js_overloadable_operator_names[i]);
       if (JS_IsException(prop))
         goto fail;
       if (!JS_IsUndefined(prop)) {
@@ -2775,32 +2748,37 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_operators_create(JSContext *ctx, JSValueConst this_val,
-                                   int argc, JSValueConst *argv)
-{
+JSValue js_operators_create(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return js_operators_create_internal(ctx, argc, argv, FALSE);
 }
 
-JSValue js_operators_updateBigIntOperators(JSContext *ctx, JSValueConst this_val,
-                                                  int argc, JSValueConst *argv)
-{
+JSValue js_operators_updateBigIntOperators(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue opset_obj, prop;
-  JSOperatorSetData *opset;
-  const JSOverloadableOperatorEnum ops[2] = { JS_OVOP_DIV, JS_OVOP_POW };
+  JSOperatorSetData* opset;
+  const JSOverloadableOperatorEnum ops[2] = {JS_OVOP_DIV, JS_OVOP_POW};
   JSOverloadableOperatorEnum op;
   int i;
 
-  opset_obj = JS_GetProperty(ctx, ctx->class_proto[JS_CLASS_BIG_INT],
-                             JS_ATOM_Symbol_operatorSet);
+  opset_obj = JS_GetProperty(
+    ctx,
+    ctx->class_proto[JS_CLASS_BIG_INT],
+    JS_ATOM_Symbol_operatorSet);
   if (JS_IsException(opset_obj))
     goto fail;
   opset = JS_GetOpaque2(ctx, opset_obj, JS_CLASS_OPERATOR_SET);
   if (!opset)
     goto fail;
-  for(i = 0; i < countof(ops); i++) {
+  for (i = 0; i < countof(ops); i++) {
     op = ops[i];
-    prop = JS_GetPropertyStr(ctx, argv[0],
-                             js_overloadable_operator_names[op]);
+    prop = JS_GetPropertyStr(ctx, argv[0], js_overloadable_operator_names[op]);
     if (JS_IsException(prop))
       goto fail;
     if (!JS_IsUndefined(prop)) {
@@ -2824,8 +2802,7 @@ fail:
   return JS_EXCEPTION;
 }
 
-int js_operators_set_default(JSContext *ctx, JSValueConst obj)
-{
+int js_operators_set_default(JSContext* ctx, JSValueConst obj) {
   JSValue opset_obj;
 
   if (!JS_IsObject(obj)) /* in case the prototype is not defined */
@@ -2834,20 +2811,23 @@ int js_operators_set_default(JSContext *ctx, JSValueConst obj)
   if (JS_IsException(opset_obj))
     return -1;
   /* cannot be modified by the user */
-  JS_DefinePropertyValue(ctx, obj, JS_ATOM_Symbol_operatorSet,
-                         opset_obj, 0);
+  JS_DefinePropertyValue(ctx, obj, JS_ATOM_Symbol_operatorSet, opset_obj, 0);
   return 0;
 }
 
-JSValue js_dummy_operators_ctor(JSContext *ctx, JSValueConst new_target,
-                                       int argc, JSValueConst *argv)
-{
+JSValue js_dummy_operators_ctor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   return js_create_from_ctor(ctx, new_target, JS_CLASS_OBJECT);
 }
 
-JSValue js_global_operators(JSContext *ctx, JSValueConst this_val,
-                                   int argc, JSValueConst *argv)
-{
+JSValue js_global_operators(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue func_obj, proto, opset_obj;
 
   func_obj = JS_UNDEFINED;
@@ -2857,14 +2837,27 @@ JSValue js_global_operators(JSContext *ctx, JSValueConst this_val,
   opset_obj = js_operators_create_internal(ctx, argc, argv, FALSE);
   if (JS_IsException(opset_obj))
     goto fail;
-  JS_DefinePropertyValue(ctx, proto, JS_ATOM_Symbol_operatorSet,
-                         opset_obj, JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
-  func_obj = JS_NewCFunction2(ctx, js_dummy_operators_ctor, "Operators",
-                              0, JS_CFUNC_constructor, 0);
+  JS_DefinePropertyValue(
+    ctx,
+    proto,
+    JS_ATOM_Symbol_operatorSet,
+    opset_obj,
+    JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+  func_obj = JS_NewCFunction2(
+    ctx,
+    js_dummy_operators_ctor,
+    "Operators",
+    0,
+    JS_CFUNC_constructor,
+    0);
   if (JS_IsException(func_obj))
     goto fail;
-  JS_SetConstructor2(ctx, func_obj, proto,
-                     0, JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+  JS_SetConstructor2(
+    ctx,
+    func_obj,
+    proto,
+    0,
+    JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
   JS_FreeValue(ctx, proto);
   return func_obj;
 fail:
@@ -2874,23 +2867,27 @@ fail:
 }
 
 const JSCFunctionListEntry js_operators_funcs[] = {
-    JS_CFUNC_DEF("create", 1, js_operators_create ),
-    JS_CFUNC_DEF("updateBigIntOperators", 2, js_operators_updateBigIntOperators ),
+  JS_CFUNC_DEF("create", 1, js_operators_create),
+  JS_CFUNC_DEF("updateBigIntOperators", 2, js_operators_updateBigIntOperators),
 };
 
 /* must be called after all overloadable base types are initialized */
-void JS_AddIntrinsicOperators(JSContext *ctx)
-{
+void JS_AddIntrinsicOperators(JSContext* ctx) {
   JSValue obj;
 
   ctx->allow_operator_overloading = TRUE;
   obj = JS_NewCFunction(ctx, js_global_operators, "Operators", 1);
-  JS_SetPropertyFunctionList(ctx, obj,
-                             js_operators_funcs,
-                             countof(js_operators_funcs));
-  JS_DefinePropertyValue(ctx, ctx->global_obj, JS_ATOM_Operators,
-                         obj,
-                         JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+  JS_SetPropertyFunctionList(
+    ctx,
+    obj,
+    js_operators_funcs,
+    countof(js_operators_funcs));
+  JS_DefinePropertyValue(
+    ctx,
+    ctx->global_obj,
+    JS_ATOM_Operators,
+    obj,
+    JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
   /* add default operatorSets */
   js_operators_set_default(ctx, ctx->class_proto[JS_CLASS_BOOLEAN]);
   js_operators_set_default(ctx, ctx->class_proto[JS_CLASS_NUMBER]);
@@ -2902,13 +2899,12 @@ void JS_AddIntrinsicOperators(JSContext *ctx)
 
 /* BigInt */
 
-JSValue JS_ToBigIntCtorFree(JSContext *ctx, JSValue val)
-{
+JSValue JS_ToBigIntCtorFree(JSContext* ctx, JSValue val) {
   uint32_t tag;
 
 redo:
   tag = JS_VALUE_GET_NORM_TAG(val);
-  switch(tag) {
+  switch (tag) {
     case JS_TAG_INT:
     case JS_TAG_BOOL:
       val = JS_NewBigInt64(ctx, JS_VALUE_GET_INT(val));
@@ -2916,17 +2912,17 @@ redo:
     case JS_TAG_BIG_INT:
       break;
     case JS_TAG_FLOAT64:
-    case JS_TAG_BIG_FLOAT:
-    {
+    case JS_TAG_BIG_FLOAT: {
       bf_t *a, a_s;
 
       a = JS_ToBigFloat(ctx, &a_s, val);
       if (!bf_is_finite(a)) {
         JS_FreeValue(ctx, val);
-        val = JS_ThrowRangeError(ctx, "cannot convert NaN or Infinity to bigint");
+        val =
+          JS_ThrowRangeError(ctx, "cannot convert NaN or Infinity to bigint");
       } else {
         JSValue val1 = JS_NewBigInt(ctx);
-        bf_t *r;
+        bf_t* r;
         int ret;
         if (JS_IsException(val1)) {
           JS_FreeValue(ctx, val);
@@ -2941,15 +2937,15 @@ redo:
           val = JS_ThrowOutOfMemory(ctx);
         } else if (ret & BF_ST_INEXACT) {
           JS_FreeValue(ctx, val1);
-          val = JS_ThrowRangeError(ctx, "cannot convert to bigint: not an integer");
+          val =
+            JS_ThrowRangeError(ctx, "cannot convert to bigint: not an integer");
         } else {
           val = JS_CompactBigInt(ctx, val1);
         }
       }
       if (a == &a_s)
         bf_delete(a);
-    }
-    break;
+    } break;
     case JS_TAG_BIG_DECIMAL:
       val = JS_ToStringFree(ctx, val);
       if (JS_IsException(val))
@@ -2972,22 +2968,22 @@ redo:
   return val;
 }
 
-JSValue js_bigint_constructor(JSContext *ctx,
-                                     JSValueConst new_target,
-                                     int argc, JSValueConst *argv)
-{
+JSValue js_bigint_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   if (!JS_IsUndefined(new_target))
     return JS_ThrowTypeError(ctx, "not a constructor");
   return JS_ToBigIntCtorFree(ctx, JS_DupValue(ctx, argv[0]));
 }
 
-JSValue js_thisBigIntValue(JSContext *ctx, JSValueConst this_val)
-{
+JSValue js_thisBigIntValue(JSContext* ctx, JSValueConst this_val) {
   if (JS_IsBigInt(ctx, this_val))
     return JS_DupValue(ctx, this_val);
 
   if (JS_VALUE_GET_TAG(this_val) == JS_TAG_OBJECT) {
-    JSObject *p = JS_VALUE_GET_OBJ(this_val);
+    JSObject* p = JS_VALUE_GET_OBJ(this_val);
     if (p->class_id == JS_CLASS_BIG_INT) {
       if (JS_IsBigInt(ctx, p->u.object_data))
         return JS_DupValue(ctx, p->u.object_data);
@@ -2996,9 +2992,11 @@ JSValue js_thisBigIntValue(JSContext *ctx, JSValueConst this_val)
   return JS_ThrowTypeError(ctx, "not a bigint");
 }
 
-JSValue js_bigint_toString(JSContext *ctx, JSValueConst this_val,
-                                  int argc, JSValueConst *argv)
-{
+JSValue js_bigint_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val;
   int base;
   JSValue ret;
@@ -3021,16 +3019,20 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_bigint_valueOf(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv)
-{
+JSValue js_bigint_valueOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return js_thisBigIntValue(ctx, this_val);
 }
 
-JSValue js_bigint_div(JSContext *ctx,
-                             JSValueConst this_val,
-                             int argc, JSValueConst *argv, int magic)
-{
+JSValue js_bigint_div(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   bf_t a_s, b_s, *a, *b, *r, *q;
   int status;
   JSValue q_val, r_val;
@@ -3078,10 +3080,12 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_bigint_sqrt(JSContext *ctx,
-                              JSValueConst this_val,
-                              int argc, JSValueConst *argv, int magic)
-{
+JSValue js_bigint_sqrt(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   bf_t a_s, *a, *r, *rem;
   int status;
   JSValue r_val, rem_val;
@@ -3123,18 +3127,19 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_bigint_op1(JSContext *ctx,
-                             JSValueConst this_val,
-                             int argc, JSValueConst *argv,
-                             int magic)
-{
+JSValue js_bigint_op1(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   bf_t a_s, *a;
   int64_t res;
 
   a = JS_ToBigInt(ctx, &a_s, argv[0]);
   if (!a)
     return JS_EXCEPTION;
-  switch(magic) {
+  switch (magic) {
     case 0: /* floorLog2 */
       if (a->sign || a->expn <= 0) {
         res = -1;
@@ -3156,10 +3161,12 @@ JSValue js_bigint_op1(JSContext *ctx,
   return JS_NewBigInt64(ctx, res);
 }
 
-JSValue js_bigint_asUintN(JSContext *ctx,
-                                 JSValueConst this_val,
-                                 int argc, JSValueConst *argv, int asIntN)
-{
+JSValue js_bigint_asUintN(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int asIntN) {
   uint64_t bits;
   bf_t a_s, *a = &a_s, *r, mask_s, *mask = &mask_s;
   JSValue res;
@@ -3197,32 +3204,31 @@ JSValue js_bigint_asUintN(JSContext *ctx,
 }
 
 const JSCFunctionListEntry js_bigint_funcs[] = {
-    JS_CFUNC_MAGIC_DEF("asUintN", 2, js_bigint_asUintN, 0 ),
-    JS_CFUNC_MAGIC_DEF("asIntN", 2, js_bigint_asUintN, 1 ),
-    /* QuickJS extensions */
-    JS_CFUNC_MAGIC_DEF("tdiv", 2, js_bigint_div, BF_RNDZ ),
-    JS_CFUNC_MAGIC_DEF("fdiv", 2, js_bigint_div, BF_RNDD ),
-    JS_CFUNC_MAGIC_DEF("cdiv", 2, js_bigint_div, BF_RNDU ),
-    JS_CFUNC_MAGIC_DEF("ediv", 2, js_bigint_div, BF_DIVREM_EUCLIDIAN ),
-    JS_CFUNC_MAGIC_DEF("tdivrem", 2, js_bigint_div, BF_RNDZ | 0x10 ),
-    JS_CFUNC_MAGIC_DEF("fdivrem", 2, js_bigint_div, BF_RNDD | 0x10 ),
-    JS_CFUNC_MAGIC_DEF("cdivrem", 2, js_bigint_div, BF_RNDU | 0x10 ),
-    JS_CFUNC_MAGIC_DEF("edivrem", 2, js_bigint_div, BF_DIVREM_EUCLIDIAN | 0x10 ),
-    JS_CFUNC_MAGIC_DEF("sqrt", 1, js_bigint_sqrt, 0 ),
-    JS_CFUNC_MAGIC_DEF("sqrtrem", 1, js_bigint_sqrt, 1 ),
-    JS_CFUNC_MAGIC_DEF("floorLog2", 1, js_bigint_op1, 0 ),
-    JS_CFUNC_MAGIC_DEF("ctz", 1, js_bigint_op1, 1 ),
+  JS_CFUNC_MAGIC_DEF("asUintN", 2, js_bigint_asUintN, 0),
+  JS_CFUNC_MAGIC_DEF("asIntN", 2, js_bigint_asUintN, 1),
+  /* QuickJS extensions */
+  JS_CFUNC_MAGIC_DEF("tdiv", 2, js_bigint_div, BF_RNDZ),
+  JS_CFUNC_MAGIC_DEF("fdiv", 2, js_bigint_div, BF_RNDD),
+  JS_CFUNC_MAGIC_DEF("cdiv", 2, js_bigint_div, BF_RNDU),
+  JS_CFUNC_MAGIC_DEF("ediv", 2, js_bigint_div, BF_DIVREM_EUCLIDIAN),
+  JS_CFUNC_MAGIC_DEF("tdivrem", 2, js_bigint_div, BF_RNDZ | 0x10),
+  JS_CFUNC_MAGIC_DEF("fdivrem", 2, js_bigint_div, BF_RNDD | 0x10),
+  JS_CFUNC_MAGIC_DEF("cdivrem", 2, js_bigint_div, BF_RNDU | 0x10),
+  JS_CFUNC_MAGIC_DEF("edivrem", 2, js_bigint_div, BF_DIVREM_EUCLIDIAN | 0x10),
+  JS_CFUNC_MAGIC_DEF("sqrt", 1, js_bigint_sqrt, 0),
+  JS_CFUNC_MAGIC_DEF("sqrtrem", 1, js_bigint_sqrt, 1),
+  JS_CFUNC_MAGIC_DEF("floorLog2", 1, js_bigint_op1, 0),
+  JS_CFUNC_MAGIC_DEF("ctz", 1, js_bigint_op1, 1),
 };
 
 const JSCFunctionListEntry js_bigint_proto_funcs[] = {
-    JS_CFUNC_DEF("toString", 0, js_bigint_toString ),
-    JS_CFUNC_DEF("valueOf", 0, js_bigint_valueOf ),
-    JS_PROP_STRING_DEF("[Symbol.toStringTag]", "BigInt", JS_PROP_CONFIGURABLE ),
+  JS_CFUNC_DEF("toString", 0, js_bigint_toString),
+  JS_CFUNC_DEF("valueOf", 0, js_bigint_valueOf),
+  JS_PROP_STRING_DEF("[Symbol.toStringTag]", "BigInt", JS_PROP_CONFIGURABLE),
 };
 
-void JS_AddIntrinsicBigInt(JSContext *ctx)
-{
-  JSRuntime *rt = ctx->rt;
+void JS_AddIntrinsicBigInt(JSContext* ctx) {
+  JSRuntime* rt = ctx->rt;
   JSValueConst obj1;
 
   rt->bigint_ops.to_string = js_bigint_to_string;
@@ -3232,24 +3238,32 @@ void JS_AddIntrinsicBigInt(JSContext *ctx)
   rt->bigint_ops.compare = js_compare_bigfloat;
 
   ctx->class_proto[JS_CLASS_BIG_INT] = JS_NewObject(ctx);
-  JS_SetPropertyFunctionList(ctx, ctx->class_proto[JS_CLASS_BIG_INT],
-                             js_bigint_proto_funcs,
-                             countof(js_bigint_proto_funcs));
-  obj1 = JS_NewGlobalCConstructor(ctx, "BigInt", js_bigint_constructor, 1,
-                                  ctx->class_proto[JS_CLASS_BIG_INT]);
-  JS_SetPropertyFunctionList(ctx, obj1, js_bigint_funcs,
-                             countof(js_bigint_funcs));
+  JS_SetPropertyFunctionList(
+    ctx,
+    ctx->class_proto[JS_CLASS_BIG_INT],
+    js_bigint_proto_funcs,
+    countof(js_bigint_proto_funcs));
+  obj1 = JS_NewGlobalCConstructor(
+    ctx,
+    "BigInt",
+    js_bigint_constructor,
+    1,
+    ctx->class_proto[JS_CLASS_BIG_INT]);
+  JS_SetPropertyFunctionList(
+    ctx,
+    obj1,
+    js_bigint_funcs,
+    countof(js_bigint_funcs));
 }
 
 /* BigFloat */
 
-JSValue js_thisBigFloatValue(JSContext *ctx, JSValueConst this_val)
-{
+JSValue js_thisBigFloatValue(JSContext* ctx, JSValueConst this_val) {
   if (JS_IsBigFloat(this_val))
     return JS_DupValue(ctx, this_val);
 
   if (JS_VALUE_GET_TAG(this_val) == JS_TAG_OBJECT) {
-    JSObject *p = JS_VALUE_GET_OBJ(this_val);
+    JSObject* p = JS_VALUE_GET_OBJ(this_val);
     if (p->class_id == JS_CLASS_BIG_FLOAT) {
       if (JS_IsBigFloat(p->u.object_data))
         return JS_DupValue(ctx, p->u.object_data);
@@ -3258,9 +3272,11 @@ JSValue js_thisBigFloatValue(JSContext *ctx, JSValueConst this_val)
   return JS_ThrowTypeError(ctx, "not a bigfloat");
 }
 
-JSValue js_bigfloat_toString(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
+JSValue js_bigfloat_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val;
   int base;
   JSValue ret;
@@ -3283,14 +3299,15 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_bigfloat_valueOf(JSContext *ctx, JSValueConst this_val,
-                                   int argc, JSValueConst *argv)
-{
+JSValue js_bigfloat_valueOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return js_thisBigFloatValue(ctx, this_val);
 }
 
-int bigfloat_get_rnd_mode(JSContext *ctx, JSValueConst val)
-{
+int bigfloat_get_rnd_mode(JSContext* ctx, JSValueConst val) {
   int rnd_mode;
   if (JS_ToInt32Sat(ctx, &rnd_mode, val))
     return -1;
@@ -3301,9 +3318,11 @@ int bigfloat_get_rnd_mode(JSContext *ctx, JSValueConst val)
   return rnd_mode;
 }
 
-JSValue js_bigfloat_toFixed(JSContext *ctx, JSValueConst this_val,
-                                   int argc, JSValueConst *argv)
-{
+JSValue js_bigfloat_toFixed(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, ret;
   int64_t f;
   int rnd_mode, radix;
@@ -3338,19 +3357,16 @@ fail:
   return JS_EXCEPTION;
 }
 
-BOOL js_bigfloat_is_finite(JSContext *ctx, JSValueConst val)
-{
+BOOL js_bigfloat_is_finite(JSContext* ctx, JSValueConst val) {
   BOOL res;
   uint32_t tag;
 
   tag = JS_VALUE_GET_NORM_TAG(val);
-  switch(tag) {
-    case JS_TAG_BIG_FLOAT:
-    {
-      JSBigFloat *p = JS_VALUE_GET_PTR(val);
+  switch (tag) {
+    case JS_TAG_BIG_FLOAT: {
+      JSBigFloat* p = JS_VALUE_GET_PTR(val);
       res = bf_is_finite(&p->num);
-    }
-    break;
+    } break;
     default:
       res = FALSE;
       break;
@@ -3358,9 +3374,11 @@ BOOL js_bigfloat_is_finite(JSContext *ctx, JSValueConst val)
   return res;
 }
 
-JSValue js_bigfloat_toExponential(JSContext *ctx, JSValueConst this_val,
-                                         int argc, JSValueConst *argv)
-{
+JSValue js_bigfloat_toExponential(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, ret;
   int64_t f;
   int rnd_mode, radix;
@@ -3373,8 +3391,12 @@ JSValue js_bigfloat_toExponential(JSContext *ctx, JSValueConst this_val,
   if (!js_bigfloat_is_finite(ctx, val)) {
     ret = JS_ToString(ctx, val);
   } else if (JS_IsUndefined(argv[0])) {
-    ret = js_ftoa(ctx, val, 10, 0,
-                  BF_RNDN | BF_FTOA_FORMAT_FREE_MIN | BF_FTOA_FORCE_EXP);
+    ret = js_ftoa(
+      ctx,
+      val,
+      10,
+      0,
+      BF_RNDN | BF_FTOA_FORMAT_FREE_MIN | BF_FTOA_FORCE_EXP);
   } else {
     if (f < 0 || f > BF_PREC_MAX) {
       JS_ThrowRangeError(ctx, "invalid number of digits");
@@ -3392,8 +3414,12 @@ JSValue js_bigfloat_toExponential(JSContext *ctx, JSValueConst this_val,
       if (radix < 0)
         goto fail;
     }
-    ret = js_ftoa(ctx, val, radix, f + 1,
-                  rnd_mode | BF_FTOA_FORMAT_FIXED | BF_FTOA_FORCE_EXP);
+    ret = js_ftoa(
+      ctx,
+      val,
+      radix,
+      f + 1,
+      rnd_mode | BF_FTOA_FORMAT_FIXED | BF_FTOA_FORCE_EXP);
   }
   JS_FreeValue(ctx, val);
   return ret;
@@ -3402,9 +3428,11 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_bigfloat_toPrecision(JSContext *ctx, JSValueConst this_val,
-                                       int argc, JSValueConst *argv)
-{
+JSValue js_bigfloat_toPrecision(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, ret;
   int64_t p;
   int rnd_mode, radix;
@@ -3446,22 +3474,23 @@ fail:
 }
 
 const JSCFunctionListEntry js_bigfloat_proto_funcs[] = {
-    JS_CFUNC_DEF("toString", 0, js_bigfloat_toString ),
-    JS_CFUNC_DEF("valueOf", 0, js_bigfloat_valueOf ),
-    JS_CFUNC_DEF("toPrecision", 1, js_bigfloat_toPrecision ),
-    JS_CFUNC_DEF("toFixed", 1, js_bigfloat_toFixed ),
-    JS_CFUNC_DEF("toExponential", 1, js_bigfloat_toExponential ),
+  JS_CFUNC_DEF("toString", 0, js_bigfloat_toString),
+  JS_CFUNC_DEF("valueOf", 0, js_bigfloat_valueOf),
+  JS_CFUNC_DEF("toPrecision", 1, js_bigfloat_toPrecision),
+  JS_CFUNC_DEF("toFixed", 1, js_bigfloat_toFixed),
+  JS_CFUNC_DEF("toExponential", 1, js_bigfloat_toExponential),
 };
 
-JSValue js_bigfloat_constructor(JSContext *ctx,
-                                       JSValueConst new_target,
-                                       int argc, JSValueConst *argv)
-{
+JSValue js_bigfloat_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   JSValue val;
   if (!JS_IsUndefined(new_target))
     return JS_ThrowTypeError(ctx, "not a constructor");
   if (argc == 0) {
-    bf_t *r;
+    bf_t* r;
     val = JS_NewBigFloat(ctx);
     if (JS_IsException(val))
       return val;
@@ -3470,12 +3499,11 @@ JSValue js_bigfloat_constructor(JSContext *ctx,
   } else {
     val = JS_DupValue(ctx, argv[0]);
   redo:
-    switch(JS_VALUE_GET_NORM_TAG(val)) {
+    switch (JS_VALUE_GET_NORM_TAG(val)) {
       case JS_TAG_BIG_FLOAT:
         break;
-      case JS_TAG_FLOAT64:
-      {
-        bf_t *r;
+      case JS_TAG_FLOAT64: {
+        bf_t* r;
         double d = JS_VALUE_GET_FLOAT64(val);
         val = JS_NewBigFloat(ctx);
         if (JS_IsException(val))
@@ -3483,11 +3511,9 @@ JSValue js_bigfloat_constructor(JSContext *ctx,
         r = JS_GetBigFloat(val);
         if (bf_set_float64(r, d))
           goto fail;
-      }
-      break;
-      case JS_TAG_INT:
-      {
-        bf_t *r;
+      } break;
+      case JS_TAG_INT: {
+        bf_t* r;
         int32_t v = JS_VALUE_GET_INT(val);
         val = JS_NewBigFloat(ctx);
         if (JS_IsException(val))
@@ -3495,12 +3521,11 @@ JSValue js_bigfloat_constructor(JSContext *ctx,
         r = JS_GetBigFloat(val);
         if (bf_set_si(r, v))
           goto fail;
-      }
-      break;
+      } break;
       case JS_TAG_BIG_INT:
         /* We keep the full precision of the integer */
         {
-          JSBigFloat *p = JS_VALUE_GET_PTR(val);
+          JSBigFloat* p = JS_VALUE_GET_PTR(val);
           val = JS_MKPTR(JS_TAG_BIG_FLOAT, p);
         }
         break;
@@ -3509,8 +3534,7 @@ JSValue js_bigfloat_constructor(JSContext *ctx,
         if (JS_IsException(val))
           break;
         goto redo;
-      case JS_TAG_STRING:
-      {
+      case JS_TAG_STRING: {
         const char *str, *p;
         size_t len;
         int err;
@@ -3522,7 +3546,7 @@ JSValue js_bigfloat_constructor(JSContext *ctx,
         p = str;
         p += skip_spaces(p);
         if ((p - str) == len) {
-          bf_t *r;
+          bf_t* r;
           val = JS_NewBigFloat(ctx);
           if (JS_IsException(val))
             break;
@@ -3530,9 +3554,13 @@ JSValue js_bigfloat_constructor(JSContext *ctx,
           bf_set_zero(r, 0);
           err = 0;
         } else {
-          val = js_atof(ctx, p, &p, 0, ATOD_ACCEPT_BIN_OCT |
-                                           ATOD_TYPE_BIG_FLOAT |
-                                           ATOD_ACCEPT_PREFIX_AFTER_SIGN);
+          val = js_atof(
+            ctx,
+            p,
+            &p,
+            0,
+            ATOD_ACCEPT_BIN_OCT | ATOD_TYPE_BIG_FLOAT
+              | ATOD_ACCEPT_PREFIX_AFTER_SIGN);
           if (JS_IsException(val)) {
             JS_FreeCString(ctx, str);
             return JS_EXCEPTION;
@@ -3545,8 +3573,7 @@ JSValue js_bigfloat_constructor(JSContext *ctx,
           JS_FreeValue(ctx, val);
           return JS_ThrowSyntaxError(ctx, "invalid bigfloat literal");
         }
-      }
-      break;
+      } break;
       case JS_TAG_OBJECT:
         val = JS_ToPrimitiveFree(ctx, val, HINT_NUMBER);
         if (JS_IsException(val))
@@ -3565,16 +3592,15 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_bigfloat_get_const(JSContext *ctx,
-                                     JSValueConst this_val, int magic)
-{
-  bf_t *r;
+JSValue
+js_bigfloat_get_const(JSContext* ctx, JSValueConst this_val, int magic) {
+  bf_t* r;
   JSValue val;
   val = JS_NewBigFloat(ctx);
   if (JS_IsException(val))
     return val;
   r = JS_GetBigFloat(val);
-  switch(magic) {
+  switch (magic) {
     case 0: /* PI */
       bf_const_pi(r, ctx->fp_env.prec, ctx->fp_env.flags);
       break;
@@ -3593,18 +3619,18 @@ JSValue js_bigfloat_get_const(JSContext *ctx,
           e -= ctx->fp_env.prec - 1;
         bf_mul_2exp(r, e, ctx->fp_env.prec, ctx->fp_env.flags);
       } else {
-        bf_mul_2exp(r, ctx->fp_env.prec, ctx->fp_env.prec,
-                    ctx->fp_env.flags);
+        bf_mul_2exp(r, ctx->fp_env.prec, ctx->fp_env.prec, ctx->fp_env.flags);
         bf_add_si(r, r, -1, ctx->fp_env.prec, ctx->fp_env.flags);
-        bf_mul_2exp(r, e_range - ctx->fp_env.prec, ctx->fp_env.prec,
-                    ctx->fp_env.flags);
+        bf_mul_2exp(
+          r,
+          e_range - ctx->fp_env.prec,
+          ctx->fp_env.prec,
+          ctx->fp_env.flags);
       }
-    }
-    break;
+    } break;
     case 4: /* EPSILON */
       bf_set_ui(r, 1);
-      bf_mul_2exp(r, 1 - ctx->fp_env.prec,
-                  ctx->fp_env.prec, ctx->fp_env.flags);
+      bf_mul_2exp(r, 1 - ctx->fp_env.prec, ctx->fp_env.prec, ctx->fp_env.flags);
       break;
     default:
       abort();
@@ -3612,14 +3638,16 @@ JSValue js_bigfloat_get_const(JSContext *ctx,
   return val;
 }
 
-JSValue js_bigfloat_parseFloat(JSContext *ctx, JSValueConst this_val,
-                                      int argc, JSValueConst *argv)
-{
-  bf_t *a;
-  const char *str;
+JSValue js_bigfloat_parseFloat(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
+  bf_t* a;
+  const char* str;
   JSValue ret;
   int radix;
-  JSFloatEnv *fe;
+  JSFloatEnv* fe;
 
   str = JS_ToCString(ctx, argv[0]);
   if (!str)
@@ -3650,11 +3678,13 @@ done:
   return ret;
 }
 
-JSValue js_bigfloat_isFinite(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
+JSValue js_bigfloat_isFinite(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValueConst val = argv[0];
-  JSBigFloat *p;
+  JSBigFloat* p;
 
   if (JS_VALUE_GET_NORM_TAG(val) != JS_TAG_BIG_FLOAT)
     return JS_FALSE;
@@ -3662,11 +3692,13 @@ JSValue js_bigfloat_isFinite(JSContext *ctx, JSValueConst this_val,
   return JS_NewBool(ctx, bf_is_finite(&p->num));
 }
 
-JSValue js_bigfloat_isNaN(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv)
-{
+JSValue js_bigfloat_isNaN(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValueConst val = argv[0];
-  JSBigFloat *p;
+  JSBigFloat* p;
 
   if (JS_VALUE_GET_NORM_TAG(val) != JS_TAG_BIG_FLOAT)
     return JS_FALSE;
@@ -3702,11 +3734,14 @@ enum {
   MATH_OP_DIV,
 };
 
-JSValue js_bigfloat_fop(JSContext *ctx, JSValueConst this_val,
-                               int argc, JSValueConst *argv, int magic)
-{
+JSValue js_bigfloat_fop(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   bf_t a_s, *a, *r;
-  JSFloatEnv *fe;
+  JSFloatEnv* fe;
   int rnd_mode;
   JSValue op1, res;
 
@@ -3796,11 +3831,14 @@ JSValue js_bigfloat_fop(JSContext *ctx, JSValueConst this_val,
   return res;
 }
 
-JSValue js_bigfloat_fop2(JSContext *ctx, JSValueConst this_val,
-                                int argc, JSValueConst *argv, int magic)
-{
+JSValue js_bigfloat_fop2(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   bf_t a_s, *a, b_s, *b, r_s, *r = &r_s;
-  JSFloatEnv *fe;
+  JSFloatEnv* fe;
   JSValue op1, op2, res;
 
   op1 = JS_ToNumeric(ctx, argv[0]);
@@ -3869,48 +3907,49 @@ JSValue js_bigfloat_fop2(JSContext *ctx, JSValueConst this_val,
 }
 
 const JSCFunctionListEntry js_bigfloat_funcs[] = {
-    JS_CGETSET_MAGIC_DEF("PI", js_bigfloat_get_const, NULL, 0 ),
-    JS_CGETSET_MAGIC_DEF("LN2", js_bigfloat_get_const, NULL, 1 ),
-    JS_CGETSET_MAGIC_DEF("MIN_VALUE", js_bigfloat_get_const, NULL, 2 ),
-    JS_CGETSET_MAGIC_DEF("MAX_VALUE", js_bigfloat_get_const, NULL, 3 ),
-    JS_CGETSET_MAGIC_DEF("EPSILON", js_bigfloat_get_const, NULL, 4 ),
-    JS_CFUNC_DEF("parseFloat", 1, js_bigfloat_parseFloat ),
-    JS_CFUNC_DEF("isFinite", 1, js_bigfloat_isFinite ),
-    JS_CFUNC_DEF("isNaN", 1, js_bigfloat_isNaN ),
-    JS_CFUNC_MAGIC_DEF("abs", 1, js_bigfloat_fop, MATH_OP_ABS ),
-    JS_CFUNC_MAGIC_DEF("fpRound", 1, js_bigfloat_fop, MATH_OP_FPROUND ),
-    JS_CFUNC_MAGIC_DEF("floor", 1, js_bigfloat_fop, MATH_OP_FLOOR ),
-    JS_CFUNC_MAGIC_DEF("ceil", 1, js_bigfloat_fop, MATH_OP_CEIL ),
-    JS_CFUNC_MAGIC_DEF("round", 1, js_bigfloat_fop, MATH_OP_ROUND ),
-    JS_CFUNC_MAGIC_DEF("trunc", 1, js_bigfloat_fop, MATH_OP_TRUNC ),
-    JS_CFUNC_MAGIC_DEF("sqrt", 1, js_bigfloat_fop, MATH_OP_SQRT ),
-    JS_CFUNC_MAGIC_DEF("acos", 1, js_bigfloat_fop, MATH_OP_ACOS ),
-    JS_CFUNC_MAGIC_DEF("asin", 1, js_bigfloat_fop, MATH_OP_ASIN ),
-    JS_CFUNC_MAGIC_DEF("atan", 1, js_bigfloat_fop, MATH_OP_ATAN ),
-    JS_CFUNC_MAGIC_DEF("atan2", 2, js_bigfloat_fop2, MATH_OP_ATAN2 ),
-    JS_CFUNC_MAGIC_DEF("cos", 1, js_bigfloat_fop, MATH_OP_COS ),
-    JS_CFUNC_MAGIC_DEF("exp", 1, js_bigfloat_fop, MATH_OP_EXP ),
-    JS_CFUNC_MAGIC_DEF("log", 1, js_bigfloat_fop, MATH_OP_LOG ),
-    JS_CFUNC_MAGIC_DEF("pow", 2, js_bigfloat_fop2, MATH_OP_POW ),
-    JS_CFUNC_MAGIC_DEF("sin", 1, js_bigfloat_fop, MATH_OP_SIN ),
-    JS_CFUNC_MAGIC_DEF("tan", 1, js_bigfloat_fop, MATH_OP_TAN ),
-    JS_CFUNC_MAGIC_DEF("sign", 1, js_bigfloat_fop, MATH_OP_SIGN ),
-    JS_CFUNC_MAGIC_DEF("add", 2, js_bigfloat_fop2, MATH_OP_ADD ),
-    JS_CFUNC_MAGIC_DEF("sub", 2, js_bigfloat_fop2, MATH_OP_SUB ),
-    JS_CFUNC_MAGIC_DEF("mul", 2, js_bigfloat_fop2, MATH_OP_MUL ),
-    JS_CFUNC_MAGIC_DEF("div", 2, js_bigfloat_fop2, MATH_OP_DIV ),
-    JS_CFUNC_MAGIC_DEF("fmod", 2, js_bigfloat_fop2, MATH_OP_FMOD ),
-    JS_CFUNC_MAGIC_DEF("remainder", 2, js_bigfloat_fop2, MATH_OP_REM ),
+  JS_CGETSET_MAGIC_DEF("PI", js_bigfloat_get_const, NULL, 0),
+  JS_CGETSET_MAGIC_DEF("LN2", js_bigfloat_get_const, NULL, 1),
+  JS_CGETSET_MAGIC_DEF("MIN_VALUE", js_bigfloat_get_const, NULL, 2),
+  JS_CGETSET_MAGIC_DEF("MAX_VALUE", js_bigfloat_get_const, NULL, 3),
+  JS_CGETSET_MAGIC_DEF("EPSILON", js_bigfloat_get_const, NULL, 4),
+  JS_CFUNC_DEF("parseFloat", 1, js_bigfloat_parseFloat),
+  JS_CFUNC_DEF("isFinite", 1, js_bigfloat_isFinite),
+  JS_CFUNC_DEF("isNaN", 1, js_bigfloat_isNaN),
+  JS_CFUNC_MAGIC_DEF("abs", 1, js_bigfloat_fop, MATH_OP_ABS),
+  JS_CFUNC_MAGIC_DEF("fpRound", 1, js_bigfloat_fop, MATH_OP_FPROUND),
+  JS_CFUNC_MAGIC_DEF("floor", 1, js_bigfloat_fop, MATH_OP_FLOOR),
+  JS_CFUNC_MAGIC_DEF("ceil", 1, js_bigfloat_fop, MATH_OP_CEIL),
+  JS_CFUNC_MAGIC_DEF("round", 1, js_bigfloat_fop, MATH_OP_ROUND),
+  JS_CFUNC_MAGIC_DEF("trunc", 1, js_bigfloat_fop, MATH_OP_TRUNC),
+  JS_CFUNC_MAGIC_DEF("sqrt", 1, js_bigfloat_fop, MATH_OP_SQRT),
+  JS_CFUNC_MAGIC_DEF("acos", 1, js_bigfloat_fop, MATH_OP_ACOS),
+  JS_CFUNC_MAGIC_DEF("asin", 1, js_bigfloat_fop, MATH_OP_ASIN),
+  JS_CFUNC_MAGIC_DEF("atan", 1, js_bigfloat_fop, MATH_OP_ATAN),
+  JS_CFUNC_MAGIC_DEF("atan2", 2, js_bigfloat_fop2, MATH_OP_ATAN2),
+  JS_CFUNC_MAGIC_DEF("cos", 1, js_bigfloat_fop, MATH_OP_COS),
+  JS_CFUNC_MAGIC_DEF("exp", 1, js_bigfloat_fop, MATH_OP_EXP),
+  JS_CFUNC_MAGIC_DEF("log", 1, js_bigfloat_fop, MATH_OP_LOG),
+  JS_CFUNC_MAGIC_DEF("pow", 2, js_bigfloat_fop2, MATH_OP_POW),
+  JS_CFUNC_MAGIC_DEF("sin", 1, js_bigfloat_fop, MATH_OP_SIN),
+  JS_CFUNC_MAGIC_DEF("tan", 1, js_bigfloat_fop, MATH_OP_TAN),
+  JS_CFUNC_MAGIC_DEF("sign", 1, js_bigfloat_fop, MATH_OP_SIGN),
+  JS_CFUNC_MAGIC_DEF("add", 2, js_bigfloat_fop2, MATH_OP_ADD),
+  JS_CFUNC_MAGIC_DEF("sub", 2, js_bigfloat_fop2, MATH_OP_SUB),
+  JS_CFUNC_MAGIC_DEF("mul", 2, js_bigfloat_fop2, MATH_OP_MUL),
+  JS_CFUNC_MAGIC_DEF("div", 2, js_bigfloat_fop2, MATH_OP_DIV),
+  JS_CFUNC_MAGIC_DEF("fmod", 2, js_bigfloat_fop2, MATH_OP_FMOD),
+  JS_CFUNC_MAGIC_DEF("remainder", 2, js_bigfloat_fop2, MATH_OP_REM),
 };
 
 /* FloatEnv */
 
-JSValue js_float_env_constructor(JSContext *ctx,
-                                        JSValueConst new_target,
-                                        int argc, JSValueConst *argv)
-{
+JSValue js_float_env_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   JSValue obj;
-  JSFloatEnv *fe;
+  JSFloatEnv* fe;
   int64_t prec;
   int flags, rndmode;
 
@@ -3944,26 +3983,24 @@ JSValue js_float_env_constructor(JSContext *ctx,
   return obj;
 }
 
-void js_float_env_finalizer(JSRuntime *rt, JSValue val)
-{
-  JSFloatEnv *fe = JS_GetOpaque(val, JS_CLASS_FLOAT_ENV);
+void js_float_env_finalizer(JSRuntime* rt, JSValue val) {
+  JSFloatEnv* fe = JS_GetOpaque(val, JS_CLASS_FLOAT_ENV);
   js_free_rt(rt, fe);
 }
 
-JSValue js_float_env_get_prec(JSContext *ctx, JSValueConst this_val)
-{
+JSValue js_float_env_get_prec(JSContext* ctx, JSValueConst this_val) {
   return JS_NewInt64(ctx, ctx->fp_env.prec);
 }
 
-JSValue js_float_env_get_expBits(JSContext *ctx, JSValueConst this_val)
-{
+JSValue js_float_env_get_expBits(JSContext* ctx, JSValueConst this_val) {
   return JS_NewInt32(ctx, bf_get_exp_bits(ctx->fp_env.flags));
 }
 
-JSValue js_float_env_setPrec(JSContext *ctx,
-                                    JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
+JSValue js_float_env_setPrec(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValueConst func;
   int exp_bits, flags, saved_flags;
   JSValue ret;
@@ -3999,18 +4036,20 @@ JSValue js_float_env_setPrec(JSContext *ctx,
   return ret;
 }
 
-#define FE_PREC      (-1)
-#define FE_EXP       (-2)
-#define FE_RNDMODE   (-3)
-#define FE_SUBNORMAL (-4)
+  #define FE_PREC (-1)
+  #define FE_EXP (-2)
+  #define FE_RNDMODE (-3)
+  #define FE_SUBNORMAL (-4)
 
-JSValue js_float_env_proto_get_status(JSContext *ctx, JSValueConst this_val, int magic)
-{
-  JSFloatEnv *fe;
+JSValue js_float_env_proto_get_status(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int magic) {
+  JSFloatEnv* fe;
   fe = JS_GetOpaque2(ctx, this_val, JS_CLASS_FLOAT_ENV);
   if (!fe)
     return JS_EXCEPTION;
-  switch(magic) {
+  switch (magic) {
     case FE_PREC:
       return JS_NewInt64(ctx, fe->prec);
     case FE_EXP:
@@ -4024,16 +4063,19 @@ JSValue js_float_env_proto_get_status(JSContext *ctx, JSValueConst this_val, int
   }
 }
 
-JSValue js_float_env_proto_set_status(JSContext *ctx, JSValueConst this_val, JSValueConst val, int magic)
-{
-  JSFloatEnv *fe;
+JSValue js_float_env_proto_set_status(
+  JSContext* ctx,
+  JSValueConst this_val,
+  JSValueConst val,
+  int magic) {
+  JSFloatEnv* fe;
   int b;
   int64_t prec;
 
   fe = JS_GetOpaque2(ctx, this_val, JS_CLASS_FLOAT_ENV);
   if (!fe)
     return JS_EXCEPTION;
-  switch(magic) {
+  switch (magic) {
     case FE_PREC:
       if (JS_ToInt64Sat(ctx, &prec, val))
         return JS_EXCEPTION;
@@ -4046,8 +4088,8 @@ JSValue js_float_env_proto_set_status(JSContext *ctx, JSValueConst this_val, JSV
         return JS_EXCEPTION;
       if (b < BF_EXP_BITS_MIN || b > BF_EXP_BITS_MAX)
         return JS_ThrowRangeError(ctx, "invalid number of exponent bits");
-      fe->flags = (fe->flags & ~(BF_EXP_BITS_MASK << BF_EXP_BITS_SHIFT)) |
-                  bf_set_exp_bits(b);
+      fe->flags = (fe->flags & ~(BF_EXP_BITS_MASK << BF_EXP_BITS_SHIFT))
+        | bf_set_exp_bits(b);
       break;
     case FE_RNDMODE:
       b = bigfloat_get_rnd_mode(ctx, val);
@@ -4057,7 +4099,8 @@ JSValue js_float_env_proto_set_status(JSContext *ctx, JSValueConst this_val, JSV
       break;
     case FE_SUBNORMAL:
       b = JS_ToBool(ctx, val);
-      fe->flags = (fe->flags & ~BF_FLAG_SUBNORMAL) | (b ? BF_FLAG_SUBNORMAL: 0);
+      fe->flags =
+        (fe->flags & ~BF_FLAG_SUBNORMAL) | (b ? BF_FLAG_SUBNORMAL : 0);
       break;
     default:
       b = JS_ToBool(ctx, val);
@@ -4067,11 +4110,12 @@ JSValue js_float_env_proto_set_status(JSContext *ctx, JSValueConst this_val, JSV
   return JS_UNDEFINED;
 }
 
-JSValue js_float_env_clearStatus(JSContext *ctx,
-                                        JSValueConst this_val,
-                                        int argc, JSValueConst *argv)
-{
-  JSFloatEnv *fe = JS_GetOpaque2(ctx, this_val, JS_CLASS_FLOAT_ENV);
+JSValue js_float_env_clearStatus(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
+  JSFloatEnv* fe = JS_GetOpaque2(ctx, this_val, JS_CLASS_FLOAT_ENV);
   if (!fe)
     return JS_EXCEPTION;
   fe->status = 0;
@@ -4079,47 +4123,73 @@ JSValue js_float_env_clearStatus(JSContext *ctx,
 }
 
 const JSCFunctionListEntry js_float_env_funcs[] = {
-    JS_CGETSET_DEF("prec", js_float_env_get_prec, NULL ),
-    JS_CGETSET_DEF("expBits", js_float_env_get_expBits, NULL ),
-    JS_CFUNC_DEF("setPrec", 2, js_float_env_setPrec ),
-    JS_PROP_INT32_DEF("RNDN", BF_RNDN, 0 ),
-    JS_PROP_INT32_DEF("RNDZ", BF_RNDZ, 0 ),
-    JS_PROP_INT32_DEF("RNDU", BF_RNDU, 0 ),
-    JS_PROP_INT32_DEF("RNDD", BF_RNDD, 0 ),
-    JS_PROP_INT32_DEF("RNDNA", BF_RNDNA, 0 ),
-    JS_PROP_INT32_DEF("RNDA", BF_RNDA, 0 ),
-    JS_PROP_INT32_DEF("RNDF", BF_RNDF, 0 ),
-    JS_PROP_INT32_DEF("precMin", BF_PREC_MIN, 0 ),
-    JS_PROP_INT64_DEF("precMax", BF_PREC_MAX, 0 ),
-    JS_PROP_INT32_DEF("expBitsMin", BF_EXP_BITS_MIN, 0 ),
-    JS_PROP_INT32_DEF("expBitsMax", BF_EXP_BITS_MAX, 0 ),
+  JS_CGETSET_DEF("prec", js_float_env_get_prec, NULL),
+  JS_CGETSET_DEF("expBits", js_float_env_get_expBits, NULL),
+  JS_CFUNC_DEF("setPrec", 2, js_float_env_setPrec),
+  JS_PROP_INT32_DEF("RNDN", BF_RNDN, 0),
+  JS_PROP_INT32_DEF("RNDZ", BF_RNDZ, 0),
+  JS_PROP_INT32_DEF("RNDU", BF_RNDU, 0),
+  JS_PROP_INT32_DEF("RNDD", BF_RNDD, 0),
+  JS_PROP_INT32_DEF("RNDNA", BF_RNDNA, 0),
+  JS_PROP_INT32_DEF("RNDA", BF_RNDA, 0),
+  JS_PROP_INT32_DEF("RNDF", BF_RNDF, 0),
+  JS_PROP_INT32_DEF("precMin", BF_PREC_MIN, 0),
+  JS_PROP_INT64_DEF("precMax", BF_PREC_MAX, 0),
+  JS_PROP_INT32_DEF("expBitsMin", BF_EXP_BITS_MIN, 0),
+  JS_PROP_INT32_DEF("expBitsMax", BF_EXP_BITS_MAX, 0),
 };
 
 const JSCFunctionListEntry js_float_env_proto_funcs[] = {
-    JS_CGETSET_MAGIC_DEF("prec", js_float_env_proto_get_status,
-                         js_float_env_proto_set_status, FE_PREC ),
-    JS_CGETSET_MAGIC_DEF("expBits", js_float_env_proto_get_status,
-                         js_float_env_proto_set_status, FE_EXP ),
-    JS_CGETSET_MAGIC_DEF("rndMode", js_float_env_proto_get_status,
-                         js_float_env_proto_set_status, FE_RNDMODE ),
-    JS_CGETSET_MAGIC_DEF("subnormal", js_float_env_proto_get_status,
-                         js_float_env_proto_set_status, FE_SUBNORMAL ),
-    JS_CGETSET_MAGIC_DEF("invalidOperation", js_float_env_proto_get_status,
-                         js_float_env_proto_set_status, BF_ST_INVALID_OP ),
-    JS_CGETSET_MAGIC_DEF("divideByZero", js_float_env_proto_get_status,
-                         js_float_env_proto_set_status, BF_ST_DIVIDE_ZERO ),
-    JS_CGETSET_MAGIC_DEF("overflow", js_float_env_proto_get_status,
-                         js_float_env_proto_set_status, BF_ST_OVERFLOW ),
-    JS_CGETSET_MAGIC_DEF("underflow", js_float_env_proto_get_status,
-                         js_float_env_proto_set_status, BF_ST_UNDERFLOW ),
-    JS_CGETSET_MAGIC_DEF("inexact", js_float_env_proto_get_status,
-                         js_float_env_proto_set_status, BF_ST_INEXACT ),
-    JS_CFUNC_DEF("clearStatus", 0, js_float_env_clearStatus ),
+  JS_CGETSET_MAGIC_DEF(
+    "prec",
+    js_float_env_proto_get_status,
+    js_float_env_proto_set_status,
+    FE_PREC),
+  JS_CGETSET_MAGIC_DEF(
+    "expBits",
+    js_float_env_proto_get_status,
+    js_float_env_proto_set_status,
+    FE_EXP),
+  JS_CGETSET_MAGIC_DEF(
+    "rndMode",
+    js_float_env_proto_get_status,
+    js_float_env_proto_set_status,
+    FE_RNDMODE),
+  JS_CGETSET_MAGIC_DEF(
+    "subnormal",
+    js_float_env_proto_get_status,
+    js_float_env_proto_set_status,
+    FE_SUBNORMAL),
+  JS_CGETSET_MAGIC_DEF(
+    "invalidOperation",
+    js_float_env_proto_get_status,
+    js_float_env_proto_set_status,
+    BF_ST_INVALID_OP),
+  JS_CGETSET_MAGIC_DEF(
+    "divideByZero",
+    js_float_env_proto_get_status,
+    js_float_env_proto_set_status,
+    BF_ST_DIVIDE_ZERO),
+  JS_CGETSET_MAGIC_DEF(
+    "overflow",
+    js_float_env_proto_get_status,
+    js_float_env_proto_set_status,
+    BF_ST_OVERFLOW),
+  JS_CGETSET_MAGIC_DEF(
+    "underflow",
+    js_float_env_proto_get_status,
+    js_float_env_proto_set_status,
+    BF_ST_UNDERFLOW),
+  JS_CGETSET_MAGIC_DEF(
+    "inexact",
+    js_float_env_proto_get_status,
+    js_float_env_proto_set_status,
+    BF_ST_INEXACT),
+  JS_CFUNC_DEF("clearStatus", 0, js_float_env_clearStatus),
 };
 
-void JS_AddIntrinsicBigFloat(JSContext *ctx)
-{
-  JSRuntime *rt = ctx->rt;
+void JS_AddIntrinsicBigFloat(JSContext* ctx) {
+  JSRuntime* rt = ctx->rt;
   JSValueConst obj1;
 
   rt->bigfloat_ops.to_string = js_bigfloat_to_string;
@@ -4131,32 +4201,48 @@ void JS_AddIntrinsicBigFloat(JSContext *ctx)
   rt->bigfloat_ops.mul_pow10 = js_mul_pow10;
 
   ctx->class_proto[JS_CLASS_BIG_FLOAT] = JS_NewObject(ctx);
-  JS_SetPropertyFunctionList(ctx, ctx->class_proto[JS_CLASS_BIG_FLOAT],
-                             js_bigfloat_proto_funcs,
-                             countof(js_bigfloat_proto_funcs));
-  obj1 = JS_NewGlobalCConstructor(ctx, "BigFloat", js_bigfloat_constructor, 1,
-                                  ctx->class_proto[JS_CLASS_BIG_FLOAT]);
-  JS_SetPropertyFunctionList(ctx, obj1, js_bigfloat_funcs,
-                             countof(js_bigfloat_funcs));
+  JS_SetPropertyFunctionList(
+    ctx,
+    ctx->class_proto[JS_CLASS_BIG_FLOAT],
+    js_bigfloat_proto_funcs,
+    countof(js_bigfloat_proto_funcs));
+  obj1 = JS_NewGlobalCConstructor(
+    ctx,
+    "BigFloat",
+    js_bigfloat_constructor,
+    1,
+    ctx->class_proto[JS_CLASS_BIG_FLOAT]);
+  JS_SetPropertyFunctionList(
+    ctx,
+    obj1,
+    js_bigfloat_funcs,
+    countof(js_bigfloat_funcs));
 
   ctx->class_proto[JS_CLASS_FLOAT_ENV] = JS_NewObject(ctx);
-  JS_SetPropertyFunctionList(ctx, ctx->class_proto[JS_CLASS_FLOAT_ENV],
-                             js_float_env_proto_funcs,
-                             countof(js_float_env_proto_funcs));
-  obj1 = JS_NewGlobalCConstructorOnly(ctx, "BigFloatEnv",
-                                      js_float_env_constructor, 1,
-                                      ctx->class_proto[JS_CLASS_FLOAT_ENV]);
-  JS_SetPropertyFunctionList(ctx, obj1, js_float_env_funcs,
-                             countof(js_float_env_funcs));
+  JS_SetPropertyFunctionList(
+    ctx,
+    ctx->class_proto[JS_CLASS_FLOAT_ENV],
+    js_float_env_proto_funcs,
+    countof(js_float_env_proto_funcs));
+  obj1 = JS_NewGlobalCConstructorOnly(
+    ctx,
+    "BigFloatEnv",
+    js_float_env_constructor,
+    1,
+    ctx->class_proto[JS_CLASS_FLOAT_ENV]);
+  JS_SetPropertyFunctionList(
+    ctx,
+    obj1,
+    js_float_env_funcs,
+    countof(js_float_env_funcs));
 }
 
 /* BigDecimal */
 
-JSValue JS_ToBigDecimalFree(JSContext *ctx, JSValue val,
-                                   BOOL allow_null_or_undefined)
-{
+JSValue
+JS_ToBigDecimalFree(JSContext* ctx, JSValue val, BOOL allow_null_or_undefined) {
 redo:
-  switch(JS_VALUE_GET_NORM_TAG(val)) {
+  switch (JS_VALUE_GET_NORM_TAG(val)) {
     case JS_TAG_BIG_DECIMAL:
       break;
     case JS_TAG_NULL:
@@ -4164,9 +4250,8 @@ redo:
         goto fail;
       /* fall thru */
     case JS_TAG_BOOL:
-    case JS_TAG_INT:
-    {
-      bfdec_t *r;
+    case JS_TAG_INT: {
+      bfdec_t* r;
       int32_t v = JS_VALUE_GET_INT(val);
 
       val = JS_NewBigDecimal(ctx);
@@ -4178,8 +4263,7 @@ redo:
         val = JS_EXCEPTION;
         break;
       }
-    }
-    break;
+    } break;
     case JS_TAG_FLOAT64:
     case JS_TAG_BIG_INT:
     case JS_TAG_BIG_FLOAT:
@@ -4187,8 +4271,7 @@ redo:
       if (JS_IsException(val))
         break;
       goto redo;
-    case JS_TAG_STRING:
-    {
+    case JS_TAG_STRING: {
       const char *str, *p;
       size_t len;
       int err;
@@ -4200,7 +4283,7 @@ redo:
       p = str;
       p += skip_spaces(p);
       if ((p - str) == len) {
-        bfdec_t *r;
+        bfdec_t* r;
         val = JS_NewBigDecimal(ctx);
         if (JS_IsException(val))
           break;
@@ -4221,16 +4304,14 @@ redo:
         JS_FreeValue(ctx, val);
         return JS_ThrowSyntaxError(ctx, "invalid bigdecimal literal");
       }
-    }
-    break;
+    } break;
     case JS_TAG_OBJECT:
       val = JS_ToPrimitiveFree(ctx, val, HINT_NUMBER);
       if (JS_IsException(val))
         break;
       goto redo;
-    case JS_TAG_UNDEFINED:
-    {
-      bfdec_t *r;
+    case JS_TAG_UNDEFINED: {
+      bfdec_t* r;
       if (!allow_null_or_undefined)
         goto fail;
       val = JS_NewBigDecimal(ctx);
@@ -4238,8 +4319,7 @@ redo:
         break;
       r = JS_GetBigDecimal(val);
       bfdec_set_nan(r);
-    }
-    break;
+    } break;
     default:
     fail:
       JS_FreeValue(ctx, val);
@@ -4248,15 +4328,16 @@ redo:
   return val;
 }
 
-JSValue js_bigdecimal_constructor(JSContext *ctx,
-                                         JSValueConst new_target,
-                                         int argc, JSValueConst *argv)
-{
+JSValue js_bigdecimal_constructor(
+  JSContext* ctx,
+  JSValueConst new_target,
+  int argc,
+  JSValueConst* argv) {
   JSValue val;
   if (!JS_IsUndefined(new_target))
     return JS_ThrowTypeError(ctx, "not a constructor");
   if (argc == 0) {
-    bfdec_t *r;
+    bfdec_t* r;
     val = JS_NewBigDecimal(ctx);
     if (JS_IsException(val))
       return val;
@@ -4268,13 +4349,12 @@ JSValue js_bigdecimal_constructor(JSContext *ctx,
   return val;
 }
 
-JSValue js_thisBigDecimalValue(JSContext *ctx, JSValueConst this_val)
-{
+JSValue js_thisBigDecimalValue(JSContext* ctx, JSValueConst this_val) {
   if (JS_IsBigDecimal(this_val))
     return JS_DupValue(ctx, this_val);
 
   if (JS_VALUE_GET_TAG(this_val) == JS_TAG_OBJECT) {
-    JSObject *p = JS_VALUE_GET_OBJ(this_val);
+    JSObject* p = JS_VALUE_GET_OBJ(this_val);
     if (p->class_id == JS_CLASS_BIG_DECIMAL) {
       if (JS_IsBigDecimal(p->u.object_data))
         return JS_DupValue(ctx, p->u.object_data);
@@ -4283,9 +4363,11 @@ JSValue js_thisBigDecimalValue(JSContext *ctx, JSValueConst this_val)
   return JS_ThrowTypeError(ctx, "not a bigdecimal");
 }
 
-JSValue js_bigdecimal_toString(JSContext *ctx, JSValueConst this_val,
-                                      int argc, JSValueConst *argv)
-{
+JSValue js_bigdecimal_toString(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val;
 
   val = js_thisBigDecimalValue(ctx, this_val);
@@ -4294,15 +4376,16 @@ JSValue js_bigdecimal_toString(JSContext *ctx, JSValueConst this_val,
   return JS_ToStringFree(ctx, val);
 }
 
-JSValue js_bigdecimal_valueOf(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv)
-{
+JSValue js_bigdecimal_valueOf(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   return js_thisBigDecimalValue(ctx, this_val);
 }
 
-int js_bigdecimal_get_rnd_mode(JSContext *ctx, JSValueConst obj)
-{
-  const char *str;
+int js_bigdecimal_get_rnd_mode(JSContext* ctx, JSValueConst obj) {
+  const char* str;
   size_t size;
   int rnd_mode;
 
@@ -4338,9 +4421,7 @@ typedef struct {
   bf_flags_t flags;
 } BigDecimalEnv;
 
-int js_bigdecimal_get_env(JSContext *ctx, BigDecimalEnv *fe,
-                                 JSValueConst obj)
-{
+int js_bigdecimal_get_env(JSContext* ctx, BigDecimalEnv* fe, JSValueConst obj) {
   JSValue prop;
   int64_t val;
   BOOL has_prec;
@@ -4378,7 +4459,9 @@ int js_bigdecimal_get_env(JSContext *ctx, BigDecimalEnv *fe,
   if (!JS_IsUndefined(prop)) {
     if (has_prec) {
       JS_FreeValue(ctx, prop);
-      JS_ThrowTypeError(ctx, "cannot provide both maximumSignificantDigits and maximumFractionDigits");
+      JS_ThrowTypeError(
+        ctx,
+        "cannot provide both maximumSignificantDigits and maximumFractionDigits");
       return -1;
     }
     if (JS_ToInt64SatFree(ctx, &val, prop))
@@ -4399,17 +4482,18 @@ int js_bigdecimal_get_env(JSContext *ctx, BigDecimalEnv *fe,
   return 0;
 }
 
-
-JSValue js_bigdecimal_fop(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv, int magic)
-{
+JSValue js_bigdecimal_fop(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv,
+  int magic) {
   bfdec_t *a, *b, r_s, *r = &r_s;
   JSValue op1, op2, res;
   BigDecimalEnv fe_s, *fe = &fe_s;
   int op_count, ret;
 
-  if (magic == MATH_OP_SQRT ||
-      magic == MATH_OP_ROUND)
+  if (magic == MATH_OP_SQRT || magic == MATH_OP_ROUND)
     op_count = 1;
   else
     op_count = 2;
@@ -4479,8 +4563,8 @@ JSValue js_bigdecimal_fop(JSContext *ctx, JSValueConst this_val,
   }
   JS_FreeValue(ctx, op1);
   JS_FreeValue(ctx, op2);
-  ret &= BF_ST_MEM_ERROR | BF_ST_DIVIDE_ZERO | BF_ST_INVALID_OP |
-         BF_ST_OVERFLOW;
+  ret &=
+    BF_ST_MEM_ERROR | BF_ST_DIVIDE_ZERO | BF_ST_INVALID_OP | BF_ST_OVERFLOW;
   if (ret != 0) {
     JS_FreeValue(ctx, res);
     return throw_bf_exception(ctx, ret);
@@ -4489,9 +4573,11 @@ JSValue js_bigdecimal_fop(JSContext *ctx, JSValueConst this_val,
   }
 }
 
-JSValue js_bigdecimal_toFixed(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv)
-{
+JSValue js_bigdecimal_toFixed(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, ret;
   int64_t f;
   int rnd_mode;
@@ -4519,9 +4605,11 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_bigdecimal_toExponential(JSContext *ctx, JSValueConst this_val,
-                                           int argc, JSValueConst *argv)
-{
+JSValue js_bigdecimal_toExponential(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, ret;
   int64_t f;
   int rnd_mode;
@@ -4532,8 +4620,11 @@ JSValue js_bigdecimal_toExponential(JSContext *ctx, JSValueConst this_val,
   if (JS_ToInt64Sat(ctx, &f, argv[0]))
     goto fail;
   if (JS_IsUndefined(argv[0])) {
-    ret = js_bigdecimal_to_string1(ctx, val, 0,
-                                   BF_RNDN | BF_FTOA_FORMAT_FREE_MIN | BF_FTOA_FORCE_EXP);
+    ret = js_bigdecimal_to_string1(
+      ctx,
+      val,
+      0,
+      BF_RNDN | BF_FTOA_FORMAT_FREE_MIN | BF_FTOA_FORCE_EXP);
   } else {
     if (f < 0 || f > BF_PREC_MAX) {
       JS_ThrowRangeError(ctx, "invalid number of digits");
@@ -4545,8 +4636,11 @@ JSValue js_bigdecimal_toExponential(JSContext *ctx, JSValueConst this_val,
       if (rnd_mode < 0)
         goto fail;
     }
-    ret = js_bigdecimal_to_string1(ctx, val, f + 1,
-                                   rnd_mode | BF_FTOA_FORMAT_FIXED | BF_FTOA_FORCE_EXP);
+    ret = js_bigdecimal_to_string1(
+      ctx,
+      val,
+      f + 1,
+      rnd_mode | BF_FTOA_FORMAT_FIXED | BF_FTOA_FORCE_EXP);
   }
   JS_FreeValue(ctx, val);
   return ret;
@@ -4555,9 +4649,11 @@ fail:
   return JS_EXCEPTION;
 }
 
-JSValue js_bigdecimal_toPrecision(JSContext *ctx, JSValueConst this_val,
-                                         int argc, JSValueConst *argv)
-{
+JSValue js_bigdecimal_toPrecision(
+  JSContext* ctx,
+  JSValueConst this_val,
+  int argc,
+  JSValueConst* argv) {
   JSValue val, ret;
   int64_t p;
   int rnd_mode;
@@ -4580,8 +4676,7 @@ JSValue js_bigdecimal_toPrecision(JSContext *ctx, JSValueConst this_val,
     if (rnd_mode < 0)
       goto fail;
   }
-  ret = js_bigdecimal_to_string1(ctx, val, p,
-                                 rnd_mode | BF_FTOA_FORMAT_FIXED);
+  ret = js_bigdecimal_to_string1(ctx, val, p, rnd_mode | BF_FTOA_FORMAT_FIXED);
   JS_FreeValue(ctx, val);
   return ret;
 fail:
@@ -4590,26 +4685,25 @@ fail:
 }
 
 const JSCFunctionListEntry js_bigdecimal_proto_funcs[] = {
-    JS_CFUNC_DEF("toString", 0, js_bigdecimal_toString ),
-    JS_CFUNC_DEF("valueOf", 0, js_bigdecimal_valueOf ),
-    JS_CFUNC_DEF("toPrecision", 1, js_bigdecimal_toPrecision ),
-    JS_CFUNC_DEF("toFixed", 1, js_bigdecimal_toFixed ),
-    JS_CFUNC_DEF("toExponential", 1, js_bigdecimal_toExponential ),
+  JS_CFUNC_DEF("toString", 0, js_bigdecimal_toString),
+  JS_CFUNC_DEF("valueOf", 0, js_bigdecimal_valueOf),
+  JS_CFUNC_DEF("toPrecision", 1, js_bigdecimal_toPrecision),
+  JS_CFUNC_DEF("toFixed", 1, js_bigdecimal_toFixed),
+  JS_CFUNC_DEF("toExponential", 1, js_bigdecimal_toExponential),
 };
 
 const JSCFunctionListEntry js_bigdecimal_funcs[] = {
-    JS_CFUNC_MAGIC_DEF("add", 2, js_bigdecimal_fop, MATH_OP_ADD ),
-    JS_CFUNC_MAGIC_DEF("sub", 2, js_bigdecimal_fop, MATH_OP_SUB ),
-    JS_CFUNC_MAGIC_DEF("mul", 2, js_bigdecimal_fop, MATH_OP_MUL ),
-    JS_CFUNC_MAGIC_DEF("div", 2, js_bigdecimal_fop, MATH_OP_DIV ),
-    JS_CFUNC_MAGIC_DEF("mod", 2, js_bigdecimal_fop, MATH_OP_FMOD ),
-    JS_CFUNC_MAGIC_DEF("round", 1, js_bigdecimal_fop, MATH_OP_ROUND ),
-    JS_CFUNC_MAGIC_DEF("sqrt", 1, js_bigdecimal_fop, MATH_OP_SQRT ),
+  JS_CFUNC_MAGIC_DEF("add", 2, js_bigdecimal_fop, MATH_OP_ADD),
+  JS_CFUNC_MAGIC_DEF("sub", 2, js_bigdecimal_fop, MATH_OP_SUB),
+  JS_CFUNC_MAGIC_DEF("mul", 2, js_bigdecimal_fop, MATH_OP_MUL),
+  JS_CFUNC_MAGIC_DEF("div", 2, js_bigdecimal_fop, MATH_OP_DIV),
+  JS_CFUNC_MAGIC_DEF("mod", 2, js_bigdecimal_fop, MATH_OP_FMOD),
+  JS_CFUNC_MAGIC_DEF("round", 1, js_bigdecimal_fop, MATH_OP_ROUND),
+  JS_CFUNC_MAGIC_DEF("sqrt", 1, js_bigdecimal_fop, MATH_OP_SQRT),
 };
 
-void JS_AddIntrinsicBigDecimal(JSContext *ctx)
-{
-  JSRuntime *rt = ctx->rt;
+void JS_AddIntrinsicBigDecimal(JSContext* ctx) {
+  JSRuntime* rt = ctx->rt;
   JSValueConst obj1;
 
   rt->bigdecimal_ops.to_string = js_bigdecimal_to_string;
@@ -4619,18 +4713,25 @@ void JS_AddIntrinsicBigDecimal(JSContext *ctx)
   rt->bigdecimal_ops.compare = js_compare_bigdecimal;
 
   ctx->class_proto[JS_CLASS_BIG_DECIMAL] = JS_NewObject(ctx);
-  JS_SetPropertyFunctionList(ctx, ctx->class_proto[JS_CLASS_BIG_DECIMAL],
-                             js_bigdecimal_proto_funcs,
-                             countof(js_bigdecimal_proto_funcs));
-  obj1 = JS_NewGlobalCConstructor(ctx, "BigDecimal",
-                                  js_bigdecimal_constructor, 1,
-                                  ctx->class_proto[JS_CLASS_BIG_DECIMAL]);
-  JS_SetPropertyFunctionList(ctx, obj1, js_bigdecimal_funcs,
-                             countof(js_bigdecimal_funcs));
+  JS_SetPropertyFunctionList(
+    ctx,
+    ctx->class_proto[JS_CLASS_BIG_DECIMAL],
+    js_bigdecimal_proto_funcs,
+    countof(js_bigdecimal_proto_funcs));
+  obj1 = JS_NewGlobalCConstructor(
+    ctx,
+    "BigDecimal",
+    js_bigdecimal_constructor,
+    1,
+    ctx->class_proto[JS_CLASS_BIG_DECIMAL]);
+  JS_SetPropertyFunctionList(
+    ctx,
+    obj1,
+    js_bigdecimal_funcs,
+    countof(js_bigdecimal_funcs));
 }
 
-void JS_EnableBignumExt(JSContext *ctx, BOOL enable)
-{
+void JS_EnableBignumExt(JSContext* ctx, BOOL enable) {
   ctx->bignum_ext = enable;
 }
 

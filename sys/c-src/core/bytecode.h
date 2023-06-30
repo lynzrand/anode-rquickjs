@@ -26,13 +26,16 @@
 #ifndef QUICKJS_BYTECODE_H
 #define QUICKJS_BYTECODE_H
 
-#include "quickjs/quickjs.h"
 #include "quickjs/cutils.h"
+#include "quickjs/quickjs.h"
 #include "types.h"
 
-void free_function_bytecode(JSRuntime *rt, JSFunctionBytecode *b);
-void free_bytecode_atoms(JSRuntime *rt,
-                         const uint8_t *bc_buf, int bc_len,
-                                BOOL use_short_opcodes);;
+void free_function_bytecode(JSRuntime* rt, JSFunctionBytecode* b);
+void free_bytecode_atoms(
+  JSRuntime* rt,
+  const uint8_t* bc_buf,
+  int bc_len,
+  BOOL use_short_opcodes);
+;
 
 #endif
