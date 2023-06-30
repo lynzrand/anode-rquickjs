@@ -39,20 +39,15 @@ fn main() {
     let out_dir = env::var("OUT_DIR").expect("No OUT_DIR env var is set by cargo");
     let out_dir = Path::new(&out_dir);
 
-    let source_files = vec![
-        "libregexp.c",
-        "libunicode.c",
-        "cutils.c",
-        "libbf.c",
-        "anode-ext.c",
+    let source_files = vec!["libregexp.c", "libunicode.c", "cutils.c", "libbf.c"];
+    let split_source_dirs = [
+        src_dir.join("core"),
+        src_dir.join("core/builtins"),
+        src_dir.join("anode"),
     ];
-    let split_source_dir_1 = src_dir.join("core");
-    let split_source_dir_2 = split_source_dir_1.join("builtins");
     // Include every .c file in the two split source dirs
-    let split_source_files = split_source_dir_1
-        .read_dir()
-        .unwrap()
-        .filter_map(|p| {
+    let split_source_files = split_source_dirs.iter().flat_map(|x| {
+        x.read_dir().unwrap().filter_map(|p| {
             let p = p.unwrap();
             let path = p.path();
             if path.extension().map(|e| e == "c").unwrap_or(false) {
@@ -61,15 +56,8 @@ fn main() {
                 None
             }
         })
-        .chain(split_source_dir_2.read_dir().unwrap().filter_map(|p| {
-            let p = p.unwrap();
-            let path = p.path();
-            if path.extension().map(|e| e == "c").unwrap_or(false) {
-                Some(path)
-            } else {
-                None
-            }
-        }));
+    });
+
     let split_source_files = split_source_files
         .map(|x| x.to_string_lossy().into_owned())
         .collect::<Vec<_>>();
@@ -121,7 +109,7 @@ fn main() {
     info!("Generate bindings");
     bindgen(
         out_dir.join("bindings.rs"),
-        split_source_dir_1.join("quickjs-internals.h"),
+        src_dir.join("core/quickjs-internals.h"),
         &defines,
         include_dir,
     );
