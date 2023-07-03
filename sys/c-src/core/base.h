@@ -26,6 +26,7 @@
 #ifndef QUICKJS_BASE_H
 #define QUICKJS_BASE_H
 
+#include <alloca.h>
 #include <assert.h>
 #include <fenv.h>
 #include <inttypes.h>
