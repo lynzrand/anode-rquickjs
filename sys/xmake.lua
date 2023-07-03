@@ -10,4 +10,5 @@ target("quickjs")
     add_files("c-src/core/builtins/*.c")
     add_files("c-src/anode/*.c")
     add_includedirs("c-include")
+    add_includedirs("c-src")
     
