@@ -1,6 +1,11 @@
 #ifndef ANODE_EXT_H
 #define ANODE_EXT_H
+#include <string.h>
+
 #include "core/quickjs-internals.h"
+#include "core/types.h"
+#include "quickjs/list.h"
+#include "quickjs/quickjs.h"
 
 // This file is used to generate LLVM IR for the API of Anode.
 
@@ -55,6 +60,21 @@ anode_js_new_float64(JSContext* ctx, double d) {
 #pragma endregion
 
 #pragma region Function Bytecode
+
+/// Does the same bookkeeping stuff as the start of `JS_CallInternal`
+static inline void
+anode_init_stackframe(JSContext* ctx, JSStackFrame* sf, JSValueConst func) {
+  memset(sf, 0, sizeof(*sf));
+  sf->prev_frame = ctx->rt->current_stack_frame;
+  sf->cur_func = func;
+  init_list_head(&sf->var_ref_list);
+  ctx->rt->current_stack_frame = sf;
+}
+
+/// Does the same bookkeeping stuff as the end of `JS_CallInternal`
+static inline void anode_exit_stackframe(JSContext* ctx, JSStackFrame* _sf) {
+  ctx->rt->current_stack_frame = ctx->rt->current_stack_frame->prev_frame;
+}
 
 JSFunctionBytecode* anode_get_function_bytecode(JSValueConst function);
 
