@@ -262,7 +262,7 @@ JSValue anode_js_neg_any(JSContext* ctx, JSValue x) {
     return JS_NewFloat64(ctx, -JS_VALUE_GET_FLOAT64(x));
   } else {
     JSValue args[] = {x};
-    if (js_unary_arith_slow(ctx, args + 2, OP_neg)) {
+    if (js_unary_arith_slow(ctx, args + 1, OP_neg)) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -276,7 +276,7 @@ JSValue anode_js_plus_any(JSContext* ctx, JSValue x) {
     return x;
   } else {
     JSValue args[] = {x};
-    if (js_unary_arith_slow(ctx, args + 2, OP_plus)) {
+    if (js_unary_arith_slow(ctx, args + 1, OP_plus)) {
       return JS_EXCEPTION;
     }
     return args[0];
