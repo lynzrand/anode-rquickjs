@@ -201,7 +201,7 @@ JSValue anode_js_bit_xor_any(JSContext* ctx, JSValue x, JSValue y) {
   }
 }
 
-JSValue anode_js_bit_not_any(JSContext* ctx, JSValue x) {
+JSValue anode_js_not_any(JSContext* ctx, JSValue x) {
   if (JS_VALUE_GET_TAG(x) == JS_TAG_INT) {
     return JS_NewInt32(ctx, ~JS_VALUE_GET_INT(x));
   } else {
@@ -277,18 +277,6 @@ JSValue anode_js_plus_any(JSContext* ctx, JSValue x) {
   } else {
     JSValue args[] = {x};
     if (js_unary_arith_slow(ctx, args + 1, OP_plus)) {
-      return JS_EXCEPTION;
-    }
-    return args[0];
-  }
-}
-
-JSValue anode_js_not_any(JSContext* ctx, JSValue x) {
-  if (JS_VALUE_GET_TAG(x) == JS_TAG_BOOL) {
-    return JS_NewBool(ctx, !JS_VALUE_GET_BOOL(x));
-  } else {
-    JSValue args[] = {x};
-    if (js_not_slow(ctx, args + 1)) {
       return JS_EXCEPTION;
     }
     return args[0];
