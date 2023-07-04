@@ -62,17 +62,28 @@ anode_js_new_float64(JSContext* ctx, double d) {
 #pragma region Function Bytecode
 
 /// Does the same bookkeeping stuff as the start of `JS_CallInternal`
-static inline void
-anode_init_stackframe(JSContext* ctx, JSStackFrame* sf, JSValueConst func) {
+static inline void anode_stackframe_init(
+  JSContext* ctx,
+  JSStackFrame* sf,
+  JSValueConst func,
+  int32_t argc,
+  JSValue* argv) {
   memset(sf, 0, sizeof(*sf));
   sf->prev_frame = ctx->rt->current_stack_frame;
   sf->cur_func = func;
+  sf->arg_buf = argv;
+  sf->arg_count = argc;
   init_list_head(&sf->var_ref_list);
   ctx->rt->current_stack_frame = sf;
 }
 
+static inline void
+anode_stackframe_add_locals(JSStackFrame* sf, JSValue* locv) {
+  sf->var_buf = locv;
+}
+
 /// Does the same bookkeeping stuff as the end of `JS_CallInternal`
-static inline void anode_exit_stackframe(JSContext* ctx, JSStackFrame* _sf) {
+static inline void anode_stackframe_exit(JSContext* ctx, JSStackFrame* _sf) {
   ctx->rt->current_stack_frame = ctx->rt->current_stack_frame->prev_frame;
 }
 
