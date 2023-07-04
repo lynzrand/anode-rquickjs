@@ -83,8 +83,8 @@ anode_stackframe_add_locals(JSStackFrame* sf, JSValue* locv) {
 }
 
 /// Does the same bookkeeping stuff as the end of `JS_CallInternal`
-static inline void anode_stackframe_exit(JSContext* ctx, JSStackFrame* _sf) {
-  ctx->rt->current_stack_frame = ctx->rt->current_stack_frame->prev_frame;
+static inline void anode_stackframe_exit(JSContext* ctx, JSStackFrame* sf) {
+  ctx->rt->current_stack_frame = sf->prev_frame;
 }
 
 JSFunctionBytecode* anode_get_function_bytecode(JSValueConst function);
