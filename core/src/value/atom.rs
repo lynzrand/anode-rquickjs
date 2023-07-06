@@ -86,17 +86,24 @@ impl<'js> Atom<'js> {
     /// Convert the atom to a javascript string.
     pub fn to_string(&self) -> Result<StdString> {
         unsafe {
-            let c_str = qjs::JS_AtomToCString(self.ctx.as_ptr(), self.atom);
+            let str = qjs::JS_AtomToString(self.ctx.as_ptr(), self.atom);
+            if qjs::JS_IsException(str) {
+                return Err(self.ctx.raise_exception());
+            }
+            let mut len = 0;
+            let c_str = qjs::JS_ToCStringLen2(self.ctx.as_ptr(), &mut len, str, 0);
             if c_str.is_null() {
                 // Might not ever happen but I am not 100% sure
                 // so just incase check it.
                 qjs::JS_FreeCString(self.ctx.as_ptr(), c_str);
+                qjs::JS_FreeValue(self.ctx.as_ptr(), str);
                 return Err(Error::Unknown);
             }
-            let bytes = CStr::from_ptr(c_str).to_bytes();
+            let bytes = std::slice::from_raw_parts(c_str as *const u8, len as usize);
             // Safety: quickjs should return valid utf8 so this should be safe.
             let res = std::str::from_utf8_unchecked(bytes).to_string();
             qjs::JS_FreeCString(self.ctx.as_ptr(), c_str);
+            qjs::JS_FreeValue(self.ctx.as_ptr(), str);
             Ok(res)
         }
     }
@@ -116,19 +123,26 @@ impl<'js> Atom<'js> {
     }
 
     /// Create an atom from raw quickjs atom value.
-    #[doc(hidden)]
+    ///
+    /// # Safety
+    ///
+    /// `val` must be a valid quickjs atom value, either got from quickjs internals, or returned from
+    /// [`self.as_atom_val()`].
     pub unsafe fn from_atom_val(ctx: Ctx<'js>, val: qjs::JSAtom) -> Self {
         Atom { atom: val, ctx }
     }
 
     /// Get the raw quickjs atom value.
-    #[doc(hidden)]
     pub fn as_atom_val(&self) -> qjs::JSAtom {
         self.atom
     }
 
     /// Get the [`std::String`] representation of a raw atom.
-    #[doc(hidden)]
+    ///
+    /// # Safety
+    ///
+    /// `atom` must be a valid quickjs atom value, either got from quickjs internals, or returned from
+    /// [`self.as_atom_val()`].
     pub unsafe fn resolve_raw(ctx: Ctx<'js>, atom: qjs::JSAtom) -> Result<StdString> {
         let atom = Atom::from_atom_val(ctx, atom);
         let res = atom.to_string()?;
@@ -137,7 +151,6 @@ impl<'js> Atom<'js> {
     }
 
     /// Get the raw atom value from a [`&str`].
-    #[doc(hidden)]
     pub fn from_str_raw(ctx: Ctx<'js>, name: &str) -> qjs::JSAtom {
         Self::from_str(ctx, name).unwrap().atom
     }
