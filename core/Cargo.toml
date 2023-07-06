@@ -114,6 +114,7 @@ max-args-16 = ["max-args-15"]
 
 # Enable QuickJS dumps for debug
 dump-bytecode = ["rquickjs-sys/dump-bytecode"]
+dump-rc = ["rquickjs-sys/dump-rc"]
 dump-gc = ["rquickjs-sys/dump-gc"]
 dump-gc-free = ["rquickjs-sys/dump-gc-free"]
 dump-free = ["rquickjs-sys/dump-free"]

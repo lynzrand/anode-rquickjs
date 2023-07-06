@@ -16,6 +16,7 @@ repository = "https://github.com/DelSkayn/rquickjs.git"
 [build-dependencies]
 cc = { version = "1", features = ["parallel"] }
 log = "0.4"
+pkg-config = "0.3.27"
 
 [build-dependencies.bindgen-rs]
 package = "bindgen"

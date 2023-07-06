@@ -798,12 +798,39 @@ JSValue __js_printf_like(2, 3)
   JS_ThrowInternalError(JSContext* ctx, const char* fmt, ...);
 JSValue JS_ThrowOutOfMemory(JSContext* ctx);
 
+#ifdef CONFIG_DUMP_RC
+// RC Tracing operations are implemented in memory.c
+
+/// Helper function to trace reference counting operations. Tag is used to
+/// distinguish between different types of values in the trace output.
+void __JS_TraceRefCount(void* ptr, int offset, int current, const char* tag);
+void __JS_TraceRefCountIdx(
+  size_t ptr,
+  int offset,
+  int current,
+  const char* tag);
+
+/// Enable reference count tracing that outputs to the give file. Enabling referece
+/// count tracing will SEVERELY impact performance, due to the large number of
+/// unwinding and file output operations, and should only be used when debugging
+/// reference counting issues.
+void JS_SetUpRefCountTracing(const char* out_file);
+#else
+
+// stub
+static inline void
+__JS_TraceRefCount(void* ptr, int offset, int current, const char* tag) {}
+static inline void
+__JS_TraceRefCountIdx(size_t ptr, int offset, int current, const char* tag) {}
+static inline void JS_SetUpRefCountTracing(const char* out_file) {}
+#endif
+
 void __JS_FreeValue(JSContext* ctx, JSValue v);
 static inline void JS_FreeValue(JSContext* ctx, JSValue v) {
   if (JS_VALUE_HAS_REF_COUNT(v)) {
     JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(v);
 #ifdef CONFIG_DUMP_RC
-    fprintf(stderr, "free %p\n", p);
+    __JS_TraceRefCount(p, -1, p->ref_count - 1, "rc");
 #endif
     if (--p->ref_count <= 0) {
       __JS_FreeValue(ctx, v);
@@ -815,7 +842,7 @@ static inline void JS_FreeValueRT(JSRuntime* rt, JSValue v) {
   if (JS_VALUE_HAS_REF_COUNT(v)) {
     JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(v);
 #ifdef CONFIG_DUMP_RC
-    fprintf(stderr, "free %p\n", p);
+    __JS_TraceRefCount(p, -1, p->ref_count - 1, "rc");
 #endif
     if (--p->ref_count <= 0) {
       __JS_FreeValueRT(rt, v);
@@ -828,7 +855,7 @@ static inline JSValue JS_DupValue(JSContext* ctx, JSValueConst v) {
     JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(v);
     p->ref_count++;
 #ifdef CONFIG_DUMP_RC
-    fprintf(stderr, "dup %p\n", p);
+    __JS_TraceRefCount(p, 1, p->ref_count, "rc");
 #endif
   }
   return v;
@@ -839,7 +866,7 @@ static inline JSValue JS_DupValueRT(JSRuntime* rt, JSValueConst v) {
     JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(v);
     p->ref_count++;
 #ifdef CONFIG_DUMP_RC
-    fprintf(stderr, "dup %p\n", p);
+    __JS_TraceRefCount(p, 1, p->ref_count, "rc");
 #endif
   }
   return v;

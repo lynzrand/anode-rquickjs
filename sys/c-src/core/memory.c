@@ -25,7 +25,10 @@
 
 #include "memory.h"
 
+#include <stddef.h>
+
 #include "function.h"
+#include "quickjs/quickjs.h"
 #include "runtime.h"
 #include "shape.h"
 #include "string.h"
@@ -610,3 +613,92 @@ void JS_DumpMemoryUsage(FILE* fp, const JSMemoryUsage* s, JSRuntime* rt) {
       s->binary_object_size);
   }
 }
+
+#ifdef CONFIG_DUMP_RC
+
+  #include <execinfo.h>
+  #include <signal.h>
+  #include <stdio.h>
+
+  #if __has_include(<libunwind.h>)
+    #include <libunwind.h>
+    #define LIBUNWIND_EXISTS
+  #endif
+
+  #define UNWIND_DEPTH 8
+
+static FILE* ref_count_out_file = NULL;
+static struct sigaction old_sigaction;
+
+static void print_unwind_result() {
+  #ifdef LIBUNWIND_EXISTS
+  // We use libunwind to get a pretty stack trace if possible
+  unw_cursor_t cursor;
+  unw_context_t context;
+  unw_getcontext(&context);
+
+  int curr_depth = 0;
+  unw_init_local(&cursor, &context);
+
+  while (unw_step(&cursor) > 0 && curr_depth < UNWIND_DEPTH) {
+    unw_word_t offset;
+    size_t ip;
+    char sym[256] = {0};
+    unw_get_proc_name(&cursor, sym, sizeof(sym), &offset);
+    unw_get_reg(&cursor, UNW_REG_IP, &ip);
+    fprintf(ref_count_out_file, "  at %s(%p)+%ld\n", sym, (void*)ip, offset);
+    curr_depth++;
+  }
+  #else
+  // Otherwise we resort to glibc backtrace
+  backtrace_symbols_fd(&ptr, UNWIND_DEPTH, fileno(ref_count_out_file));
+  #endif
+}
+
+/// Helper function to trace reference counting operations.
+void __JS_TraceRefCount(void* ptr, int offset, int current, const char* tag) {
+  __JS_TraceRefCountIdx((size_t)ptr, offset, current, tag);
+}
+
+void __JS_TraceRefCountIdx(
+  size_t ptr,
+  int offset,
+  int current_value,
+  const char* tag) {
+  if (ref_count_out_file) {
+    fprintf(
+      ref_count_out_file,
+      "=== %s 0x%lx, rc %d, to %d\n",
+      tag,
+      ptr,
+      offset,
+      current_value);
+    print_unwind_result();
+
+    fprintf(ref_count_out_file, "\n");
+  }
+}
+
+void JS_RefCountTracingCallbackOnAbort(int signum) {
+  if (ref_count_out_file) {
+    fprintf(ref_count_out_file, "\n\n=== SIGABRT\n");
+    print_unwind_result();
+    fflush(ref_count_out_file);
+    fclose(ref_count_out_file);
+    ref_count_out_file = NULL;
+  }
+  sigaction(SIGABRT, &old_sigaction, NULL);
+}
+
+/// Enable reference count tracing that outputs to the give file.
+void JS_SetUpRefCountTracing(const char* out_file) {
+  ref_count_out_file = fopen(out_file, "w");
+
+  struct sigaction sigact;
+  sigact.sa_handler = JS_RefCountTracingCallbackOnAbort;
+  sigemptyset(&sigact.sa_mask);
+  sigact.sa_flags = 0;
+  sigaction(SIGABRT, &sigact, &old_sigaction);
+}
+
+#endif

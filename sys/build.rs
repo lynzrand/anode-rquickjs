@@ -101,6 +101,14 @@ fn main() {
         }
     }
 
+    // Link project to libunwind if available
+    if let Ok(libunwind) = pkg_config::probe_library("libunwind") {
+        for framework in libunwind.libs {
+            println!("cargo:rustc-link-lib={}", framework);
+        }
+        println!("cargo:rustc-link-lib=unwind-x86_64");
+    }
+
     let include_dir = [src_dir, header_dir, &quickjs_header_dir];
 
     info!("Finished configuration");

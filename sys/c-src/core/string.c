@@ -25,10 +25,13 @@
 
 #include "string.h"
 
+#include <stdio.h>
+
 #include "convertion.h"
 #include "exception.h"
 #include "quickjs/cutils.h"
 #include "quickjs/list.h"
+#include "quickjs/quickjs.h"
 
 /* Note: the string contents are uninitialized */
 JSString* js_alloc_string_rt(JSRuntime* rt, int max_len, int is_wide_char) {
@@ -212,6 +215,9 @@ JSAtom JS_DupAtom(JSContext* ctx, JSAtom v) {
     rt = ctx->rt;
     p = rt->atom_array[v];
     p->header.ref_count++;
+#ifdef CONFIG_DUMP_RC
+    __JS_TraceRefCountIdx(v, 1, p->header.ref_count - 1, "atom");
+#endif
   }
   return v;
 }
@@ -593,6 +599,11 @@ void __JS_FreeAtom(JSRuntime* rt, uint32_t i) {
   JSAtomStruct* p;
 
   p = rt->atom_array[i];
+
+#ifdef CONFIG_DUMP_RC
+  __JS_TraceRefCountIdx(i, -1, p->header.ref_count - 1, "atom");
+#endif
+
   if (--p->header.ref_count > 0)
     return;
   JS_FreeAtomStruct(rt, p);
@@ -723,6 +734,16 @@ JSValue __JS_AtomToValue(JSContext* ctx, JSAtom atom, BOOL force_string) {
     JSAtomStruct* p;
     assert(atom < rt->atom_size);
     p = rt->atom_array[atom];
+
+#ifdef CONFIG_DUMP_RC
+    if (atom_is_free(p)) {
+      fprintf(stderr, "Error: Accessing freed atom %d\n", atom);
+      abort();
+    }
+#else
+    assert(!atom_is_free(p));
+#endif
+
     if (p->atom_type == JS_ATOM_TYPE_STRING) {
       goto ret_string;
     } else if (force_string) {

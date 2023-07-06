@@ -19,4 +19,10 @@ pub use r#async::{AsyncRuntime, AsyncWeakRuntime};
 #[cfg(feature = "futures")]
 mod spawner;
 
+#[cfg(feature = "dump-rc")]
+pub fn setup_dump_rc(out_file: &str) {
+    let out_file = std::ffi::CString::new(out_file).unwrap();
+    unsafe { crate::qjs::JS_SetUpRefCountTracing(out_file.as_ptr()) };
+}
+
 pub use crate::qjs::JSMemoryUsage as MemoryUsage;

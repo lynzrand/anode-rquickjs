@@ -11,4 +11,8 @@ target("quickjs")
     add_files("c-src/anode/*.c")
     add_includedirs("c-include")
     add_includedirs("c-src")
+
+    add_defines("CONFIG_VERSION=\"TEST\"")
+    add_defines("CONFIG_DUMP_RC")
+    add_defines("CONFIG_BIGNUM")
     
