@@ -25,4 +25,6 @@ pub fn setup_dump_rc(out_file: &str) {
     unsafe { crate::qjs::JS_SetUpRefCountTracing(out_file.as_ptr()) };
 }
 
+mod debug;
+
 pub use crate::qjs::JSMemoryUsage as MemoryUsage;
