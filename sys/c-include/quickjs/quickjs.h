@@ -815,6 +815,8 @@ void __JS_TraceRefCountIdx(
 /// unwinding and file output operations, and should only be used when debugging
 /// reference counting issues.
 void JS_SetUpRefCountTracing(const char* out_file);
+
+void __JS_TraceObjectRefCount(JSValueConst v, int offset, int current);
 #else
 
 // stub
@@ -830,7 +832,8 @@ static inline void JS_FreeValue(JSContext* ctx, JSValue v) {
   if (JS_VALUE_HAS_REF_COUNT(v)) {
     JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(v);
 #ifdef CONFIG_DUMP_RC
-    __JS_TraceRefCount(p, -1, p->ref_count - 1, "rc");
+    __JS_TraceObjectRefCount(v, -1, p->ref_count - 1);
+
 #endif
     if (--p->ref_count <= 0) {
       __JS_FreeValue(ctx, v);
@@ -842,7 +845,7 @@ static inline void JS_FreeValueRT(JSRuntime* rt, JSValue v) {
   if (JS_VALUE_HAS_REF_COUNT(v)) {
     JSRefCountHeader* p = (JSRefCountHeader*)JS_VALUE_GET_PTR(v);
 #ifdef CONFIG_DUMP_RC
-    __JS_TraceRefCount(p, -1, p->ref_count - 1, "rc");
+    __JS_TraceObjectRefCount(v, -1, p->ref_count - 1);
 #endif
     if (--p->ref_count <= 0) {
       __JS_FreeValueRT(rt, v);

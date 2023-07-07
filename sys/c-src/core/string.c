@@ -203,6 +203,9 @@ JSAtom JS_DupAtomRT(JSRuntime* rt, JSAtom v) {
   if (!__JS_AtomIsConst(v)) {
     p = rt->atom_array[v];
     p->header.ref_count++;
+#ifdef CONFIG_DUMP_RC
+    __JS_TraceRefCountIdx(v, 1, p->header.ref_count, "atom");
+#endif
   }
   return v;
 }
@@ -216,7 +219,7 @@ JSAtom JS_DupAtom(JSContext* ctx, JSAtom v) {
     p = rt->atom_array[v];
     p->header.ref_count++;
 #ifdef CONFIG_DUMP_RC
-    __JS_TraceRefCountIdx(v, 1, p->header.ref_count - 1, "atom");
+    __JS_TraceRefCountIdx(v, 1, p->header.ref_count + 1, "atom");
 #endif
   }
   return v;
@@ -390,8 +393,12 @@ JSAtom __JS_NewAtom(JSRuntime* rt, JSString* str, int atom_type) {
       if (
         p->hash == h && p->atom_type == atom_type && p->len == len
         && js_string_memcmp(p, str, len) == 0) {
-        if (!__JS_AtomIsConst(i))
+        if (!__JS_AtomIsConst(i)) {
           p->header.ref_count++;
+#ifdef CONFIG_DUMP_RC
+          __JS_TraceRefCountIdx(i, 1, p->header.ref_count, "atom");
+#endif
+        }
         goto done;
       }
       i = p->hash_next;
@@ -494,6 +501,10 @@ JSAtom __JS_NewAtom(JSRuntime* rt, JSString* str, int atom_type) {
   rt->atom_free_index = atom_get_free(rt->atom_array[i]);
   rt->atom_array[i] = p;
 
+#ifdef CONFIG_DUMP_RC
+  __JS_TraceRefCountIdx(i, 1, 1, "atom");
+#endif
+
   p->hash = h;
   p->hash_next = i; /* atom_index */
   p->atom_type = atom_type;
@@ -561,6 +572,9 @@ void JS_FreeAtomStruct(JSRuntime* rt, JSAtomStruct* p) {
     }
 #endif
   uint32_t i = p->hash_next; /* atom_index */
+#ifdef CONFIG_DUMP_RC
+  __JS_TraceRefCountIdx(i, -1, 0, "atom");
+#endif
   if (p->atom_type != JS_ATOM_TYPE_SYMBOL) {
     JSAtomStruct *p0, *p1;
     uint32_t h0;

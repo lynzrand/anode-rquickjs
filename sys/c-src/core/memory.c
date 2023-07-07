@@ -630,7 +630,7 @@ void JS_DumpMemoryUsage(FILE* fp, const JSMemoryUsage* s, JSRuntime* rt) {
 static FILE* ref_count_out_file = NULL;
 static struct sigaction old_sigaction;
 
-static void print_unwind_result() {
+__attribute((always_inline)) static void print_unwind_result() {
   #ifdef LIBUNWIND_EXISTS
   // We use libunwind to get a pretty stack trace if possible
   unw_cursor_t cursor;
@@ -655,12 +655,19 @@ static void print_unwind_result() {
   #endif
 }
 
-/// Helper function to trace reference counting operations.
-void __JS_TraceRefCount(void* ptr, int offset, int current, const char* tag) {
-  __JS_TraceRefCountIdx((size_t)ptr, offset, current, tag);
+void __JS_TraceObjectRefCount(JSValueConst v, int offset, int current) {
+  JSRefCountHeader* p = JS_VALUE_GET_PTR(v);
+  if (
+    JS_VALUE_GET_TAG(v) == JS_TAG_STRING
+    && ((JSString*)JS_VALUE_GET_PTR(v))->atom_type) {
+    JSString* p = (JSString*)JS_VALUE_GET_PTR(v);
+    __JS_TraceRefCountIdx(p->hash_next, offset, current, "atom");
+  } else {
+    __JS_TraceRefCount(p, -1, p->ref_count - 1, "rc");
+  }
 }
 
-void __JS_TraceRefCountIdx(
+__attribute((always_inline)) static void __JS_TraceRefCountIdx_inner(
   size_t ptr,
   int offset,
   int current_value,
@@ -677,6 +684,19 @@ void __JS_TraceRefCountIdx(
 
     fprintf(ref_count_out_file, "\n");
   }
+}
+
+/// Helper function to trace reference counting operations.
+void __JS_TraceRefCount(void* ptr, int offset, int current, const char* tag) {
+  __JS_TraceRefCountIdx((size_t)ptr, offset, current, tag);
+}
+
+void __JS_TraceRefCountIdx(
+  size_t ptr,
+  int offset,
+  int current_value,
+  const char* tag) {
+  __JS_TraceRefCountIdx_inner(ptr, offset, current_value, tag);
 }
 
 void JS_RefCountTracingCallbackOnAbort(int signum) {

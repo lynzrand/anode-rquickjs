@@ -105,6 +105,15 @@ __maybe_unused void JS_DumpString(JSRuntime* rt, const JSString* p);
 
 /* same as JS_FreeValueRT() but faster */
 static inline void js_free_string(JSRuntime* rt, JSString* str) {
+#ifdef CONFIG_DUMP_RC
+  if (str->atom_type) {
+    __JS_TraceRefCountIdx(
+      str->hash_next /*atom_index*/,
+      -1,
+      str->header.ref_count - 1,
+      "atom");
+  }
+#endif
   if (--str->header.ref_count <= 0) {
     if (str->atom_type) {
       JS_FreeAtomStruct(rt, str);
