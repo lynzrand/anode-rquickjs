@@ -512,19 +512,24 @@ macro_rules! type_impls {
 }
 
 type_impls! {
-    Uninitialized: uninitialized => JS_TAG_UNINITIALIZED,
-    Undefined: undefined => JS_TAG_UNDEFINED,
-    Null: null => JS_TAG_NULL,
-    Bool: bool => JS_TAG_BOOL,
-    Int: int => JS_TAG_INT,
-    Float: float => JS_TAG_FLOAT64,
-    String: string => JS_TAG_STRING,
-    Symbol: symbol => JS_TAG_SYMBOL,
-    Array: array => JS_TAG_OBJECT,
-    Function: function => JS_TAG_OBJECT,
-    Object: object => JS_TAG_OBJECT,
-    Module: module => JS_TAG_MODULE,
+    BigDecimal: big_decimal => JS_TAG_BIG_DECIMAL,
     BigInt: big_int => JS_TAG_BIG_INT,
+    BigFloat: big_float => JS_TAG_BIG_FLOAT,
+    Symbol: symbol => JS_TAG_SYMBOL,
+    String: string => JS_TAG_STRING,
+    Module: module => JS_TAG_MODULE,
+    FunctionBytecode: function_bytecode => JS_TAG_FUNCTION_BYTECODE,
+    Object: object => JS_TAG_OBJECT,
+    Function: function => JS_TAG_OBJECT,
+    Array: array => JS_TAG_OBJECT,
+    Int: int => JS_TAG_INT,
+    Bool: bool => JS_TAG_BOOL,
+    Null: null => JS_TAG_NULL,
+    Undefined: undefined => JS_TAG_UNDEFINED,
+    Uninitialized: uninitialized => JS_TAG_UNINITIALIZED,
+    CatchOffset: catch_offset => JS_TAG_CATCH_OFFSET,
+    Exception: exception => JS_TAG_EXCEPTION,
+    Float: float => JS_TAG_FLOAT64,
 }
 
 macro_rules! sub_types {
