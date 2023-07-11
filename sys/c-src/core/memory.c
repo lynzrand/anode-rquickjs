@@ -651,7 +651,9 @@ __attribute((always_inline)) static void print_unwind_result() {
   }
   #else
   // Otherwise we resort to glibc backtrace
-  backtrace_symbols_fd(&ptr, UNWIND_DEPTH, fileno(ref_count_out_file));
+  void* buf[UNWIND_DEPTH];
+  int depth = backtrace(buf, UNWIND_DEPTH);
+  backtrace_symbols_fd(&buf, depth, fileno(ref_count_out_file));
   #endif
 }
 
