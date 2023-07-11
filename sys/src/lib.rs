@@ -28,3 +28,6 @@ include!("inlines/ptr_32_nan_boxing.rs");
 include!("inlines/common.rs");
 
 pub mod rt_binding;
+
+/// Implementation to raw types
+pub mod raw;
