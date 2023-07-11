@@ -81,7 +81,10 @@ void dbuf_put_sleb128(DynBuf* s, int32_t v1) {
   dbuf_put_leb128(s, (2 * v) ^ -(v >> 31));
 }
 
-int get_leb128(uint32_t* pval, const uint8_t* buf, const uint8_t* buf_end) {
+int js_util_get_leb128(
+  uint32_t* pval,
+  const uint8_t* buf,
+  const uint8_t* buf_end) {
   const uint8_t* ptr = buf;
   uint32_t v, a, i;
   v = 0;
@@ -99,10 +102,13 @@ int get_leb128(uint32_t* pval, const uint8_t* buf, const uint8_t* buf_end) {
   return -1;
 }
 
-int get_sleb128(int32_t* pval, const uint8_t* buf, const uint8_t* buf_end) {
+int js_util_get_sleb128(
+  int32_t* pval,
+  const uint8_t* buf,
+  const uint8_t* buf_end) {
   int ret;
   uint32_t val;
-  ret = get_leb128(&val, buf, buf_end);
+  ret = js_util_get_leb128(&val, buf, buf_end);
   if (ret < 0) {
     *pval = 0;
     return -1;
@@ -111,7 +117,10 @@ int get_sleb128(int32_t* pval, const uint8_t* buf, const uint8_t* buf_end) {
   return ret;
 }
 
-int find_line_num(JSContext* ctx, JSFunctionBytecode* b, uint32_t pc_value) {
+int js_bytecode_find_line_num(
+  JSContext* ctx,
+  JSFunctionBytecode* b,
+  uint32_t pc_value) {
   const uint8_t *p_end, *p;
   int new_line_num, line_num, pc, v, ret;
   unsigned int op;
@@ -129,12 +138,12 @@ int find_line_num(JSContext* ctx, JSFunctionBytecode* b, uint32_t pc_value) {
     op = *p++;
     if (op == 0) {
       uint32_t val;
-      ret = get_leb128(&val, p, p_end);
+      ret = js_util_get_leb128(&val, p, p_end);
       if (ret < 0)
         goto fail;
       pc += val;
       p += ret;
-      ret = get_sleb128(&v, p, p_end);
+      ret = js_util_get_sleb128(&v, p, p_end);
       if (ret < 0) {
       fail:
         /* should never happen */
@@ -156,7 +165,10 @@ int find_line_num(JSContext* ctx, JSFunctionBytecode* b, uint32_t pc_value) {
   return line_num;
 }
 
-int find_column_num(JSContext* ctx, JSFunctionBytecode* b, uint32_t pc_value) {
+int js_bytecode_find_column_num(
+  JSContext* ctx,
+  JSFunctionBytecode* b,
+  uint32_t pc_value) {
   const uint8_t *p_end, *p;
   int new_column_num, column_num, pc, v, ret;
   unsigned int op;
@@ -174,12 +186,12 @@ int find_column_num(JSContext* ctx, JSFunctionBytecode* b, uint32_t pc_value) {
     op = *p++;
     if (op == 0) {
       uint32_t val;
-      ret = get_leb128(&val, p, p_end);
+      ret = js_util_get_leb128(&val, p, p_end);
       if (ret < 0)
         goto fail;
       pc += val;
       p += ret;
-      ret = get_sleb128(&v, p, p_end);
+      ret = js_util_get_sleb128(&v, p, p_end);
       if (ret < 0) {
       fail:
         /* should never happen */
@@ -1283,8 +1295,12 @@ void build_backtrace(
       b = p->u.func.function_bytecode;
       backtrace_barrier = b->backtrace_barrier;
       if (b->has_debug) {
-        line_num = find_line_num(ctx, b, sf->cur_pc - b->byte_code_buf - 1);
-        column_num = find_column_num(ctx, b, sf->cur_pc - b->byte_code_buf - 1);
+        line_num =
+          js_bytecode_find_line_num(ctx, b, sf->cur_pc - b->byte_code_buf - 1);
+        column_num = js_bytecode_find_column_num(
+          ctx,
+          b,
+          sf->cur_pc - b->byte_code_buf - 1);
         line_num = line_num == -1 ? b->debug.line_num : line_num;
         column_num = column_num == -1 ? b->debug.column_num : column_num;
         if (column_num != -1) {

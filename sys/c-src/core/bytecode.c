@@ -1159,7 +1159,7 @@ static int bc_get_u64(BCReaderState* s, uint64_t* pval) {
 
 static int bc_get_leb128(BCReaderState* s, uint32_t* pval) {
   int ret;
-  ret = get_leb128(pval, s->ptr, s->buf_end);
+  ret = js_util_get_leb128(pval, s->ptr, s->buf_end);
   if (unlikely(ret < 0))
     return bc_read_error_end(s);
   s->ptr += ret;
@@ -1168,7 +1168,7 @@ static int bc_get_leb128(BCReaderState* s, uint32_t* pval) {
 
 static int bc_get_sleb128(BCReaderState* s, int32_t* pval) {
   int ret;
-  ret = get_sleb128(pval, s->ptr, s->buf_end);
+  ret = js_util_get_sleb128(pval, s->ptr, s->buf_end);
   if (unlikely(ret < 0))
     return bc_read_error_end(s);
   s->ptr += ret;
