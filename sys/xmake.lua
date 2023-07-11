@@ -15,4 +15,5 @@ target("quickjs")
     add_defines("CONFIG_VERSION=\"TEST\"")
     add_defines("CONFIG_DUMP_RC")
     add_defines("CONFIG_BIGNUM")
+    add_defines("DEBUG")
     

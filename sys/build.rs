@@ -101,6 +101,11 @@ fn main() {
         }
     }
 
+    // If we are compiling using debug mode, define DEBUG
+    if env::var("DEBUG").is_ok() {
+        defines.push(("DEBUG".into(), None));
+    }
+
     // Link project to libunwind if available
     if let Ok(libunwind) = pkg_config::probe_library("libunwind") {
         for framework in libunwind.libs {
