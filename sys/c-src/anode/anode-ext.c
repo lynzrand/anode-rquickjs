@@ -1,6 +1,7 @@
 #include "anode-ext.h"
 
 #include <assert.h>
+#include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -141,20 +142,22 @@ JSValue anode_js_mod_any(JSContext* ctx, JSValue x, JSValue y) {
     int32_t x_int = JS_VALUE_GET_INT(x);
     int32_t y_int = JS_VALUE_GET_INT(y);
     if (y_int == 0) {
-      return JS_EXCEPTION;
+      goto slow;
     }
     return JS_NewInt32(ctx, x_int % y_int);
   } else if (JS_VALUE_IS_BOTH_FLOAT(x, y)) {
     return JS_NewFloat64(
       ctx,
       fmod(JS_VALUE_GET_FLOAT64(x), JS_VALUE_GET_FLOAT64(y)));
-  } else {
-    JSValue args[] = {x, y};
-    if (js_binary_arith_slow(ctx, args + 2, OP_mod)) {
-      return JS_EXCEPTION;
-    }
-    return args[0];
   }
+  JSValue args[2];
+slow:
+  args[0] = x;
+  args[1] = y;
+  if (js_binary_arith_slow(ctx, args + 2, OP_mod)) {
+    return JS_EXCEPTION;
+  }
+  return args[0];
 }
 
 JSValue anode_js_pow_any(JSContext* ctx, JSValue x, JSValue y) {
