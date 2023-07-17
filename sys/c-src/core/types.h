@@ -593,7 +593,8 @@ typedef struct JSFunctionBytecode {
   uint8_t has_debug : 1;
   uint8_t backtrace_barrier : 1; /* stop backtrace on this function */
   uint8_t read_only_bytecode : 1;
-  /* XXX: 4 bits available */
+  uint8_t has_eval_call_in_children : 1; /* Has eval() self or children */
+  /* XXX: 3 bits available */
   uint8_t* byte_code_buf; /* (self pointer) */
   int byte_code_len;
   JSAtom func_name;

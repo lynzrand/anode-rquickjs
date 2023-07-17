@@ -35,6 +35,7 @@
 #include "module.h"
 #include "object.h"
 #include "quickjs/libregexp.h"
+#include "quickjs/quickjs.h"
 #include "runtime.h"
 #include "string.h"
 
@@ -12213,6 +12214,13 @@ static JSValue js_create_function(JSContext* ctx, JSFunctionDef* fd) {
   b->super_allowed = fd->super_allowed;
   b->arguments_allowed = fd->arguments_allowed;
   b->backtrace_barrier = fd->backtrace_barrier;
+  b->has_eval_call_in_children = fd->has_eval_call;
+  for (int i = 0; i < b->cpool_count; i++) {
+    if (JS_VALUE_GET_TAG(b->cpool[i]) == JS_TAG_FUNCTION_BYTECODE) {
+      JSFunctionBytecode* f = JS_VALUE_GET_PTR(b->cpool[i]);
+      b->has_eval_call_in_children |= f->has_eval_call_in_children;
+    }
+  }
   b->realm = JS_DupContext(ctx);
 
   b->ic = fd->ic;

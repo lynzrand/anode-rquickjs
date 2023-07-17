@@ -67,7 +67,7 @@ JSValue anode_js_add_any(JSContext* ctx, JSValue x, JSValue y) {
   } else {
     JSValue args[] = {x, y};
     // js_xxx_slow functions expect the input sp at the end of the args array
-    if (js_add_slow(ctx, args + 2)) {
+    if (js_add_slow(ctx, args + 2) < 0) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -91,7 +91,7 @@ JSValue anode_js_sub_any(JSContext* ctx, JSValue x, JSValue y) {
       JS_VALUE_GET_FLOAT64(x) - JS_VALUE_GET_FLOAT64(y));
   } else {
     JSValue args[] = {x, y};
-    if (js_binary_arith_slow(ctx, args + 2, OP_sub)) {
+    if (js_binary_arith_slow(ctx, args + 2, OP_sub) < 0) {
       return JS_EXCEPTION;
     }
     return args[0];
@@ -473,4 +473,31 @@ JSValue anode_js_dec_any(JSContext* ctx, JSValue x) {
     }
     return args[0];
   }
+}
+
+JSValue anode_run_eval(
+  JSContext* ctx,
+  uint16_t scope_idx,
+  int call_argc,
+  JSValueConst* call_argv) {
+  JSValue ret_val;
+  JSValue obj;
+  if (js_same_value(ctx, call_argv[-1], ctx->eval_obj)) {
+    if (call_argc >= 1)
+      obj = call_argv[0];
+    else
+      obj = JS_UNDEFINED;
+    ret_val =
+      JS_EvalObject(ctx, JS_UNDEFINED, obj, JS_EVAL_TYPE_DIRECT, scope_idx);
+  } else {
+    ret_val = JS_CallInternal(
+      ctx,
+      call_argv[-1],
+      JS_UNDEFINED,
+      JS_UNDEFINED,
+      call_argc,
+      call_argv,
+      0);
+  }
+  return ret_val;
 }

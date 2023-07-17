@@ -562,6 +562,7 @@ static int JS_WriteFunctionTag(BCWriterState* s, JSValueConst obj) {
   bc_set_flags(&flags, &idx, b->arguments_allowed, 1);
   bc_set_flags(&flags, &idx, b->has_debug, 1);
   bc_set_flags(&flags, &idx, b->backtrace_barrier, 1);
+  bc_set_flags(&flags, &idx, b->has_eval_call_in_children, 1);
   assert(idx <= 16);
   bc_put_u16(s, flags);
   bc_put_u8(s, b->js_mode);
@@ -1517,6 +1518,7 @@ static JSValue JS_ReadFunctionTag(BCReaderState* s) {
   bc.arguments_allowed = bc_get_flags(v16, &idx, 1);
   bc.has_debug = bc_get_flags(v16, &idx, 1);
   bc.backtrace_barrier = bc_get_flags(v16, &idx, 1);
+  bc.has_eval_call_in_children = bc_get_flags(v16, &idx, 1);
   bc.read_only_bytecode = s->is_rom_data;
   if (bc_get_u8(s, &v8))
     goto fail;
