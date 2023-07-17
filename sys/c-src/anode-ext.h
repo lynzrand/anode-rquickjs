@@ -82,6 +82,12 @@ anode_stackframe_add_locals(JSStackFrame* sf, JSValue* locv) {
   sf->var_buf = locv;
 }
 
+static inline void anode_stackframe_set_pc(JSStackFrame* sf, int pc) {
+  sf->cur_pc = ((JSObject*)JS_VALUE_GET_PTR(sf->cur_func))
+                 ->u.func.function_bytecode->byte_code_buf
+    + pc;
+}
+
 /// Does the same bookkeeping stuff as the end of `JS_CallInternal`
 static inline void anode_stackframe_exit(JSContext* ctx, JSStackFrame* sf) {
   ctx->rt->current_stack_frame = sf->prev_frame;
@@ -134,7 +140,7 @@ JSValue anode_js_dec_any(JSContext* ctx, JSValue x);
 
 JSValue anode_run_eval(
   JSContext* ctx,
-  uint16_t scope_idx,
+  int scope_idx,
   int call_argc,
   JSValueConst* call_argv);
 

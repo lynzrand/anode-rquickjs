@@ -477,7 +477,7 @@ JSValue anode_js_dec_any(JSContext* ctx, JSValue x) {
 
 JSValue anode_run_eval(
   JSContext* ctx,
-  uint16_t scope_idx,
+  int scope_idx,
   int call_argc,
   JSValueConst* call_argv) {
   JSValue ret_val;
