@@ -474,11 +474,12 @@ JSValue anode_js_dec_any(JSContext* ctx, JSValue x) {
 JSValue anode_run_eval(
   JSContext* ctx,
   int scope_idx,
+  JSValueConst eval_obj,
   int call_argc,
   JSValueConst* call_argv) {
   JSValue ret_val;
   JSValue obj;
-  if (js_same_value(ctx, call_argv[-1], ctx->eval_obj)) {
+  if (js_same_value(ctx, eval_obj, ctx->eval_obj)) {
     if (call_argc >= 1)
       obj = call_argv[0];
     else
@@ -488,7 +489,7 @@ JSValue anode_run_eval(
   } else {
     ret_val = JS_CallInternal(
       ctx,
-      call_argv[-1],
+      eval_obj,
       JS_UNDEFINED,
       JS_UNDEFINED,
       call_argc,
