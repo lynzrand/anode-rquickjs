@@ -205,15 +205,11 @@ JSValue anode_js_bit_xor_any(JSContext* ctx, JSValue x, JSValue y) {
 }
 
 JSValue anode_js_not_any(JSContext* ctx, JSValue x) {
-  if (JS_VALUE_GET_TAG(x) == JS_TAG_INT) {
-    return JS_NewInt32(ctx, ~JS_VALUE_GET_INT(x));
-  } else {
-    JSValue args[] = {x};
-    if (js_not_slow(ctx, args + 1)) {
-      return JS_EXCEPTION;
-    }
-    return args[0];
+  JSValue args[] = {x};
+  if (js_not_slow(ctx, args + 1)) {
+    return JS_EXCEPTION;
   }
+  return args[0];
 }
 
 JSValue anode_js_shift_left_any(JSContext* ctx, JSValue x, JSValue y) {
@@ -234,7 +230,7 @@ JSValue anode_js_shift_right_any(JSContext* ctx, JSValue x, JSValue y) {
   if (JS_VALUE_IS_BOTH_INT(x, y)) {
     return JS_NewInt32(
       ctx,
-      JS_VALUE_GET_INT(x) >> (JS_VALUE_GET_INT(y) & 0x1f));
+      ((uint32_t)JS_VALUE_GET_INT(x)) >> (JS_VALUE_GET_INT(y) & 0x1f));
   } else {
     JSValue args[] = {x, y};
     if (js_shr_slow(ctx, args + 2)) {
@@ -248,7 +244,7 @@ JSValue anode_js_shift_right_arith_any(JSContext* ctx, JSValue x, JSValue y) {
   if (JS_VALUE_IS_BOTH_INT(x, y)) {
     return JS_NewInt32(
       ctx,
-      (int32_t)JS_VALUE_GET_INT(x) >> (JS_VALUE_GET_INT(y) & 0x1f));
+      ((int32_t)JS_VALUE_GET_INT(x)) >> (JS_VALUE_GET_INT(y) & 0x1f));
   } else {
     JSValue args[] = {x, y};
     if (js_binary_logic_slow(ctx, args + 2, OP_sar)) {
