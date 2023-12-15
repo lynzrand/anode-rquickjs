@@ -1,5 +1,6 @@
 #ifndef ANODE_EXT_H
 #define ANODE_EXT_H
+#include <memory.h>
 #include <string.h>
 
 #include "core/quickjs-internals.h"
@@ -68,11 +69,14 @@ static inline void anode_stackframe_init(
   JSValueConst func,
   int32_t argc,
   JSValue* argv) {
-  memset(sf, 0, sizeof(*sf));
+  sf->var_buf = NULL;
+  sf->cur_pc = 0;
+  sf->cur_sp = NULL;
   sf->prev_frame = ctx->rt->current_stack_frame;
   sf->cur_func = func;
   sf->arg_buf = argv;
   sf->arg_count = argc;
+  sf->js_mode = 0;
   init_list_head(&sf->var_ref_list);
   ctx->rt->current_stack_frame = sf;
 }
